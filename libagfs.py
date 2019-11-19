@@ -18,12 +18,12 @@ if geteuid() != 0:
     exit(-1)
 if int(platform.uname()[2][0]) < 4:
     print("Seems like you have an incompatible kernel, upgrade to something >= 4.x\nThis might not work properly..You have been warned!!!\n")
-    exit(-1)
+    print("GadgetFS might not work!!\n")
 try:
     import usb.core
     import usb.util
 except:
-    print ("Seems like you done have pyusb installed.\n[-]install it via pip:\n\t[-]pip install pyusb")
+    print ("Seems like you done have pyusb installed.\n[-]install it via pip:\n\t[-]pip3 install pyusb")
     exit(-1)
 
 ############auto gadgetFS class
@@ -67,12 +67,16 @@ class afs():
         self.device.attach_kernel_driver(self.interfaces.bInterfaceNumber)
         print("[-] Device released!")
 
-    def deviceInfo(self, device_number):
-        idProd, idVen = self.devices[device_number].split(':')[1:]
+    def deviceInfo(self):
+        '''gets the complete info only for any usb connected to the host'''
+        getusbs = usb.core.find(find_all=True)
+        devices = dict(enumerate(str(dev.manufacturer) + ":" + str(dev.idProduct) + ":" + str(dev.idVendor) for dev in getusbs))
+        for key, value in devices.items():
+            print(key, ":", value)
+        hook = input("---> Select a device: ")
+        idProd, idVen = devices[int(hook)].split(':')[1:]
         device = usb.core.find(idVendor=int(idVen), idProduct=int(idProd))
         print(device)
-
-
 
     def findSelect(self):
         '''find your device and select it'''
@@ -109,7 +113,7 @@ class afs():
                     print("Couldn't get a hid report but we have claimed the device.")
 
     def proxy(self,howmany):
-        ''' man in the middle the communication between the host and device '''
+        ''' man in the middle the communication between the device and host '''
         collected = 0
         attempts = int(howmany)
         while collected < attempts:
@@ -173,7 +177,7 @@ class afs():
 
 
     def usblyzerparse(self,dbname):
-        '''This method with parse your xml exported from usblyzer and then import them into the dabase'''
+        '''This method with parse your xml exported from usblyzer and then import them into the database'''
         try:
             self.dbname = dbname
             print("Creating Tables")

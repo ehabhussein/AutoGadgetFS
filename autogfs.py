@@ -18,12 +18,16 @@ class MyPrompt(Cmd):
             '''releases the claimed device back to its kernel driver'''
             self.agfs.releasedev()
 
+        def do_get_device_info(self,inp):
+            '''gets a usb device information without claming or detaching the device'''
+            self.agfs.deviceInfo()
+
         def do_usblyzerparse(self,inp):
             '''Parses the XML export from USBlyzer and puts it into an sqlite database\nPass a db name to it'''
             self.agfs.usblyzerparse(inp)
 
         def do_searchMsg(self,inp):
-            '''This function allowes you to search and select messages from the db for usage'''
+            '''This function allows you to search and select messages from the db for usage'''
             self.agfs.searchmsgs()
 
         def do_devProxy(self,inp):
@@ -31,4 +35,3 @@ class MyPrompt(Cmd):
             self.agfs.proxy(int(100))
 
 MyPrompt().cmdloop()
- 

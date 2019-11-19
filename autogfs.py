@@ -31,3 +31,4 @@ class MyPrompt(Cmd):
             self.agfs.proxy(int(100))
 
 MyPrompt().cmdloop()
+ 

@@ -1,3 +1,4 @@
+<pre>
 # AutoGadgetFS
 Usb testing framework
 
@@ -31,3 +32,4 @@ Find and select your usb device
 Agfs> help release_device
 releases the claimed device back to its kernel driver
 Agfs> exit
+</pre>

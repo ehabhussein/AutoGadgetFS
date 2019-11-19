@@ -23,7 +23,7 @@ class MyPrompt(Cmd):
             self.agfs.deviceInfo()
 
         def do_usblyzerparse(self,inp):
-            '''Parses the XML export from USBlyzer and puts it into an sqlite database\nPass a db name to it'''
+            '''Parses the XML export from USBlyzer and puts it into an sqlite database,Pass a db name to it'''
             self.agfs.usblyzerparse(inp)
 
         def do_searchMsg(self,inp):
@@ -31,7 +31,7 @@ class MyPrompt(Cmd):
             self.agfs.searchmsgs()
 
         def do_devProxy(self,inp):
-            '''will read traffic from the claimed device'''
-            self.agfs.proxy(int(100))
+            '''will a defined number of packets to be read from the claimed device'''
+            self.agfs.proxy(int(inp))
 
 MyPrompt().cmdloop()

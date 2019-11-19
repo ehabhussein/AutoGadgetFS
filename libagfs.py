@@ -37,6 +37,7 @@ class afs():
         """)
 
     def createdb(self, name):
+        '''create the sqlite table and columns for usblyzer dumps'''
         try:
             meta = MetaData()
             db = create_engine('sqlite:///%s.db' %(name.strip()))
@@ -121,8 +122,8 @@ class afs():
                 if e.args == ('Operation timed out',):
                     continue
 
-    def replaymsgs(self, direction=None, sequence=None):
-        '''replay a message from host to device or vise versa'''
+    def replaymsgs(self, direction=None, sequence=None , message=None):
+        '''replay a message from host to device'''
         try:
             if self.device:
                 epout = usb.util.find_descriptor(self.interfaces,custom_match = \
@@ -134,29 +135,21 @@ class afs():
                         usb.util.endpoint_direction(e.bEndpointAddress) == \
                         usb.util.ENDPOINT_IN)
                 assert ep is not None
-                print(ep)
-                exit(1)
-                if sequence is None and direction is None:
+                print(epout,epin)
+                if sequence is None and direction is None and message is None:
                     self.searchResults = self.connection.execute('select RawData from "%s" where io="%s"'%self.dbname,direction).fetchall()
                     for i in self.searchResults:
                         pprint.pprint(i[0])
-
-                elif sequence is not None and direction is not None:
+                elif sequence is not None and direction is not None and message is None:
                     self.searchResults = self.connection.execute('select RawData from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
                     pprint.pprint(self.searchResults[0][0])
+                elif message is not None:
+                    print("[-] Sending your custom message.")
                 else:
-                    print("[-] Nothing to be done")
+                    pass
         except Exception as e:
             print("[-] Can't find messages with your search\n",e)
 
-    def rawPayload(self,payload=None,direction=None):
-        ''' You can use this method to send your own payload, you can hook this onto your fuzzer even
-        This Also allows you to select the driection of where to send your payload either to device or to the host'''
-        pass
-
-    def simulate(self,direction=None):
-        '''simulate being either host or device'''
-        pass
 
     def searchmsgs(self):
         '''search and select all messages for a pattern'''
@@ -180,6 +173,7 @@ class afs():
 
 
     def usblyzerparse(self,dbname):
+        '''This method with parse your xml exported from usblyzer and then import them into the dabase'''
         try:
             self.dbname = dbname
             print("Creating Tables")
@@ -242,9 +236,12 @@ class afs():
             self.transaction.commit()
         except Exception as e:
             print("Unable to create or parse!",e)
+    def listengadgetfs(self):
+        '''will emulate a device and send responses back to the host'''
+        pass
 
     def setupGadgetFS(self):
-        ''' setup variables for gadgetFS '''
+        ''' setup variables for gadgetFS : Linux Only'''
         try:
             print("setting up: "+self.device.manufacturer)
             print("Aquiring info about the device for Gadetfs\n")

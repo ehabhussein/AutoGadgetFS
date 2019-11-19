@@ -60,13 +60,18 @@ class afs():
             print("[Error] cannot create db\n")
 
     def releasedev(self):
+        print("[-] Releasing the Interface")
         usb.util.release_interface(self.device, self.interfaces.bInterfaceNumber)
+        print("[-] Attaching the kernel driver")
         self.device.attach_kernel_driver(self.interfaces.bInterfaceNumber)
+        print("[-] Device released!")
 
-    def deviceInfo(self,device_number):
+    def deviceInfo(self, device_number):
         idProd, idVen = self.devices[device_number].split(':')[1:]
         device = usb.core.find(idVendor=int(idVen), idProduct=int(idProd))
         print(device)
+
+
 
     def findSelect(self):
         '''find your device and select it'''
@@ -94,15 +99,18 @@ class afs():
         if claim.lower() == 'y':
                 usb.util.claim_interface(self.device,self.interfaces.bInterfaceNumber)
                 print("Checking HID report retreval\n")
-                self.device_hidrep = binascii.hexlify(self.device.ctrl_transfer(self.epIN,6,0x2200,self.interfaces.bInterfaceNumber,0x400))
-                if self.device_hidrep:
-                    print(self.device_hidrep.decode("utf-8"))
-                    print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
+                try:
+                    self.device_hidrep = binascii.hexlify(self.device.ctrl_transfer(self.epIN,6,0x2200,self.interfaces.bInterfaceNumber,0x400))
+                    if self.device_hidrep:
+                        print(self.device_hidrep.decode("utf-8"))
+                        print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
+                except:
+                    print("Couldn't get a hid report but we have claimed the device.")
 
-    def proxy(self,sniffNsave=False):
+    def proxy(self,howmany):
         ''' man in the middle the communication between the host and device '''
         collected = 0
-        attempts = 50
+        attempts = int(howmany)
         while collected < attempts:
             try:
                 data = self.device.read(self.interfaces[0].bEndpointAddress, self.device.bMaxPacketSize0)
@@ -113,13 +121,39 @@ class afs():
                 if e.args == ('Operation timed out',):
                     continue
 
-    def replaymsg(self, direction=None, sequence=None):
+    def replaymsgs(self, direction=None, sequence=None):
         '''replay a message from host to device or vise versa'''
-        pass
+        try:
+            if self.device:
+                epout = usb.util.find_descriptor(self.interfaces,custom_match = \
+                    lambda e: \
+                    usb.util.endpoint_direction(e.bEndpointAddress) == \
+                    usb.util.ENDPOINT_OUT)
+                epin = usb.util.find_descriptor(self.interfaces, custom_match= \
+                    lambda e: \
+                        usb.util.endpoint_direction(e.bEndpointAddress) == \
+                        usb.util.ENDPOINT_IN)
+                assert ep is not None
+                print(ep)
+                exit(1)
+                if sequence is None and direction is None:
+                    self.searchResults = self.connection.execute('select RawData from "%s" where io="%s"'%self.dbname,direction).fetchall()
+                    for i in self.searchResults:
+                        pprint.pprint(i[0])
+
+                elif sequence is not None and direction is not None:
+                    self.searchResults = self.connection.execute('select RawData from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
+                    pprint.pprint(self.searchResults[0][0])
+                else:
+                    print("[-] Nothing to be done")
+        except Exception as e:
+            print("[-] Can't find messages with your search\n",e)
+
     def rawPayload(self,payload=None,direction=None):
         ''' You can use this method to send your own payload, you can hook this onto your fuzzer even
         This Also allows you to select the driection of where to send your payload either to device or to the host'''
         pass
+
     def simulate(self,direction=None):
         '''simulate being either host or device'''
         pass
@@ -135,7 +169,8 @@ class afs():
         pprint.pprint(_coldict)
         self.colSelection = int(input("Search in which column id: "))
         self.searcher = input("Enter search text: ")
-        self.searchResults = self.connection.execute('select * from "%s" where %s like "%%%s%%"'%(self.dbname, _coldict[self.colSelection], self.searcher)).fetchall()
+        self.searchResults = self.connection.execute('select * from "%s" where %s like "%%%s%%"'\
+                                                     %(self.dbname, _coldict[self.colSelection], self.searcher)).fetchall()
         self.searchdict = {}
         for i,j in enumerate(self.searchResults):
             self.searchdict[i] = j
@@ -165,19 +200,19 @@ class afs():
                     try:
                         _io = i['IO'] #IO
                     except:
-                        _io = "Null"
+                        _io = ""
                     try:
                         _cie = i['CIE'] #CIE
                     except:
-                        _cie = "Null"
+                        _cie = ""
                     try:
                         _devObj = i['DevObjAddr'] #devobjaddr
                     except:
-                        _devObj = "Null"
+                        _devObj = ""
                     try:
                         _irpAddr= i['IrpAddr']  # irpaddr
                     except:
-                        _irpAddr = "Null"
+                        _irpAddr = ""
                     try:
                         _mSize = int(i['RawDataSize']) # raw size
                     except:
@@ -187,8 +222,8 @@ class afs():
                        _mData = ''.join(i['RawData'].split())
                        _mDataAscii = bytearray.fromhex(_mData).decode(encoding="Latin1")
                     except Exception as e:
-                        _mData = "Null"
-                        _mDataAscii = "Null"
+                        _mData = ""
+                        _mDataAscii = ""
                     try:
                             _insert = _table.insert().values(
                                 seq=_seq,
@@ -261,7 +296,7 @@ class afs():
                 system("echo 0 > %s/g/functions/hid.usb0/protocol" %(basedir))
                 system("echo 64 > %s/g/functions/hid.usb0/report_length" % (basedir))
                 system("echo 0 > %s/g/functions/hid.usb0/subclass" % (basedir))
-                system("echo %s | xxd -r -ps > %s/g/functions/hid.usb0/report_desc" % (hidreport,basedir))
+                system("echo %s | xxd -r -ps > %s/g/functions/hid.usb0/report_desc" % (str(hidreport),basedir))
                 system("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1"%(basedir,basedir))
                 system("udevadm settle -t 5 || :")
                 system("ls /sys/class/udc/ > %s/g/UDC"%(basedir))

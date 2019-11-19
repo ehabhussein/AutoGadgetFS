@@ -19,8 +19,8 @@ Documented commands (type help <topic>):
 devProxy  find_usb_devices  help            searchMsg    
 exit      get_device_info   release_device  usblyzerparse
 
-Agfs> help find_usb_devices
-Find and select your usb device
+Agfs> help find_usb_devices\n
+Find and select your usb device\n
 Agfs> help searchMsg
 This function allows you to search and select messages from the db for usage
 Agfs> help usblyzerparse

@@ -159,17 +159,6 @@ class afs():
         '''replay a message from host to device'''
         try:
             if self.device:
-                epout = usb.util.find_descriptor(self.interfaces,custom_match = \
-                    lambda e: \
-                    usb.util.endpoint_direction(e.bEndpointAddress) == \
-                    usb.util.ENDPOINT_OUT)
-                epin = usb.util.find_descriptor(self.interfaces, custom_match= \
-                    lambda e: \
-                        usb.util.endpoint_direction(e.bEndpointAddress) == \
-                        usb.util.ENDPOINT_IN)
-                assert epin is not None
-                assert epout is not None
-                print(epout,epin)
                 if sequence is None and direction is not None and message is None:
                     self.searchResults = self.connection.execute('select RawData from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
                     for i in self.searchResults:

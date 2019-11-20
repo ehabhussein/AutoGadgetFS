@@ -88,7 +88,7 @@ class afs():
             print("Configuration Value: "+str(int(cfg.bConfigurationValue)) + '\n')
             for intf in cfg:
                 print('\tInterface number: ' + \
-                                 str(int(intf.bInterfaceNumber)-1) + \
+                                 str(int(intf.bInterfaceNumber)) + \
                                  ',Alternate Setting: ' + \
                                  str(intf.bAlternateSetting) + \
                                  '\n')

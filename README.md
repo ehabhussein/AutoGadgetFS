@@ -2,7 +2,7 @@
 # AutoGadgetFS
 Usb testing framework
 
-Work In progress. will be documented when the project is launched. 
+Work In progress. will be documented when the project is launched. No sending and receiving yet.
 
 
 # python3 autogfs.py   

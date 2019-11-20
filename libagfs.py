@@ -63,6 +63,7 @@ class afs():
             print("[Error] cannot create db\n")
 
     def releasedev(self):
+        '''releases the device and re-attaches the kernel driver'''
         print("[-] Releasing the Interface")
         usb.util.release_interface(self.device, self.interfaces.bInterfaceNumber)
         print("[-] Attaching the kernel driver")

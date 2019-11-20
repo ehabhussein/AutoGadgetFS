@@ -105,7 +105,7 @@ Checking HID report retreval
 05010900a101150025ff190029ff954075088102190029ff9102c0
 Success, now you can use the setupGadgetFS() method to use the device with GadgetFS
 
-Agfs> usblyzerparse('mydbname')
+Agfs> usblyzerparse mydbname
 Creating Tables
 Enter Path to USBlyzer xml dump: 1.xml
 Parsing the file..

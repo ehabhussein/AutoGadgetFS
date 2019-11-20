@@ -3,12 +3,15 @@ from cmd import Cmd
 
 class MyPrompt(Cmd):
         intro = 'Welcome to the AutoGFS shell.   Type help or ? to list commands.\n'
-        prompt = 'Agfs> '
+        prompt = '\nAgfs> '
         agfs = libagfs.afs()
 
         def do_exit(self, inp):
                 '''exit the application.'''
                 return True
+        def do_get_device_interfaces(self,inp):
+            '''Gets the interfaces and endpoints for a specified device'''
+            self.agfs.deviceInterfaces()
 
         def do_find_usb_devices(self, inp):
             '''Find and select your usb device'''
@@ -23,7 +26,7 @@ class MyPrompt(Cmd):
             self.agfs.deviceInfo()
 
         def do_usblyzerparse(self,inp):
-            '''Parses the XML export from USBlyzer and puts it into an sqlite database,Pass a db name to it'''
+            '''Parses the XML export from USBlyzer and puts it into an sqlite database\nPass a db name to it'''
             self.agfs.usblyzerparse(inp)
 
         def do_searchMsg(self,inp):
@@ -31,7 +34,7 @@ class MyPrompt(Cmd):
             self.agfs.searchmsgs()
 
         def do_devProxy(self,inp):
-            '''will a defined number of packets to be read from the claimed device'''
-            self.agfs.proxy(int(inp))
+            '''will read traffic from the claimed device'''
+            self.agfs.proxy(int(100))
 
 MyPrompt().cmdloop()

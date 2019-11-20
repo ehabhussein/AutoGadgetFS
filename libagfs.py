@@ -45,9 +45,11 @@ class afs():
             self.usblyzerdb = Table(
             name.strip(),
             meta,
+            Column('Type',String),
             Column('seq', Integer),
             Column('io', String),
             Column('cie', String),
+            Column('Duration', String),
             Column('DevObjAddr', String),
             Column('irpaddr', String),
             Column('RawDataSize', Integer),
@@ -78,6 +80,22 @@ class afs():
         device = usb.core.find(idVendor=int(idVen), idProduct=int(idProd))
         print(device)
 
+    def deviceInterfaces(self):
+        '''get all interfaces and endpoints on the device'''
+
+        for cfg in self.device:
+            print("Configuration Value: "+str(cfg.bConfigurationValue) + '\n')
+            for intf in cfg:
+                print('\tInterface number: ' + \
+                                 str(intf.bInterfaceNumber) + \
+                                 ',Alternate Setting: ' + \
+                                 str(intf.bAlternateSetting) + \
+                                 '\n')
+                for ep in intf:
+                    print('\t\tEndpoint Address: ' + \
+                                     hex(ep.bEndpointAddress) + \
+                                     '\n')
+
     def findSelect(self):
         '''find your device and select it'''
         self.getusbs = usb.core.find(find_all=True)
@@ -87,7 +105,7 @@ class afs():
         self.hook = input("---> Select a device: ")
         self.idProd,self.idVen = self.devices[int(self.hook)].split(':')[1:]
         self.device = usb.core.find(idVendor=int(self.idVen),idProduct=int(self.idProd))
-        print(self.device)
+        print(str(self.device))
         self.devcfg = self.device.get_active_configuration()
         self.interfaces = self.devcfg[(0, 0)]
         self.epIN = self.interfaces[0].bEndpointAddress
@@ -190,6 +208,14 @@ class afs():
                 self.xmlobj = xmltodict.parse(fd.read())
             print ("Inserting into database..")
             for i in self.xmlobj['USBlyzerXmlReport']['Items']['Item']:
+                    try:
+                        _type = i['Type']
+                    except:
+                        _type = ""
+                    try:
+                        _duration = i['Duration'].split(' ')[0]
+                    except:
+                        _duration = '0.0'
                     if "-" in i['Seq']:
                         _seq, _replyfrom  = map(int,i['Seq'].split("-"))
                     else:
@@ -218,15 +244,18 @@ class afs():
                     try:
                        # _mData = binascii.unhexlify(''.join(i['RawData'].split()))
                        _mData = ''.join(i['RawData'].split())
-                       _mDataAscii = bytearray.fromhex(_mData).decode(encoding="Latin1")
+                       #_mDataAscii = bytearray.fromhex(_mData).decode(encoding="Latin1")
+                       _mDataAscii = binascii.unhexlify(_mData)
                     except Exception as e:
                         _mData = ""
                         _mDataAscii = ""
                     try:
                             _insert = _table.insert().values(
+                                Type = _type,
                                 seq=_seq,
                                 io=_io,
                                 cie=_cie,
+                                Duration=_duration,
                                 DevObjAddr =_devObj,
                                 irpaddr=_irpAddr,
                                 RawDataSize = _mSize,
@@ -240,6 +269,7 @@ class afs():
             self.transaction.commit()
         except Exception as e:
             print("Unable to create or parse!",e)
+
     def listengadgetfs(self):
         '''will emulate a device and send responses back to the host'''
         pass

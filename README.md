@@ -15,22 +15,28 @@ Welcome to the AutoGFS shell.   Type help or ? to list commands.
 
 Agfs> help. 
 
-Documented commands (type help <topic>):  
+Documented commands (type help <topic>):
 ========================================
-devProxy  find_usb_devices  help            searchMsg       
-exit      get_device_info   release_device  usblyzerparse    
+devProxy          get_device_info        release_device
+exit              get_device_interfaces  searchMsg     
+find_usb_devices  help                   usblyzerparse  
 
 Agfs> help find_usb_devices  
 Find and select your usb device  
+
 Agfs> help searchMsg  
 This function allows you to search and select messages from the db for usage
+
 Agfs> help usblyzerparse
 Parses the XML export from USBlyzer and puts it into an sqlite database
 Pass a db name to it
+
 Agfs> help find_usb_devices
 Find and select your usb device
+
 Agfs> help release_device
 releases the claimed device back to its kernel driver
+
 Agfs> find_usb_devices()
 0 : VIA Labs, Inc.:2071:8457
 1 : Linux 5.2.0-kali2-amd64 xhci-hcd:3:7531
@@ -98,11 +104,13 @@ Checking HID report retreval
 
 05010900a101150025ff190029ff954075088102190029ff9102c0
 Success, now you can use the setupGadgetFS() method to use the device with GadgetFS
+
 Agfs> usblyzerparse('mydbname')
 Creating Tables
 Enter Path to USBlyzer xml dump: 1.xml
 Parsing the file..
 Inserting into database..
+
 Agfs> searchMsg()
 id->Column
 {0: 'seq',
@@ -128,5 +136,6 @@ Enter search text: 2233
  14: (42233, 'in', '01:01:81', 'FFFFDC844176BAD0h', 'FFFFDC8442BED9A0h', 0, '', '', 0)}
 Which message id to select: 1
 (12233, 'in', '01:01:81', 'FFFFDC844176BAD0h', 'FFFFDC844619F9A0h', 0, '', '', 0)
+
 Agfs> 
 </pre>

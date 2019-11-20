@@ -4,7 +4,7 @@ import xmltodict
 import platform
 import binascii
 from sys import exit
-from os import geteuid,system,mkdir
+from os import geteuid, system, mkdir
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
 from collections import defaultdict
@@ -115,7 +115,7 @@ class afs():
         if detachKernel.lower() == 'y':
             self.deviceInterfaces()
             try:
-                self.device.set_configuration()
+                #self.device.set_configuration()
                 self.devcfg = self.device.get_active_configuration()
                 self.precfg = int(input("which Configuration would you like to use: "))
                 self.interfacenumber = int(input("which Interface would you like to use: "))
@@ -132,7 +132,7 @@ class afs():
             claim = str(input("Do you want pyUSB to claim the device interface: [y/n] "))
             if claim.lower() == 'y':
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
-                    print("Checking HID report retreval\n")
+                    print("Checking HID report retrieval\n")
                     try:
                         self.device_hidrep = binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,self.interfaces.bInterfaceNumber,0x400))
                         if self.device_hidrep:
@@ -141,13 +141,13 @@ class afs():
                     except:
                         print("Couldn't get a hid report but we have claimed the device.")
 
-    def proxy(self,howmany):
+    def proxy(self,howmany,endpoint):
         ''' man in the middle the communication between the device and host '''
         collected = 0
         attempts = int(howmany)
         while collected < attempts:
             try:
-                data = self.device.read(self.epOUT, self.device.bMaxPacketSize0)
+                data = self.device.read(endpoint, self.device.bMaxPacketSize0)
                 collected += 1
                 print(data)
             except usb.core.USBError as e:

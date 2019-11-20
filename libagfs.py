@@ -7,6 +7,7 @@ from sys import exit
 from os import geteuid,system,mkdir
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
+from collections import defaultdict
 
 ###################### Pre-Checks
 
@@ -83,12 +84,11 @@ class afs():
 
     def deviceInterfaces(self):
         '''get all interfaces and endpoints on the device'''
-
         for cfg in self.device:
-            print("Configuration Value: "+str(cfg.bConfigurationValue) + '\n')
+            print("Configuration Value: "+str(int(cfg.bConfigurationValue)) + '\n')
             for intf in cfg:
                 print('\tInterface number: ' + \
-                                 str(intf.bInterfaceNumber) + \
+                                 str(int(intf.bInterfaceNumber)-1) + \
                                  ',Alternate Setting: ' + \
                                  str(intf.bAlternateSetting) + \
                                  '\n')
@@ -96,6 +96,10 @@ class afs():
                     print('\t\tEndpoint Address: ' + \
                                      hex(ep.bEndpointAddress) + \
                                      '\n')
+    def changeintf(self):
+        '''will allow you to change the interfaces you use with the device '''
+        self.deviceInterfaces()
+        pass
 
     def findSelect(self):
         '''find your device and select it'''
@@ -107,29 +111,35 @@ class afs():
         self.idProd,self.idVen = self.devices[int(self.hook)].split(':')[1:]
         self.device = usb.core.find(idVendor=int(self.idVen),idProduct=int(self.idProd))
         print(str(self.device))
-        self.devcfg = self.device.get_active_configuration()
-        self.interfaces = self.devcfg[(0, 0)]
-        self.epIN = self.interfaces[0].bEndpointAddress
-        try:
-            self.epOUT= self.interfaces[1].bEndpointAddress
-        except:
-            pass
         detachKernel = str(input("do you want to detach the device from it's kernel driver: [y/n] "))
         if detachKernel.lower() == 'y':
+            self.deviceInterfaces()
+            try:
+                self.device.set_configuration()
+                self.devcfg = self.device.get_active_configuration()
+                self.precfg = int(input("which Configuration would you like to use: "))
+                self.interfacenumber = int(input("which Interface would you like to use: "))
+                self.Alternate = int(input("which Alternate setting would you like to use: "))
+                self.epin = int(input("which Endpoint IN would you like to use: "), 16)
+                self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
+                self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
+            except Exception as e:
+                print (e)
+                print("Couldn't get device configuration!")
             if self.device.is_kernel_driver_active(self.interfaces.bInterfaceNumber):
                 self.device.detach_kernel_driver(self.interfaces.bInterfaceNumber)
                 print("[-] Kernel driver detached")
-        claim = str(input("Do you want pyUSB to claim the device interface: [y/n] "))
-        if claim.lower() == 'y':
-                usb.util.claim_interface(self.device,self.interfaces.bInterfaceNumber)
-                print("Checking HID report retreval\n")
-                try:
-                    self.device_hidrep = binascii.hexlify(self.device.ctrl_transfer(self.epIN,6,0x2200,self.interfaces.bInterfaceNumber,0x400))
-                    if self.device_hidrep:
-                        print(self.device_hidrep.decode("utf-8"))
-                        print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
-                except:
-                    print("Couldn't get a hid report but we have claimed the device.")
+            claim = str(input("Do you want pyUSB to claim the device interface: [y/n] "))
+            if claim.lower() == 'y':
+                    usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
+                    print("Checking HID report retreval\n")
+                    try:
+                        self.device_hidrep = binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,self.interfaces.bInterfaceNumber,0x400))
+                        if self.device_hidrep:
+                            print(self.device_hidrep.decode("utf-8"))
+                            print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
+                    except:
+                        print("Couldn't get a hid report but we have claimed the device.")
 
     def proxy(self,howmany):
         ''' man in the middle the communication between the device and host '''
@@ -137,7 +147,7 @@ class afs():
         attempts = int(howmany)
         while collected < attempts:
             try:
-                data = self.device.read(self.interfaces[0].bEndpointAddress, self.device.bMaxPacketSize0)
+                data = self.device.read(self.epOUT, self.device.bMaxPacketSize0)
                 collected += 1
                 print(data)
             except usb.core.USBError as e:
@@ -157,10 +167,11 @@ class afs():
                     lambda e: \
                         usb.util.endpoint_direction(e.bEndpointAddress) == \
                         usb.util.ENDPOINT_IN)
-                assert ep is not None
+                assert epin is not None
+                assert epout is not None
                 print(epout,epin)
-                if sequence is None and direction is None and message is None:
-                    self.searchResults = self.connection.execute('select RawData from "%s" where io="%s"'%self.dbname,direction).fetchall()
+                if sequence is None and direction is not None and message is None:
+                    self.searchResults = self.connection.execute('select RawData from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
                     for i in self.searchResults:
                         pprint.pprint(i[0])
                 elif sequence is not None and direction is not None and message is None:
@@ -243,9 +254,7 @@ class afs():
                     except:
                         _mSize = 0
                     try:
-                       # _mData = binascii.unhexlify(''.join(i['RawData'].split()))
                        _mData = ''.join(i['RawData'].split())
-                       #_mDataAscii = bytearray.fromhex(_mData).decode(encoding="Latin1")
                        _mDataAscii = binascii.unhexlify(_mData)
                     except Exception as e:
                         _mData = ""

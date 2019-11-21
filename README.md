@@ -17,7 +17,7 @@ Agfs> help.
 
 Documented commands (type help <topic>):
 ========================================
-devProxy          get_device_info        release_device
+do_devListen      get_device_info        release_device
 exit              get_device_interfaces  searchMsg     
 find_usb_devices  help                   usblyzerparse  
 
@@ -137,7 +137,7 @@ Enter search text: 2233
 Which message id to select: 1
 (12233, 'in', '01:01:81', 'FFFFDC844176BAD0h', 'FFFFDC844619F9A0h', 0, '', '', 0)
 
-Agfs> devProxy 100
+Agfs> do_devListen 100 0x81
 array('B', [0, 0, 15, 14, 0, 0, 0, 0])
 array('B', [0, 0, 0, 0, 0, 0, 0, 0])
 array('B', [0, 0, 14, 0, 0, 0, 0, 0])

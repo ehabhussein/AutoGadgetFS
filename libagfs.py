@@ -8,7 +8,6 @@ from sys import exit
 from os import geteuid, system, mkdir
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
-
 ######################Thanks To
 
 #Josep Rodriguez for the Inspiration
@@ -103,7 +102,13 @@ class afs():
     def changeintf(self):
         '''will allow you to change the interfaces you use with the device '''
         self.deviceInterfaces()
-        pass
+        self.precfg = int(input("which Configuration would you like to use: "))
+        self.interfacenumber = int(input("which Interface would you like to use: "))
+        self.Alternate = int(input("which Alternate setting would you like to use: "))
+        self.epin = int(input("which Endpoint IN would you like to use: "), 16)
+        self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
+        self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
+
 
     def findSelect(self):
         '''find your device and select it'''
@@ -124,12 +129,7 @@ class afs():
                 except Exception as e:
                     print("Can't set device configuration. not a problem!")
                 self.devcfg = self.device.get_active_configuration()
-                self.precfg = int(input("which Configuration would you like to use: "))
-                self.interfacenumber = int(input("which Interface would you like to use: "))
-                self.Alternate = int(input("which Alternate setting would you like to use: "))
-                self.epin = int(input("which Endpoint IN would you like to use: "), 16)
-                self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
-                self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
+                self.changeintf()
             except Exception as e:
                 print(e)
                 print("Couldn't get device configuration!")

@@ -5,6 +5,11 @@ Usb testing framework
 Work In progress. will be documented when the project is launched. No sending and receiving yet.
 
 
+
+
+For limited usability you can use a cmd line interface autogfs.py, but to take more control over the usb device and functionality of AutoGadgetfs i recommend you using the libagfs with ipython.
+
+****************************************************************************************************************************
 # python3 autogfs.py   
 
        *******************************************************************************. 
@@ -148,4 +153,8 @@ array('B', [0, 0, 11, 0, 0, 0, 0, 0])
 array('B', [0, 0, 0, 0, 0, 0, 0, 0])
 array('B', [32, 0, 0, 0, 0, 0, 0, 0])
 array('B', [32, 0, 15, 0, 0, 0, 0, 0])
+
+****************************************************************************************************************************
+
+# will add a libagfs example here !
 </pre>

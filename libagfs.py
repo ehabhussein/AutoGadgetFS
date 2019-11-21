@@ -151,10 +151,6 @@ class afs():
     def sniffdevice(self, howmany, endpoint):
         ''' read the communication between the device to host
          This is mostly taken from https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack '''
-        if endpoint == 'in':
-            endpoint = self.epin
-        else:
-            endpoint = self.epout
         collected = 0
         attempts = int(howmany)
         while collected < attempts:

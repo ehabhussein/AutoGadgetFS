@@ -33,8 +33,9 @@ class MyPrompt(Cmd):
             '''This function allows you to search and select messages from the db for usage'''
             self.agfs.searchmsgs()
 
-        def do_devProxy(self,inp):
-            '''will read traffic from the claimed device'''
-            self.agfs.proxy(int(100))
+        def do_devListen(self, inp):
+            '''will read traffic from the claimed device going to the host'''
+            count, endpoint = inp.split(" ")
+            self.agfs.sniffdevice(int(count), int(endpoint, 16))
 
 MyPrompt().cmdloop()

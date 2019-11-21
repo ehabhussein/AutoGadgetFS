@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 #Ehab Hussein
-#@__obzy__
 ##################### Imports
 import xmltodict
 import platform
@@ -146,12 +145,16 @@ class afs():
                         if self.device_hidrep:
                             print(self.device_hidrep.decode("utf-8"))
                             print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
+                        else:
+                            self.device_hidrep = ''
                     except:
                         print("Couldn't get a hid report but we have claimed the device.")
 
     def sniffdevice(self, howmany, endpoint):
         ''' read the communication between the device to host
-         This is mostly taken from https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack '''
+         This is mostly taken from:
+        https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack
+        Works like a charm '''
         collected = 0
         attempts = int(howmany)
         while collected < attempts:
@@ -283,7 +286,7 @@ class afs():
         pass
 
     def setupGadgetFS(self):
-        ''' setup variables for gadgetFS : Linux Only'''
+        ''' setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option'''
         try:
             print("setting up: "+self.device.manufacturer)
             print("Aquiring info about the device for Gadetfs\n")

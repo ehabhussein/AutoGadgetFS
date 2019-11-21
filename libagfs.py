@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+#Ehab Hussein
 ##################### Imports
 import xmltodict
 import platform
@@ -7,7 +8,10 @@ from sys import exit
 from os import geteuid, system, mkdir
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
-from collections import defaultdict
+
+######################Thanks To
+
+#Josep Rodriguez for the Inspiration
 
 ###################### Pre-Checks
 
@@ -115,7 +119,10 @@ class afs():
         if detachKernel.lower() == 'y':
             self.deviceInterfaces()
             try:
-                #self.device.set_configuration()
+                try:
+                    self.device.set_configuration()
+                except Exception as e:
+                    print("Can't set device configuration. not a problem!")
                 self.devcfg = self.device.get_active_configuration()
                 self.precfg = int(input("which Configuration would you like to use: "))
                 self.interfacenumber = int(input("which Interface would you like to use: "))
@@ -124,7 +131,7 @@ class afs():
                 self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
                 self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
             except Exception as e:
-                print (e)
+                print(e)
                 print("Couldn't get device configuration!")
             if self.device.is_kernel_driver_active(self.interfaces.bInterfaceNumber):
                 self.device.detach_kernel_driver(self.interfaces.bInterfaceNumber)
@@ -141,8 +148,13 @@ class afs():
                     except:
                         print("Couldn't get a hid report but we have claimed the device.")
 
-    def proxy(self,howmany,endpoint):
-        ''' man in the middle the communication between the device and host '''
+    def sniffdevice(self, howmany, endpoint):
+        ''' man in the middle the communication between the device and host
+         This is mostly taken from https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack '''
+        if endpoint == 'in':
+            endpoint = self.epin
+        else:
+            endpoint = self.epout
         collected = 0
         attempts = int(howmany)
         while collected < attempts:

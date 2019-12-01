@@ -103,15 +103,17 @@ class afs():
     def changeintf(self):
         '''will allow you to change the interfaces you use with the device '''
         self.deviceInterfaces()
-        self.precfg = int(input("which Configuration would you like to use: "))
-        self.device.set_configuration(self.precfg)
         self.devcfg = self.device.get_active_configuration()
+        self.precfg = int(input("which Configuration would you like to use: "))
         self.interfacenumber = int(input("which Interface would you like to use: "))
         self.Alternate = int(input("which Alternate setting would you like to use: "))
         self.epin = int(input("which Endpoint IN would you like to use:[0x??] "), 16)
         self.epout = int(input("which Endpoint OUT would you like to use:[0x??] "), 16)
         self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
-
+        try:
+            self.device.set_configuration(self.precfg)
+        except Exception as e:
+            print('could not set configuration! please make sure of your selection...')
 
     def findSelect(self):
         '''find your device and select it'''
@@ -132,7 +134,12 @@ class afs():
                 except Exception as e:
                     print("Can't set device configuration. not a problem!")
                 self.devcfg = self.device.get_active_configuration()
-                self.changeintf()
+                self.precfg = int(input("which Configuration would you like to use: "))
+                self.interfacenumber = int(input("which Interface would you like to use: "))
+                self.Alternate = int(input("which Alternate setting would you like to use: "))
+                self.epin = int(input("which Endpoint IN would you like to use: "), 16)
+                self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
+                self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
             except Exception as e:
                 print(e)
                 print("Couldn't get device configuration!")

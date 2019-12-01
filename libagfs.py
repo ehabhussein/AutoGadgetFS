@@ -8,6 +8,7 @@ from sys import exit
 from os import geteuid, system, mkdir
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
+from time import time
 ######################Thanks To
 
 #Josep Rodriguez for the Inspiration
@@ -103,10 +104,12 @@ class afs():
         '''will allow you to change the interfaces you use with the device '''
         self.deviceInterfaces()
         self.precfg = int(input("which Configuration would you like to use: "))
+        self.device.set_configuration(self.precfg)
+        self.devcfg = self.device.get_active_configuration()
         self.interfacenumber = int(input("which Interface would you like to use: "))
         self.Alternate = int(input("which Alternate setting would you like to use: "))
-        self.epin = int(input("which Endpoint IN would you like to use: "), 16)
-        self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
+        self.epin = int(input("which Endpoint IN would you like to use:[0x??] "), 16)
+        self.epout = int(input("which Endpoint OUT would you like to use:[0x??] "), 16)
         self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
 
 
@@ -146,11 +149,13 @@ class afs():
                             print(self.device_hidrep.decode("utf-8"))
                             print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
                         else:
-                            self.device_hidrep = ''
+                            self.device_hidrep = ''.encode("utf-8")
                     except:
                         print("Couldn't get a hid report but we have claimed the device.")
 
-    def sniffdevice(self, howmany, endpoint):
+
+    def sniffdevice(self, howmany, endpoint,message=None):
+        #we need to thread this!!
         ''' read the communication between the device to host
          This is mostly taken from:
         https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack
@@ -163,9 +168,15 @@ class afs():
                 collected += 1
                 print(data)
             except usb.core.USBError as e:
+                if message:
+                    packet = self.device.write(self.epout,message,self.device.bMaxPacketSize0)
                 data = None
                 if e.args == ('Operation timed out',):
                     continue
+
+    def talkdev(self):
+        pass
+
 
     def replaymsgs(self, direction=None, sequence=None , message=None):
         '''replay a message from host to device'''
@@ -285,9 +296,51 @@ class afs():
         '''will emulate a device and send responses back to the host'''
         pass
 
+    def clonedev(self):
+        try:
+            cloner = open("clones/%s" %self.device.manufacturer+"-"+str(self.device.idVendor)+"-"+str(self.device.idProduct)+"-"+str(time()),'w')
+            print("setting up: %s" %self.device.manufacturer)
+            print("Creating backup of device\n")
+            cloner.write('idVen=%s\n' %'0x{:04X}'.format(self.device.idVendor))
+            cloner.write('idProd=%s\n' %'0x{:04X}'.format(self.device.idProduct))
+            cloner.write('manufacturer=%s\n' %self.device.manufacturer)
+            cloner.write('bcdDev=%s\n' %'0x{:04X}'.format(self.device.bcdDevice))
+            cloner.write('bcdUSB=%s\n' %'0x{:04X}'.format(self.device.bcdUSB))
+            cloner.write('serial=%s\n' %self.device.iSerialNumber)
+            cloner.write('bDevClass=%s\n' %'0x{:04X}'.format(self.device.bDeviceClass))
+            cloner.write('bDevSubClass=%s\n' %hex(self.device.bDeviceSubClass))
+            cloner.write('protocol=%s\n' %hex(self.device.bDeviceProtocol))
+            cloner.write('MaxPacketSize=%s\n' %'0x{:04X}'.format(self.device.bMaxPacketSize0))
+            cloner.write('hidreport=%s\n' %self.device_hidrep.decode("utf-8"))
+            cloner.write('bmAttributes=%s\n' %hex(self.devcfg.bmAttributes))
+            cloner.write('MaxPower=%s\n' %hex(self.devcfg.bMaxPower))
+            cloner.write('product=%s\n' %self.device.product)
+            cloner.write('++++++\n')
+            cloner.write('')
+            print("- Done: Device settings copied to file.\n")
+            cloner.close()
+        except Exception as e:
+            print("Cannot clone the device! ",e)
+
     def setupGadgetFS(self):
         ''' setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option'''
         try:
+            print("Aquiring info about the device for Gadetfs\n")
+            idVen = '0x{:04X}'.format(self.device.idVendor)
+            idProd = '0x{:04X}'.format(self.device.idProduct)
+            manufacturer = self.device.manufacturer
+            bcdDev = '0x{:04X}'.format(self.device.bcdDevice)
+            bcdUSB = '0x{:04X}'.format(self.device.bcdUSB)
+            serial = ''
+            bDevClass = '0x{:04X}'.format(self.device.bDeviceClass)
+            bDevSubClass = hex(self.device.bDeviceSubClass)
+            protocol = hex(self.device.bDeviceProtocol)
+            MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
+            hidreport = self.device_hidrep.decode("utf-8")
+            bmAttributes = hex(self.devcfg.bmAttributes)
+            MaxPower = hex(self.devcfg.bMaxPower)
+            product = self.device.product
+            print("- Done: Device settings copied.\n")
             print("setting up: "+self.device.manufacturer)
             print("Aquiring info about the device for Gadetfs\n")
             idVen = '0x{:04X}'.format(self.device.idVendor)

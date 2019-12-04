@@ -158,6 +158,7 @@ class afs():
                         else:
                             self.device_hidrep = ''.encode("utf-8")
                     except:
+                        self.device_hidrep = ''.encode("utf-8")
                         print("Couldn't get a hid report but we have claimed the device.")
 
 
@@ -323,7 +324,7 @@ class afs():
             cloner.write('MaxPower=%s\n' %hex(self.devcfg.bMaxPower))
             cloner.write('product=%s\n' %self.device.product)
             cloner.write('++++++\n')
-            cloner.write('')
+            cloner.write(str(self.device))
             print("- Done: Device settings copied to file.\n")
             cloner.close()
         except Exception as e:

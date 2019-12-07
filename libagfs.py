@@ -87,10 +87,13 @@ class afs():
         print(device)
 
     def deviceInterfaces(self):
-        '''get all interfaces and endpoints on the device'''
+        '''get all interfaces and endpoints on the device
+        Thanks to the pyusb tutorial'''
+        self.leninterfaces = 0
         for cfg in self.device:
             print("Configuration Value: "+str(int(cfg.bConfigurationValue)) + '\n')
             for intf in cfg:
+                self.leninterfaces += 1
                 print('\tInterface number: ' + \
                                  str(int(intf.bInterfaceNumber)) + \
                                  ',Alternate Setting: ' + \
@@ -150,15 +153,25 @@ class afs():
             if claim.lower() == 'y':
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
                     print("Checking HID report retrieval\n")
+                    print(self.leninterfaces)
                     try:
-                        self.device_hidrep = binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,self.interfaces.bInterfaceNumber,0x400))
+                        self.device_hidrep = []
+                        for i in range(0,self.leninterfaces+1):
+                            try:
+                                self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,i,0x400)))
+                                print(self.device_hidrep)
+                            except usb.core.USBError:
+                                pass
+                        #self.device_hidrep = binascii.hexlify(usb.control.get_descriptor(self.device,0x400,usb.util.DESC_TYPE_DEVICE,0))
+                        print(self.device_hidrep)
                         if self.device_hidrep:
-                            print(self.device_hidrep.decode("utf-8"))
+                            print(self.device_hidrep)
                             print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
                         else:
-                            self.device_hidrep = ''.encode("utf-8")
-                    except:
-                        self.device_hidrep = ''.encode("utf-8")
+                            self.device_hidrep = []
+                    except Exception as e:
+                        print (e)
+                        self.device_hidrep = []
                         print("Couldn't get a hid report but we have claimed the device.")
 
 
@@ -305,6 +318,7 @@ class afs():
         pass
 
     def clonedev(self):
+        ##TODO: switch this to a json object written to the file for easy parsing later
         try:
             cloner = open("clones/%s" %self.device.manufacturer+"-"+str(self.device.idVendor)+"-"+str(self.device.idProduct)+"-"+str(time()),'w')
             print("setting up: %s" %self.device.manufacturer)
@@ -319,12 +333,12 @@ class afs():
             cloner.write('bDevSubClass=%s\n' %hex(self.device.bDeviceSubClass))
             cloner.write('protocol=%s\n' %hex(self.device.bDeviceProtocol))
             cloner.write('MaxPacketSize=%s\n' %'0x{:04X}'.format(self.device.bMaxPacketSize0))
-            cloner.write('hidreport=%s\n' %self.device_hidrep.decode("utf-8"))
+            cloner.write('hidreport=%s\n' %self.device_hidrep)
             cloner.write('bmAttributes=%s\n' %hex(self.devcfg.bmAttributes))
             cloner.write('MaxPower=%s\n' %hex(self.devcfg.bMaxPower))
             cloner.write('product=%s\n' %self.device.product)
             cloner.write('++++++\n')
-            cloner.write(str(self.device))
+            cloner.write(str(self.device)+"\n\n")
             print("- Done: Device settings copied to file.\n")
             cloner.close()
         except Exception as e:

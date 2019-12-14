@@ -1,18 +1,21 @@
 #!/usr/bin/python3
-#Ehab Hussein
+__author__ = "Ehab Hussein"
+__credits__ = ['Josep Pi Rodriguez',    'Dani Martinez']
+__version__ = "1.0"
+__email__ = "raindrop@ctrl-f.org"
+__twitter__ = "@0xRaindrop"
+__status__ = "Development"
 ##################### Imports
 import xmltodict
 import platform
 import binascii
 from sys import exit
-from os import geteuid, system, mkdir
+from os import geteuid
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
-from time import time
-######################Thanks To
-
-#Josep Rodriguez for the Inspiration
-
+from time import time,sleep
+import json
+import threading
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -33,16 +36,17 @@ except:
 
 ############auto gadgetFS class
 
-class afs():
+class agfs():
     def __init__(self):
         print ("""
-       *******************************************************************************
-       *AutoGadgetFS: Automated USB testing based on gadgetfs*************************
-       *******************************************************************************     
+*******************************************************************************
+*AutoGadgetFS: Automated USB testing based on gadgetfs*************************
+*******************************************************************************     
         """)
 
     def createdb(self, name):
         '''create the sqlite table and columns for usblyzer dumps'''
+
         try:
             meta = MetaData()
             db = create_engine('sqlite:///%s.db' %(name.strip()))
@@ -106,17 +110,23 @@ class afs():
     def changeintf(self):
         '''will allow you to change the interfaces you use with the device '''
         self.deviceInterfaces()
-        self.devcfg = self.device.get_active_configuration()
         self.precfg = int(input("which Configuration would you like to use: "))
         self.interfacenumber = int(input("which Interface would you like to use: "))
         self.Alternate = int(input("which Alternate setting would you like to use: "))
         self.epin = int(input("which Endpoint IN would you like to use:[0x??] "), 16)
         self.epout = int(input("which Endpoint OUT would you like to use:[0x??] "), 16)
-        self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
         try:
+            if self.device.is_kernel_driver_active(self.interfacenumber):
+                self.device.detach_kernel_driver(self.interfacenumber)
+                print("[-] Kernel driver detached from interface")
+            else:
+                print("[-] Kernel driver not detached from interface!!!!")
             self.device.set_configuration(self.precfg)
+            self.devcfg = self.device.get_active_configuration()
+            self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
+            usb.util.claim_interface(self.device, self.interfacenumber)
         except Exception as e:
-            print('could not set configuration! please make sure of your selection...')
+            print("Something went wrong while changing the interface\nError: ", e)
 
     def findSelect(self):
         '''find your device and select it'''
@@ -132,48 +142,64 @@ class afs():
         if detachKernel.lower() == 'y':
             self.deviceInterfaces()
             try:
-                try:
-                    self.device.set_configuration()
-                except Exception as e:
-                    print("Can't set device configuration. not a problem!")
                 self.devcfg = self.device.get_active_configuration()
                 self.precfg = int(input("which Configuration would you like to use: "))
+                try:
+                    self.devcfg = self.device.get_active_configuration()
+                except Exception as e:
+                    print("Can't set device configuration. not a problem!")
                 self.interfacenumber = int(input("which Interface would you like to use: "))
                 self.Alternate = int(input("which Alternate setting would you like to use: "))
                 self.epin = int(input("which Endpoint IN would you like to use: "), 16)
                 self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
                 self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
+                self.killthread = 0
             except Exception as e:
                 print(e)
                 print("Couldn't get device configuration!")
             if self.device.is_kernel_driver_active(self.interfaces.bInterfaceNumber):
                 self.device.detach_kernel_driver(self.interfaces.bInterfaceNumber)
                 print("[-] Kernel driver detached")
+            self.device.set_configuration(self.precfg)
             claim = str(input("Do you want pyUSB to claim the device interface: [y/n] "))
             if claim.lower() == 'y':
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
                     print("Checking HID report retrieval\n")
                     print(self.leninterfaces)
-                    try:
+                    try: 
                         self.device_hidrep = []
+                        '''Thanks https://wuffs.org/blog/mouse-adventures-part-5'''
                         for i in range(0,self.leninterfaces+1):
                             try:
                                 self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,i,0x400)))
                                 print(self.device_hidrep)
                             except usb.core.USBError:
                                 pass
-                        #self.device_hidrep = binascii.hexlify(usb.control.get_descriptor(self.device,0x400,usb.util.DESC_TYPE_DEVICE,0))
-                        print(self.device_hidrep)
                         if self.device_hidrep:
                             print(self.device_hidrep)
-                            print("Success, now you can use the setupGadgetFS() method to use the device with GadgetFS\n")
                         else:
                             self.device_hidrep = []
                     except Exception as e:
                         print (e)
                         self.device_hidrep = []
                         print("Couldn't get a hid report but we have claimed the device.")
+        self.SelectedDevice = self.device.manufacturer + "-" + str(self.device.idVendor) + "-" + str(self.device.idProduct) + "-" + str(time())
+        self.clonedev()
 
+    def stopSniffing(self):
+        self.killthread = 1
+        self.readerThread.join()
+        print("Sniffing has stopped successfully!")
+        self.killthread = 0
+
+    def startSniffReadThread(self,howmany,endpoint):
+    #   '''This is a thread to continue reading the endpoint'''
+    ## below lines would probably solve the sniffing issue
+        self.readerThread = threading.Thread(target=self.sniffdevice, args=(howmany, endpoint, ))
+        self.readerThread.start()
+
+        #dont forget to end with self.readerThread.join() in the write method
+    #    pass
 
     def sniffdevice(self, howmany, endpoint,message=None):
         #we need to thread this!!
@@ -183,20 +209,24 @@ class afs():
         Works like a charm '''
         collected = 0
         attempts = int(howmany)
-        while collected < attempts:
+        while collected <= attempts:
+            if self.killthread == 1:
+                break
             try:
+                self.youcansend = 0
                 data = self.device.read(endpoint, self.device.bMaxPacketSize0)
                 collected += 1
+                print("-----------------vvvFROM DEVICEvvv----------------")
                 print(data)
+                print("-----------------^^^FROM DEVICE^^^----------------")
             except usb.core.USBError as e:
-                if message:
-                    packet = self.device.write(self.epout,message,self.device.bMaxPacketSize0)
                 data = None
+                #if message:
+                #    packet = self.device.write(self.epout,message,self.device.bMaxPacketSize0)
                 if e.args == ('Operation timed out',):
-                    continue
-
-    def talkdev(self):
-        pass
+                    data = None
+                    #self.youcansend = 1
+                    pass
 
 
     def replaymsgs(self, direction=None, sequence=None , message=None):
@@ -204,11 +234,24 @@ class afs():
         try:
             if self.device:
                 if sequence is None and direction is not None and message is None:
-                    self.searchResults = self.connection.execute('select RawData from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
+                    self.searchResults = self.connection.execute('select RawAscii from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
                     for i in self.searchResults:
-                        pprint.pprint(i[0])
+                                print(i[0])
+                                try:
+                                    print("Writting")
+                                    self.device.write(self.epout, i[0],0x400)
+                                    print("Reading")
+                                    self.sniffdevice(1,self.epin)
+                                except usb.core.USBError as e:
+                                    if e.args == ('Operation timed out',):
+                                        print("timedout\n")
+                                        continue
+                                finally:
+                                    pass
+
+                            #self.sniffdevice(1,self.epin)
                 elif sequence is not None and direction is not None and message is None:
-                    self.searchResults = self.connection.execute('select RawData from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
+                    self.searchResults = self.connection.execute('select RawAscii from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
                     pprint.pprint(self.searchResults[0][0])
                 elif message is not None:
                     print("[-] Sending your custom message.")
@@ -313,56 +356,39 @@ class afs():
         except Exception as e:
             print("Unable to create or parse!",e)
 
-    def listengadgetfs(self):
-        '''will emulate a device and send responses back to the host'''
-        pass
 
     def clonedev(self):
-        ##TODO: switch this to a json object written to the file for easy parsing later
         try:
-            cloner = open("clones/%s" %self.device.manufacturer+"-"+str(self.device.idVendor)+"-"+str(self.device.idProduct)+"-"+str(time()),'w')
+            cloner = open("clones/%s" %self.SelectedDevice,'w')
             print("setting up: %s" %self.device.manufacturer)
             print("Creating backup of device\n")
-            cloner.write('idVen=%s\n' %'0x{:04X}'.format(self.device.idVendor))
-            cloner.write('idProd=%s\n' %'0x{:04X}'.format(self.device.idProduct))
-            cloner.write('manufacturer=%s\n' %self.device.manufacturer)
-            cloner.write('bcdDev=%s\n' %'0x{:04X}'.format(self.device.bcdDevice))
-            cloner.write('bcdUSB=%s\n' %'0x{:04X}'.format(self.device.bcdUSB))
-            cloner.write('serial=%s\n' %self.device.iSerialNumber)
-            cloner.write('bDevClass=%s\n' %'0x{:04X}'.format(self.device.bDeviceClass))
-            cloner.write('bDevSubClass=%s\n' %hex(self.device.bDeviceSubClass))
-            cloner.write('protocol=%s\n' %hex(self.device.bDeviceProtocol))
-            cloner.write('MaxPacketSize=%s\n' %'0x{:04X}'.format(self.device.bMaxPacketSize0))
-            cloner.write('hidreport=%s\n' %self.device_hidrep)
-            cloner.write('bmAttributes=%s\n' %hex(self.devcfg.bmAttributes))
-            cloner.write('MaxPower=%s\n' %hex(self.devcfg.bMaxPower))
-            cloner.write('product=%s\n' %self.device.product)
-            cloner.write('++++++\n')
+            self.devJson = json.dumps({"idVen":'0x{:04X}'.format(self.device.idVendor),\
+                                  "idProd":'0x{:04X}'.format(self.device.idProduct),\
+                                  "manufacturer":self.device.manufacturer,\
+                                  "bcdDev":'0x{:04X}'.format(self.device.bcdDevice),\
+                                  "bcdUSB":'0x{:04X}'.format(self.device.bcdUSB),\
+                                  "serial":self.device.serial_number,\
+                                  "bDevClass":'0x{:04X}'.format(self.device.bDeviceClass),\
+                                  "bDevSubClass":hex(self.device.bDeviceSubClass),\
+                                  "protocol":hex(self.device.bDeviceProtocol),\
+                                  "MaxPacketSize":'0x{:04X}'.format(self.device.bMaxPacketSize0),\
+                                  "hidreport":','.join([i.decode('utf-8') for i in self.device_hidrep]),\
+                                  "bmAttributes":hex(self.devcfg.bmAttributes),\
+                                  "MaxPower":hex(self.devcfg.bMaxPower),
+                                  "product":self.device.product})
+            cloner.write(self.devJson)
+            cloner.write('\n++++++\n')
             cloner.write(str(self.device)+"\n\n")
             print("- Done: Device settings copied to file.\n")
             cloner.close()
         except Exception as e:
-            print("Cannot clone the device! ",e)
+            print("Cannot clone the device!\n",e)
 
     def setupGadgetFS(self):
         ''' setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option'''
         try:
-            print("Aquiring info about the device for Gadetfs\n")
-            idVen = '0x{:04X}'.format(self.device.idVendor)
-            idProd = '0x{:04X}'.format(self.device.idProduct)
-            manufacturer = self.device.manufacturer
-            bcdDev = '0x{:04X}'.format(self.device.bcdDevice)
-            bcdUSB = '0x{:04X}'.format(self.device.bcdUSB)
-            serial = ''
-            bDevClass = '0x{:04X}'.format(self.device.bDeviceClass)
-            bDevSubClass = hex(self.device.bDeviceSubClass)
-            protocol = hex(self.device.bDeviceProtocol)
-            MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
-            hidreport = self.device_hidrep.decode("utf-8")
-            bmAttributes = hex(self.devcfg.bmAttributes)
-            MaxPower = hex(self.devcfg.bMaxPower)
-            product = self.device.product
-            print("- Done: Device settings copied.\n")
+            ##TODO: its better to create bash scripts and push them to the piZero via ssh or something
+            agfsscr = open("gadgetscripts/"+self.SelectedDevice+".sh",'w')
             print("setting up: "+self.device.manufacturer)
             print("Aquiring info about the device for Gadetfs\n")
             idVen = '0x{:04X}'.format(self.device.idVendor)
@@ -370,54 +396,52 @@ class afs():
             manufacturer = self.device.manufacturer
             bcdDev = '0x{:04X}'.format(self.device.bcdDevice)
             bcdUSB = '0x{:04X}'.format(self.device.bcdUSB)
-            serial = ''
+            serial = self.device.serial_number
             bDevClass = '0x{:04X}'.format(self.device.bDeviceClass)
             bDevSubClass = hex(self.device.bDeviceSubClass)
             protocol = hex(self.device.bDeviceProtocol)
             MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
-            hidreport = self.device_hidrep.decode("utf-8")
+            if len(self.device_hidrep) != 0:
+                for i,j in enumerate(self.device_hidrep):
+                    print(i,"] "+j)
+                hidq = int(input("Which report would you like to use? "))
+                hidreport = self.device_hidrep[hidq]
+            else:
+                hidreport=''
             bmAttributes = hex(self.devcfg.bmAttributes)
             MaxPower = hex(self.devcfg.bMaxPower)
             product = self.device.product
-            print("- Done: Device settings copied.\n")
-            doCfgGFs = input("Shall we configure the system? [y/n] ")
-            if doCfgGFs.lower() == 'y':
-                basedir ="cfg/"
-                print("removing g_serial\n")
-                system("rmmod g_serial")
-                print("Adding libcomposite\n")
-                system("modprobe libcomposite")
-                print("Setting up Gadgetfs\n")
-                mkdir("%s"%basedir)
-                system("mount none cfg -t configfs")
-                system("echo %s > %s/g/idVendor"%(idVen,basedir))
-                system("echo %s > %s/g/idProduct" % (idProd, basedir))
-                system("echo %s > %s/g/bcdDevice" % (bcdDev, basedir))
-                system("echo %s > %s/g/bcdUSB" % (bcdUSB, basedir))
-                system("echo %s > %s/g/bDeviceClass" % (bDevClass, basedir))
-                system("echo %s > %s/g/bDeviceSubClass" % (bDevSubClass, basedir))
-                system("echo %s > %s/g/bDeviceProtocol" % (protocol, basedir))
-                system("echo %s > %s/g/bMaxPacketSize0" % (MaxPacketSize, basedir))
-
-                pathlib.Path('%s/g/strings/0x409/').mkdir(parents=True, exist_ok=True)
-                system("echo %s > %s/g/strings/0x409/serialnumber" % (serial, basedir))
-                system("echo %s > %s/g/strings/0x409/manufacturer" % (manufacturer, basedir))
-                system("echo %s > %s/g/strings/0x409/product" % (product, basedir))
-
-                pathlib.Path('%s/g/configs/c.1/strings/0x409/').mkdir(parents=True, exist_ok=True)
-                system("echo %s > %s/g/configs/c.1/MaxPower" % (MaxPower, basedir))
-                system("echo %s > %s/g/configs/c.1/bmAttributes" % (bmAttributes, basedir))
-                system("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration" %(basedir))
-
-                pathlib.Path('%s/g/functions/hid.usb0/').mkdir(parents=True, exist_ok=True)
-                system("echo 0 > %s/g/functions/hid.usb0/protocol" %(basedir))
-                system("echo 64 > %s/g/functions/hid.usb0/report_length" % (basedir))
-                system("echo 0 > %s/g/functions/hid.usb0/subclass" % (basedir))
-                system("echo %s | xxd -r -ps > %s/g/functions/hid.usb0/report_desc" % (str(hidreport),basedir))
-                system("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1"%(basedir,basedir))
-                system("udevadm settle -t 5 || :")
-                system("ls /sys/class/udc/ > %s/g/UDC"%(basedir))
-            print("- Done. Try testing your gadget\n")
-
+            basedir = "cfg"
+            print("- Creating Bash script!\n")
+            agfsscr.write("#!/usr/bin/bash\n")
+            agfsscr.write("rmmod g_serial\n")
+            agfsscr.write("modprobe libcomposite\n")
+            agfsscr.write("mount none cfg -t configfs\n")
+            agfsscr.write("mkdir -p cfg/g/strings/0x409/\n")
+            agfsscr.write("mkdir -p cfg/g/functions/hid.usb0/\n")
+            agfsscr.write("mkdir -p cfg/g/configs/c.1/strings/0x409/\n")
+            agfsscr.write("echo %s > %s/g/idVendor\n"%(idVen,basedir))
+            agfsscr.write("echo %s > %s/g/idProduct\n" % (idProd, basedir))
+            agfsscr.write("echo %s > %s/g/bcdDevice\n" % (bcdDev, basedir))
+            agfsscr.write("echo %s > %s/g/bcdUSB\n" % (bcdUSB, basedir))
+            agfsscr.write("echo %s > %s/g/bDeviceClass\n" % (bDevClass, basedir))
+            agfsscr.write("echo %s > %s/g/bDeviceSubClass\n" % (bDevSubClass, basedir))
+            agfsscr.write("echo %s > %s/g/bDeviceProtocol\n" % (protocol, basedir))
+            agfsscr.write("echo %s > %s/g/bMaxPacketSize0\n" % (MaxPacketSize, basedir))
+            agfsscr.write("echo %s > %s/g/strings/0x409/serialnumber\n" % (serial, basedir))
+            agfsscr.write("echo %s > %s/g/strings/0x409/manufacturer\n" % (manufacturer, basedir))
+            agfsscr.write("echo %s > %s/g/strings/0x409/product\n" % (product, basedir))
+            agfsscr.write("echo %s > %s/g/configs/c.1/MaxPower\n" % (MaxPower, basedir))
+            agfsscr.write("echo %s > %s/g/configs/c.1/bmAttributes\n" % (bmAttributes, basedir))
+            agfsscr.write("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration\n" %(basedir))
+            agfsscr.write("echo 0 > %s/g/functions/hid.usb0/protocol\n" %(basedir))
+            agfsscr.write("echo 64 > %s/g/functions/hid.usb0/report_length\n" % (basedir))
+            agfsscr.write("echo 0 > %s/g/functions/hid.usb0/subclass\n" % (basedir))
+            agfsscr.write("echo %s | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (str(hidreport),basedir))
+            agfsscr.write("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1\n"%(basedir,basedir))
+            agfsscr.write("udevadm settle -t 5 || :\n")
+            agfsscr.write("ls /sys/class/udc/ > %s/g/UDC\n"%(basedir))
+            agfsscr.close()
+            print("- Done wrote bash script. Try testing your gadget\n")
         except Exception as e:
-            print("You need to call FindSelect() then clone() method method prior to setting up GadgetFS",e)
+            print("You need to call FindSelect() then clone() method method prior to setting up GadgetFS", e)

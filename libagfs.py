@@ -16,6 +16,7 @@ import pprint
 from time import time,sleep
 import json
 import threading
+import serial
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -193,6 +194,26 @@ class agfs():
         print("Sniffing has stopped successfully!")
         self.killthread = 0
 
+    def monInterfaceChng(self):
+        while True:
+            if self.monIntKill == 1:
+                break
+        if self.tmpInterfaces != str(self.device):
+            self.tmpInterfaces = str(self.device)
+            print("Device Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    def startMonInterfaceChng(self):
+        self.tmpInterfaces = None
+        self.monIntKill = 0
+        self.monIntThread = threading.Thread(target=self.monInterfaceChng)
+        self.monIntThread.start()
+
+    def stopMonInterfaceChang(self):
+        self.monIntKill = 1
+        self.monIntThread.join()
+        print("Monitoring of interface changes has stopped")
+
+
     def startSniffReadThread(self,howmany,endpoint):
        '''This is a thread to continuously read the replies from the device'''
         self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, ))
@@ -215,7 +236,14 @@ class agfs():
                 data = None
                 if e.args == ('Operation timed out',):
                     pass
-
+    def startSerialProxyThread(self):
+        pass
+    def stopSerialProxyThread(self):
+        pass
+    def serialProxy(self):
+        '''This will send messages between the device and host we use serial as wifi is somewhat unreliable on the pi zero
+        Baudrate should be set to 115200'''
+            pass
 
     def replaymsgs(self, direction=None, sequence=None , message=None):
         '''replay a message from host to device'''
@@ -224,7 +252,6 @@ class agfs():
                 if sequence is None and direction is not None and message is None:
                     self.searchResults = self.connection.execute('select RawAscii from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
                     for i in self.searchResults:
-                                print(i[0])
                                 try:
                                     print("++++++++++v TO DEVICE v+++++++++++++")
                                     self.device.write(self.epout, i[0],self.device.bMaxPacketSize0)
@@ -232,9 +259,12 @@ class agfs():
                                     print("++++++++++^ TO DEVICE ^+++++++++++++")
                                     sleep(0.5)
                                 except usb.core.USBError as e:
+                                    print("++++++++++v TO DEVICE v+++++++++++++")
+                                    print(e)
                                     if e.args == ('Operation timed out',):
                                         print("timedout\n")
                                         continue
+                                    print("++++++++++^ TO DEVICE ^+++++++++++++")
                                 finally:
                                     pass
                 elif sequence is not None and direction is not None and message is None:

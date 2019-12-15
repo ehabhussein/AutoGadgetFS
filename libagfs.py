@@ -187,45 +187,33 @@ class agfs():
         self.clonedev()
 
     def stopSniffing(self):
+        '''Kills the sniffing thread'''
         self.killthread = 1
         self.readerThread.join()
         print("Sniffing has stopped successfully!")
         self.killthread = 0
 
     def startSniffReadThread(self,howmany,endpoint):
-    #   '''This is a thread to continue reading the endpoint'''
-    ## below lines would probably solve the sniffing issue
-        self.readerThread = threading.Thread(target=self.sniffdevice, args=(howmany, endpoint, ))
+       '''This is a thread to continuously read the replies from the device'''
+        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, ))
         self.readerThread.start()
 
-        #dont forget to end with self.readerThread.join() in the write method
-    #    pass
-
-    def sniffdevice(self, howmany, endpoint,message=None):
-        #we need to thread this!!
+    def sniffdevice(self, endpoint):
         ''' read the communication between the device to host
          This is mostly taken from:
         https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack
         Works like a charm '''
-        collected = 0
-        attempts = int(howmany)
-        while collected <= attempts:
+        while True:
             if self.killthread == 1:
                 break
             try:
-                self.youcansend = 0
                 data = self.device.read(endpoint, self.device.bMaxPacketSize0)
-                collected += 1
                 print("-----------------vvvFROM DEVICEvvv----------------")
                 print(data)
                 print("-----------------^^^FROM DEVICE^^^----------------")
             except usb.core.USBError as e:
                 data = None
-                #if message:
-                #    packet = self.device.write(self.epout,message,self.device.bMaxPacketSize0)
                 if e.args == ('Operation timed out',):
-                    data = None
-                    #self.youcansend = 1
                     pass
 
 
@@ -238,22 +226,23 @@ class agfs():
                     for i in self.searchResults:
                                 print(i[0])
                                 try:
-                                    print("Writting")
-                                    self.device.write(self.epout, i[0],0x400)
-                                    print("Reading")
-                                    self.sniffdevice(1,self.epin)
+                                    print("++++++++++v TO DEVICE v+++++++++++++")
+                                    self.device.write(self.epout, i[0],self.device.bMaxPacketSize0)
+                                    print(i[0])
+                                    print("++++++++++^ TO DEVICE ^+++++++++++++")
+                                    sleep(0.5)
                                 except usb.core.USBError as e:
                                     if e.args == ('Operation timed out',):
                                         print("timedout\n")
                                         continue
                                 finally:
                                     pass
-
-                            #self.sniffdevice(1,self.epin)
                 elif sequence is not None and direction is not None and message is None:
+                    #Not implemented yet
                     self.searchResults = self.connection.execute('select RawAscii from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
                     pprint.pprint(self.searchResults[0][0])
                 elif message is not None:
+                    #Not implemented yet
                     print("[-] Sending your custom message.")
                 else:
                     pass
@@ -368,13 +357,13 @@ class agfs():
                                   "bcdDev":'0x{:04X}'.format(self.device.bcdDevice),\
                                   "bcdUSB":'0x{:04X}'.format(self.device.bcdUSB),\
                                   "serial":self.device.serial_number,\
-                                  "bDevClass":'0x{:04X}'.format(self.device.bDeviceClass),\
-                                  "bDevSubClass":hex(self.device.bDeviceSubClass),\
-                                  "protocol":hex(self.device.bDeviceProtocol),\
-                                  "MaxPacketSize":'0x{:04X}'.format(self.device.bMaxPacketSize0),\
+                                  "bDevClass":'0x{:02X}'.format(self.device.bDeviceClass),\
+                                  "bDevSubClass":'0x{:02X}'.format(self.device.bDeviceSubClass),\
+                                  "protocol":'0x{:02X}'.format(self.device.bDeviceProtocol),\
+                                  "MaxPacketSize":'0x{:02X}'.format(self.device.bMaxPacketSize0),\
                                   "hidreport":','.join([i.decode('utf-8') for i in self.device_hidrep]),\
-                                  "bmAttributes":hex(self.devcfg.bmAttributes),\
-                                  "MaxPower":hex(self.devcfg.bMaxPower),
+                                  "bmAttributes":'0x{:02X}'.format(self.devcfg.bmAttributes),\
+                                  "MaxPower":'0x{:02X}'.format(self.devcfg.bMaxPower),
                                   "product":self.device.product})
             cloner.write(self.devJson)
             cloner.write('\n++++++\n')
@@ -387,7 +376,6 @@ class agfs():
     def setupGadgetFS(self):
         ''' setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option'''
         try:
-            ##TODO: its better to create bash scripts and push them to the piZero via ssh or something
             agfsscr = open("gadgetscripts/"+self.SelectedDevice+".sh",'w')
             print("setting up: "+self.device.manufacturer)
             print("Aquiring info about the device for Gadetfs\n")
@@ -397,9 +385,9 @@ class agfs():
             bcdDev = '0x{:04X}'.format(self.device.bcdDevice)
             bcdUSB = '0x{:04X}'.format(self.device.bcdUSB)
             serial = self.device.serial_number
-            bDevClass = '0x{:04X}'.format(self.device.bDeviceClass)
-            bDevSubClass = hex(self.device.bDeviceSubClass)
-            protocol = hex(self.device.bDeviceProtocol)
+            bDevClass = '0x{:02X}'.format(self.device.bDeviceClass)
+            bDevSubClass = '0x{:02X}'.format(self.device.bDeviceSubClass)
+            protocol = '0x{:02X}'.formatself.device.bDeviceProtocol)
             MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
             if len(self.device_hidrep) != 0:
                 for i,j in enumerate(self.device_hidrep):
@@ -408,18 +396,19 @@ class agfs():
                 hidreport = self.device_hidrep[hidq]
             else:
                 hidreport=''
-            bmAttributes = hex(self.devcfg.bmAttributes)
-            MaxPower = hex(self.devcfg.bMaxPower)
+            bmAttributes = '0x{:02X}'.format(self.devcfg.bmAttributes)
+            MaxPower = '0x{:02X}'.format'(self.devcfg.bMaxPower)
             product = self.device.product
-            basedir = "cfg"
+            basedir = "/sys/kernel/config/usb_gadget"
             print("- Creating Bash script!\n")
             agfsscr.write("#!/bin/bash\n")
             agfsscr.write("rmmod g_serial\n")
             agfsscr.write("modprobe libcomposite\n")
-            agfsscr.write("mount none cfg -t configfs\n")
-            agfsscr.write("mkdir -p cfg/g/strings/0x409/\n")
-            agfsscr.write("mkdir -p cfg/g/functions/hid.usb0/\n")
-            agfsscr.write("mkdir -p cfg/g/configs/c.1/strings/0x409/\n")
+            agfsscr.write("cd /sys/kernel/config/usb_gadget/\n")
+            agfsscr.write("mkdir g && cd g\n")
+            agfsscr.write("mkdir -p /sys/kernel/config/usb_gadget/g/strings/0x409/\n")
+            agfsscr.write("mkdir -p /sys/kernel/config/usb_gadget/g/functions/hid.usb0/\n")
+            agfsscr.write("mkdir -p /sys/kernel/config/usb_gadget/g/configs/c.1/strings/0x409/\n")
             agfsscr.write("echo %s > %s/g/idVendor\n"%(idVen,basedir))
             agfsscr.write("echo %s > %s/g/idProduct\n" % (idProd, basedir))
             agfsscr.write("echo %s > %s/g/bcdDevice\n" % (bcdDev, basedir))
@@ -437,7 +426,7 @@ class agfs():
             agfsscr.write("echo 0 > %s/g/functions/hid.usb0/protocol\n" %(basedir))
             agfsscr.write("echo 64 > %s/g/functions/hid.usb0/report_length\n" % (basedir))
             agfsscr.write("echo 0 > %s/g/functions/hid.usb0/subclass\n" % (basedir))
-            agfsscr.write("echo %s | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (str(hidreport),basedir))
+            agfsscr.write("echo '%s' | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (str(hidreport),basedir))
             agfsscr.write("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1\n"%(basedir,basedir))
             agfsscr.write("udevadm settle -t 5 || :\n")
             agfsscr.write("ls /sys/class/udc/ > %s/g/UDC\n"%(basedir))

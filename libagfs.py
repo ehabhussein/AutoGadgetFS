@@ -463,4 +463,4 @@ class agfs():
             agfsscr.close()
             print("- Done wrote bash script. Try testing your gadget\n")
         except Exception as e:
-            print("You need to call FindSelect() then clone() method method prior to setting up GadgetFS", e)
+            print("You need to call FindSelect() then clonedev() method method prior to setting up GadgetFS", e)

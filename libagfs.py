@@ -214,10 +214,10 @@ class agfs():
         print("Monitoring of interface changes has stopped")
 
 
-    def startSniffReadThread(self,howmany,endpoint):
+    def startSniffReadThread(self,endpoint):
        '''This is a thread to continuously read the replies from the device'''
-        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, ))
-        self.readerThread.start()
+       self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, ))
+       self.readerThread.start()
 
     def sniffdevice(self, endpoint):
         ''' read the communication between the device to host
@@ -243,7 +243,7 @@ class agfs():
     def serialProxy(self):
         '''This will send messages between the device and host we use serial as wifi is somewhat unreliable on the pi zero
         Baudrate should be set to 115200'''
-            pass
+        pass
 
     def replaymsgs(self, direction=None, sequence=None , message=None):
         '''replay a message from host to device'''
@@ -417,7 +417,7 @@ class agfs():
             serial = self.device.serial_number
             bDevClass = '0x{:02X}'.format(self.device.bDeviceClass)
             bDevSubClass = '0x{:02X}'.format(self.device.bDeviceSubClass)
-            protocol = '0x{:02X}'.formatself.device.bDeviceProtocol)
+            protocol = '0x{:02X}'.format(self.device.bDeviceProtocol)
             MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
             if len(self.device_hidrep) != 0:
                 for i,j in enumerate(self.device_hidrep):
@@ -427,7 +427,7 @@ class agfs():
             else:
                 hidreport=''
             bmAttributes = '0x{:02X}'.format(self.devcfg.bmAttributes)
-            MaxPower = '0x{:02X}'.format'(self.devcfg.bMaxPower)
+            MaxPower = '0x{:02X}'.format(self.devcfg.bMaxPower)
             product = self.device.product
             basedir = "/sys/kernel/config/usb_gadget"
             print("- Creating Bash script!\n")

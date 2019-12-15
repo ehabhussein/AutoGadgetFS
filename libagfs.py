@@ -403,7 +403,7 @@ class agfs():
             MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
             if len(self.device_hidrep) != 0:
                 for i,j in enumerate(self.device_hidrep):
-                    print(i,"] "+j)
+                    print(i,"] ",j)
                 hidq = int(input("Which report would you like to use? "))
                 hidreport = self.device_hidrep[hidq]
             else:
@@ -413,7 +413,7 @@ class agfs():
             product = self.device.product
             basedir = "cfg"
             print("- Creating Bash script!\n")
-            agfsscr.write("#!/usr/bin/bash\n")
+            agfsscr.write("#!/bin/bash\n")
             agfsscr.write("rmmod g_serial\n")
             agfsscr.write("modprobe libcomposite\n")
             agfsscr.write("mount none cfg -t configfs\n")
@@ -428,9 +428,9 @@ class agfs():
             agfsscr.write("echo %s > %s/g/bDeviceSubClass\n" % (bDevSubClass, basedir))
             agfsscr.write("echo %s > %s/g/bDeviceProtocol\n" % (protocol, basedir))
             agfsscr.write("echo %s > %s/g/bMaxPacketSize0\n" % (MaxPacketSize, basedir))
-            agfsscr.write("echo %s > %s/g/strings/0x409/serialnumber\n" % (serial, basedir))
-            agfsscr.write("echo %s > %s/g/strings/0x409/manufacturer\n" % (manufacturer, basedir))
-            agfsscr.write("echo %s > %s/g/strings/0x409/product\n" % (product, basedir))
+            agfsscr.write("echo '%s' > %s/g/strings/0x409/serialnumber\n" % (serial, basedir))
+            agfsscr.write("echo '%s' > %s/g/strings/0x409/manufacturer\n" % (manufacturer, basedir))
+            agfsscr.write("echo '%s' > %s/g/strings/0x409/product\n" % (product, basedir))
             agfsscr.write("echo %s > %s/g/configs/c.1/MaxPower\n" % (MaxPower, basedir))
             agfsscr.write("echo %s > %s/g/configs/c.1/bmAttributes\n" % (bmAttributes, basedir))
             agfsscr.write("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration\n" %(basedir))

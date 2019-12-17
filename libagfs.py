@@ -143,12 +143,15 @@ class agfs():
         if detachKernel.lower() == 'y':
             self.deviceInterfaces()
             try:
-                self.devcfg = self.device.get_active_configuration()
+                # when we blacklist a module in udev rules we need to ensure that we dont get active config now. because it will crash
+                #self.devcfg = self.device.get_active_configuration()
                 self.precfg = int(input("which Configuration would you like to use: "))
                 try:
+                    self.devcfgset = self.device.set_configuration(self.precfg)
                     self.devcfg = self.device.get_active_configuration()
                 except Exception as e:
-                    print("Can't set device configuration. not a problem!")
+                    self.devcfg = self.device.get_active_configuration()
+                    print("Can't set device configuration. not a problem!\nYour device has most probably not been blacklisted in udev rules.")
                 self.interfacenumber = int(input("which Interface would you like to use: "))
                 self.Alternate = int(input("which Alternate setting would you like to use: "))
                 self.epin = int(input("which Endpoint IN would you like to use: "), 16)
@@ -158,10 +161,13 @@ class agfs():
             except Exception as e:
                 print(e)
                 print("Couldn't get device configuration!")
-            if self.device.is_kernel_driver_active(self.interfaces.bInterfaceNumber):
-                self.device.detach_kernel_driver(self.interfaces.bInterfaceNumber)
-                print("[-] Kernel driver detached")
-            self.device.set_configuration(self.precfg)
+            try:
+                if self.device.is_kernel_driver_active(self.interfaces.bInterfaceNumber):
+                    self.device.detach_kernel_driver(self.interfaces.bInterfaceNumber)
+                    print("[-] Kernel driver detached")
+            except Exception as e:
+                    pass
+            #self.device.set_configuration(self.precfg)
             claim = str(input("Do you want pyUSB to claim the device interface: [y/n] "))
             if claim.lower() == 'y':
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
@@ -185,7 +191,9 @@ class agfs():
                         self.device_hidrep = []
                         print("Couldn't get a hid report but we have claimed the device.")
         self.SelectedDevice = self.device.manufacturer + "-" + str(self.device.idVendor) + "-" + str(self.device.idProduct) + "-" + str(time())
-        self.clonedev()
+        cloneit = input("Do you want to save this device's information?[y/n]")
+        if cloneit.lower() == 'y':
+            self.clonedev()
 
     def stopSniffing(self):
         '''Kills the sniffing thread'''
@@ -232,18 +240,35 @@ class agfs():
                 print("-----------------vvvFROM DEVICEvvv----------------")
                 print(data)
                 print("-----------------^^^FROM DEVICE^^^----------------")
+                sleep(0.5)
             except usb.core.USBError as e:
                 data = None
                 if e.args == ('Operation timed out',):
                     pass
     def startSerialProxyThread(self):
-        pass
+        self.stopSerialkill = 0
+        self.startSerialProxyThread = threading.Thread(target=self.serialProxy)
+        self.startSerialProxyThread.start()
+
     def stopSerialProxyThread(self):
-        pass
+        self.stopSerialkill = 1
+        self.startSerialProxyThread.join()
+        print("Serial Communication has now been terminated!")
+
     def serialProxy(self):
         '''This will send messages between the device and host we use serial as wifi is somewhat unreliable on the pi zero
-        Baudrate should be set to 115200'''
-        pass
+        Baudrate should be set to 115200
+
+#Device---USB--<>----|
+#		             >--- Libagfs ----<>----Serial-|
+#					                               |
+#                                                   >-----gadgetFS-----USB-----Host
+listen on gfs side host dev/hid.0 get messgae send to device write and read device then write host
+        '''
+        while True:
+            if self.stopSerialkill == 1:
+                break
+            pass
 
     def replaymsgs(self, direction=None, sequence=None , message=None):
         '''replay a message from host to device'''

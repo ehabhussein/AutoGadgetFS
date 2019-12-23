@@ -2,7 +2,7 @@
 $ sudo apt install rabbitmq-server
 $ sudo rabbitmq-plugins enable rabbitmq_management
 |http://localhost:15672 ; guest/guest
- ---> upload the file rabbitMQbrokerconfig/rabbit_Wakanda2019-12-23.json and not worry about the below stuff
+ ---> upload the file rabbitMQbrokerconfig/rabbitmq-Config.json and not worry about the below stuff
 
 $ sudo rabbitmqctl add_user autogfs usb4ever
 $ sudo rabbitmqctl set_user_tags autogfs administrator

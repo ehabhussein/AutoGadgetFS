@@ -247,10 +247,7 @@ class agfs():
        self.readerThread.start()
 
     def sniffdevice(self, endpoint,pts):
-        ''' read the communication between the device to host
-         This is mostly taken from:
-
-        Works like a charm '''
+        ''' read the communication between the device to hosts'''
         with open('%s'%(pts.strip()), 'w') as ptsx:
             while True:
                 if self.killthread == 1:

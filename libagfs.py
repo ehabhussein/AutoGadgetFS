@@ -168,13 +168,6 @@ class agfs():
                 self.device.reset()
             try:
                 self.precfg = int(input("which Configuration would you like to use: "))
-                try:
-               #     self.devcfgset = self.device.set_configuration(self.precfg)
-                #    self.devcfg = self.device.get_active_configuration()
-                    pass
-                except Exception as e:
-                #    self.devcfg = self.device.get_active_configuration()
-                    print("Can't set device configuration. not a problem!\nYour device has most probably not been blacklisted in udev rules.")
                 self.devcfg = self.device.get_active_configuration()
                 self.interfacenumber = int(input("which Interface would you like to use: "))
                 self.Alternate = int(input("which Alternate setting would you like to use: "))

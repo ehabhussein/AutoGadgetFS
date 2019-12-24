@@ -8,7 +8,7 @@ __status__ = "Development"
 import xmltodict
 import platform
 import binascii
-from sys import exit
+from sys import exit,stdout
 from os import geteuid
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
@@ -69,8 +69,7 @@ class agfs():
             Column('RawDataSize', Integer),
             Column('RawData', String),
             Column('RawBinary',String),
-            Column('replyfrom', Integer)
-                                    )
+            Column('replyfrom', Integer))
             meta.create_all(db)
             return db, self.usblyzerdb
         except:
@@ -183,7 +182,7 @@ class agfs():
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
                     print("Checking HID report retrieval\n")
                     print(self.leninterfaces)
-                    try: 
+                    try:
                         self.device_hidrep = []
                         '''Thanks https://wuffs.org/blog/mouse-adventures-part-5'''
                         for i in range(0,self.leninterfaces+1):
@@ -209,18 +208,24 @@ class agfs():
         if cloneit.lower() == 'y':
             self.clonedev()
 
-    def monInterfaceChng(self):
+    def monInterfaceChng(self,ven,prod):
+        temp = str(self.device)
         while True:
-            if self.monIntKill == 1:
-                break
-        if self.tmpInterfaces != str(self.device):
-            self.tmpInterfaces = str(self.device)
-            print("Device Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                try:
+                    if self.monIntKill == 1:
+                        break
+                    device = usb.core.find(idVendor=ven, idProduct=prod)
+                    if str(temp) != str(device):
+                        temp = str(device)
+                        stdout.write("\nDevice Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                        stdout.flush()
+                    sleep(10)
+                except Exception as e:
+                    print(e)
 
     def startMonInterfaceChng(self):
-        self.tmpInterfaces = None
         self.monIntKill = 0
-        self.monIntThread = threading.Thread(target=self.monInterfaceChng)
+        self.monIntThread = threading.Thread(target=self.monInterfaceChng,args=(self.device.idVendor,self.device.idProduct,))
         self.monIntThread.start()
 
     def stopMonInterfaceChang(self):
@@ -233,7 +238,6 @@ class agfs():
         self.killthread = 1
         self.readerThread.join()
         print("Sniffing has stopped successfully!")
-        self.killthread = 0
 
     def startSniffReadThread(self,endpoint):
        '''This is a thread to continuously read the replies from the device'''
@@ -245,7 +249,7 @@ class agfs():
     def sniffdevice(self, endpoint,pts):
         ''' read the communication between the device to host
          This is mostly taken from:
-        https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack
+
         Works like a charm '''
         with open('%s'%(pts.strip()), 'w') as ptsx:
             while True:
@@ -254,7 +258,7 @@ class agfs():
                     break
                 try:
 
-                        ptsx.write(str(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))))+"\r\n")
+                        ptsx.write(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))).decode('utf-8')+"\r\n")
                         ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
                         sleep(0.5)
                 except usb.core.USBError as e:

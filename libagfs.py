@@ -277,7 +277,7 @@ class agfs():
         response = self.device.write(self.epin,binascii.unhexlify(body))
         if response:
             self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
-                                     body=binascii.hexlify(bytearray(response)))
+                                     body=binascii.hexlify(bytearray(response)).decode('utf-8'))
         ch.basic_ack(delivery_tag=method.delivery_tag)
         if self.isQconnected:
             self.qchannel.close()
@@ -293,20 +293,19 @@ class agfs():
             self.qchannel = self.qconnect.channel()
             self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
-            print("Connected to RabbitMQ, starting consumption!")
             self.qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams2 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds2)
             self.qconnect2 = pika.BlockingConnection(self.qpikaparams2)
             self.qchannel2 = self.qconnect2.channel()
-            print("Connected to exchange sending to host!")
+            print("Connected to RabbitMQ, starting consumption!")
+            print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
         except Exception as e:
             print(e)
 
 
     def replaymsgs(self, direction=None, sequence=None , message=None):
-        '''This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device or vise versa
-
+        '''This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
         @direction: in or out
         @sequence: the sequence number you would like to select to reply
         @message: will allow you to send your selected message

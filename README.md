@@ -144,7 +144,14 @@ Out[9]: array('B', [1, 1, 1, 85, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 [10]: x.stopSniffing()                                                                                                                                                                     
 Sniffing has stopped successfully!
-In [11]: exit                                                                                                                                                                                  
+
+In [11]: x.startMonInterfaceChng()                                                                                                                                                             
+
+In [11]:                                                                                                                                                                                       
+Device Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+In [11]:                                                                                                                                                                                       
+
+In [12]: exit                                                                                                                                                                                  
 foo@Wakanda:/home/raindrop/PycharmProjects/AutoGadgetFs# cat clones/NUVOTON-1046-41750-1575736170.7539692 
 idVen=0x0416
 idProd=0xA316

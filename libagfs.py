@@ -246,7 +246,7 @@ class agfs():
     def startSniffReadThread(self,endpoint):
        '''This is a thread to continuously read the replies from the device'''
        mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
-       input("Now type: tail -f /dev/pts/%s in the terminal. Press Enter when ready.." % mypts)
+       input("Press Enter when ready..on %s" % mypts)
        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint,mypts))
        self.readerThread.start()
 
@@ -255,10 +255,14 @@ class agfs():
          This is mostly taken from:
         https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack
         Works like a charm '''
-        with open('/dev/pts/%s'%(pts.strip()), 'w') as ptsx:
+        with open('%s'%(pts.strip()), 'w') as ptsx:
             while True:
+                if self.killthread == 1:
+                    ptsx.write("Thread Terminated Successfully")
+                    break
                 try:
-                        ptsx.write(str(self.device.read(endpoint, self.device.bMaxPacketSize0))+"\r\n")
+
+                        ptsx.write(str(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))))+"\r\n")
                         ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
                         sleep(0.5)
                 except usb.core.USBError as e:
@@ -267,43 +271,25 @@ class agfs():
                     pass
 
     def startMITMusbWifi(self):
-        self.isQconnected = 1
-        self.startMITMProxyRThread = threading.Thread(target=self.MITMproxyRead)
-        self.startMITMProxyWThread = threading.Thread(target=self.MITMproxyWrite)
-        self.startMITMProxyRThread.start()
-        self.startMITMProxyWThread.start()
+        self.isQconnected = 0
+        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy)
+        self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
-        self.isQconnected = 0
-        self.qchannel.close()
-        self.startMITMProxyRThread.join()
-        self.startMITMProxyWThread.join()
+        self.isQconnected = 1
+        self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
 
-    def MITMproxyWrite(self,isconnected):
-        try:
-            self.qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams2 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds2)
-            self.qconnect2 = pika.BlockingConnection(self.qpikaparams2)
-            self.qchannel2 = self.qconnect2.channel()
-            while True:
-                try:
-                    self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
-                                                 body=self.device.read(self.epin, self.device.bMaxPacketSize0).tobytes())
-                    if self.isQconnected == 0:
-                        break
-
-                except:
-                    pass
-            self.qchannel2.close()
-        except Exception as e:
-            print(e)
 
     def MITMproxyRQueues(self, ch, method, properties, body):
-        self.device.write(self.epin,binascii.unhexlify(body))
+        response = self.device.write(self.epin,binascii.unhexlify(body))
+        if response:
+            self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
+                                     body=binascii.hexlify(bytearray(response)))
         ch.basic_ack(delivery_tag=method.delivery_tag)
         if self.isQconnected:
             self.qchannel.close()
+            self.qchannel2.close()
 
 
 
@@ -316,6 +302,11 @@ class agfs():
             self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
             print("Connected to RabbitMQ, starting consumption!")
+            self.qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
+            self.qpikaparams2 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds2)
+            self.qconnect2 = pika.BlockingConnection(self.qpikaparams2)
+            self.qchannel2 = self.qconnect2.channel()
+            print("Connected to exchange sending to host!")
             self.qchannel.start_consuming()
         except Exception as e:
             print(e)
@@ -354,12 +345,8 @@ class agfs():
                     self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
                     pprint.pprint(self.searchResults[0][0])
                 elif message is not None:
-                    count += 1
-                    #Not implemented yet
                     print("[-] Sending your custom message.")
-                else:
-                    count += 1
-                    pass
+                    self.device.write(self.epout, message)
         except Exception as e:
             print("[-] Can't find messages with your search\n",e)
 

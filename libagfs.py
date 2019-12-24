@@ -2,7 +2,6 @@
 __author__ = "Ehab Hussein"
 __credits__ = ['Josep Pi Rodriguez',    'Dani Martinez']
 __version__ = "1.0"
-__email__ = "raindrop@ctrl-f.org"
 __twitter__ = "@0xRaindrop"
 __status__ = "Development"
 ##################### Imports

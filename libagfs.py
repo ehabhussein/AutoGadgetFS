@@ -209,13 +209,14 @@ class agfs():
             self.clonedev()
 
     def monInterfaceChng(self,ven,prod):
+        '''thread in charge of monitoring interfaces for changes'''
         temp = str(self.device)
         while True:
                 try:
                     if self.monIntKill == 1:
                         break
                     device = usb.core.find(idVendor=ven, idProduct=prod)
-                    if str(temp) != str(device):
+                    if temp != str(device):
                         temp = str(device)
                         stdout.write("\nDevice Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
                         stdout.flush()
@@ -224,11 +225,17 @@ class agfs():
                     print(e)
 
     def startMonInterfaceChng(self):
+        '''This method Allows you to monitor a device ever 10 second incase it suddenly changes its configuration.
+        Like when switching and Android phone from MTP to PTP . you'll get a notification so you can check
+        your inferfaces and adapt to that change using changeintf() method
+        '''
+
         self.monIntKill = 0
         self.monIntThread = threading.Thread(target=self.monInterfaceChng,args=(self.device.idVendor,self.device.idProduct,))
         self.monIntThread.start()
 
     def stopMonInterfaceChang(self):
+        '''Stops the interface monitor thread'''
         self.monIntKill = 1
         self.monIntThread.join()
         print("Monitoring of interface changes has stopped")
@@ -283,7 +290,6 @@ class agfs():
         if self.isQconnected:
             self.qchannel.close()
             self.qchannel2.close()
-
 
 
     def MITMproxyRead(self):

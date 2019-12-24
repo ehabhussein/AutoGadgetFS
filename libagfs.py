@@ -16,7 +16,8 @@ import pprint
 from time import time,sleep
 import json
 import threading
-import serial
+
+
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -34,12 +35,16 @@ try:
 except:
     print ("Seems like you done have pyusb installed.\n[-]install it via pip:\n\t[-]pip3 install pyusb")
     exit(-1)
+try:
+    import pika
+except:
+    print("Man in the middle for USB will not work. install pika")
 
 ############auto gadgetFS class
 
 class agfs():
     def __init__(self):
-        print ("""
+        print("""
 *******************************************************************************
 *AutoGadgetFS: Automated USB testing based on gadgetfs*************************
 *******************************************************************************     
@@ -64,7 +69,7 @@ class agfs():
             Column('irpaddr', String),
             Column('RawDataSize', Integer),
             Column('RawData', String),
-            Column('RawAscii',String),
+            Column('RawBinary',String),
             Column('replyfrom', Integer)
                                     )
             meta.create_all(db)
@@ -141,17 +146,36 @@ class agfs():
         print(str(self.device))
         detachKernel = str(input("do you want to detach the device from it's kernel driver: [y/n] "))
         if detachKernel.lower() == 'y':
-            self.deviceInterfaces()
             try:
-                # when we blacklist a module in udev rules we need to ensure that we dont get active config now. because it will crash
-                #self.devcfg = self.device.get_active_configuration()
+                '''https://stackoverflow.com/questions/23203563/pyusb-device-claimed-detach-kernel-driver-return-entity-not-found'''
+                confer = 1
+                for configurations in self.device:
+                    print("Disabling Interfaces on configuration: %d" %confer)
+                    print("Disabling interfaces :\n\t%s" %configurations.bNumInterfaces)
+                    for inter in range(configurations.bNumInterfaces+1):
+                        try:
+                            if self.device.is_kernel_driver_active(inter):
+                                self.device.detach_kernel_driver(inter)
+                                print("Disabled interface: %d" %inter)
+                        except:
+                            pass
+                print("[-] Kernel driver detached")
+                self.device.set_configuration()
+            except Exception as e:
+                    print("Failed to detach the kernel driver from the interfaces.",e )
+            self.deviceInterfaces()
+            if input("Do you want to reset the device? [y/n]: ").lower() == 'y':
+                self.device.reset()
+            try:
                 self.precfg = int(input("which Configuration would you like to use: "))
                 try:
-                    self.devcfgset = self.device.set_configuration(self.precfg)
-                    self.devcfg = self.device.get_active_configuration()
+               #     self.devcfgset = self.device.set_configuration(self.precfg)
+                #    self.devcfg = self.device.get_active_configuration()
+                    pass
                 except Exception as e:
-                    self.devcfg = self.device.get_active_configuration()
+                #    self.devcfg = self.device.get_active_configuration()
                     print("Can't set device configuration. not a problem!\nYour device has most probably not been blacklisted in udev rules.")
+                self.devcfg = self.device.get_active_configuration()
                 self.interfacenumber = int(input("which Interface would you like to use: "))
                 self.Alternate = int(input("which Alternate setting would you like to use: "))
                 self.epin = int(input("which Endpoint IN would you like to use: "), 16)
@@ -161,13 +185,7 @@ class agfs():
             except Exception as e:
                 print(e)
                 print("Couldn't get device configuration!")
-            try:
-                if self.device.is_kernel_driver_active(self.interfaces.bInterfaceNumber):
-                    self.device.detach_kernel_driver(self.interfaces.bInterfaceNumber)
-                    print("[-] Kernel driver detached")
-            except Exception as e:
-                    pass
-            #self.device.set_configuration(self.precfg)
+
             claim = str(input("Do you want pyUSB to claim the device interface: [y/n] "))
             if claim.lower() == 'y':
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
@@ -190,17 +208,14 @@ class agfs():
                         print (e)
                         self.device_hidrep = []
                         print("Couldn't get a hid report but we have claimed the device.")
-        self.SelectedDevice = self.device.manufacturer + "-" + str(self.device.idVendor) + "-" + str(self.device.idProduct) + "-" + str(time())
+        if type(self.device.manufacturer) is type(None):
+            self.manufacturer = "UnkManufacturer"
+        else:
+            self.manufacturer = self.device.manufacturer
+        self.SelectedDevice = self.manufacturer + "-" + str(self.device.idVendor) + "-" + str(self.device.idProduct) + "-" + str(time())
         cloneit = input("Do you want to save this device's information?[y/n]")
         if cloneit.lower() == 'y':
             self.clonedev()
-
-    def stopSniffing(self):
-        '''Kills the sniffing thread'''
-        self.killthread = 1
-        self.readerThread.join()
-        print("Sniffing has stopped successfully!")
-        self.killthread = 0
 
     def monInterfaceChng(self):
         while True:
@@ -221,92 +236,140 @@ class agfs():
         self.monIntThread.join()
         print("Monitoring of interface changes has stopped")
 
+    def stopSniffing(self):
+        '''Kills the sniffing thread'''
+        self.killthread = 1
+        self.readerThread.join()
+        print("Sniffing has stopped successfully!")
+        self.killthread = 0
 
     def startSniffReadThread(self,endpoint):
        '''This is a thread to continuously read the replies from the device'''
-       self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, ))
+       mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
+       input("Now type: tail -f /dev/pts/%s in the terminal. Press Enter when ready.." % mypts)
+       self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint,mypts))
        self.readerThread.start()
 
-    def sniffdevice(self, endpoint):
+    def sniffdevice(self, endpoint,pts):
         ''' read the communication between the device to host
          This is mostly taken from:
         https://www.orangecoat.com/how-to/read-and-decode-data-from-your-mouse-using-this-pyusb-hack
         Works like a charm '''
-        while True:
-            if self.killthread == 1:
-                break
-            try:
-                data = self.device.read(endpoint, self.device.bMaxPacketSize0)
-                print("-----------------vvvFROM DEVICEvvv----------------")
-                print(data)
-                print("-----------------^^^FROM DEVICE^^^----------------")
-                sleep(0.5)
-            except usb.core.USBError as e:
-                data = None
-                if e.args == ('Operation timed out',):
+        with open('/dev/pts/%s'%(pts.strip()), 'w') as ptsx:
+            while True:
+                try:
+                        ptsx.write(str(self.device.read(endpoint, self.device.bMaxPacketSize0))+"\r\n")
+                        ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
+                        sleep(0.5)
+                except usb.core.USBError as e:
+                    if e.args == ('Operation timed out\r\n',):
+                        pass
                     pass
-    def startSerialProxyThread(self):
-        self.stopSerialkill = 0
-        self.startSerialProxyThread = threading.Thread(target=self.serialProxy)
-        self.startSerialProxyThread.start()
 
-    def stopSerialProxyThread(self):
-        self.stopSerialkill = 1
-        self.startSerialProxyThread.join()
-        print("Serial Communication has now been terminated!")
+    def startMITMusbWifi(self):
+        self.isQconnected = 1
+        self.startMITMProxyRThread = threading.Thread(target=self.MITMproxyRead)
+        self.startMITMProxyWThread = threading.Thread(target=self.MITMproxyWrite)
+        self.startMITMProxyRThread.start()
+        self.startMITMProxyWThread.start()
 
-    def serialProxy(self):
-        '''This will send messages between the device and host we use serial as wifi is somewhat unreliable on the pi zero
-        Baudrate should be set to 115200
+    def stopMITMusbWifi(self):
+        self.isQconnected = 0
+        self.qchannel.close()
+        self.startMITMProxyRThread.join()
+        self.startMITMProxyWThread.join()
+        print("MITM Proxy has now been terminated!")
 
-#Device---USB--<>----|
-#		             >--- Libagfs ----<>----Serial-|
-#					                               |
-#                                                   >-----gadgetFS-----USB-----Host
-listen on gfs side host dev/hid.0 get messgae send to device write and read device then write host
-        '''
-        while True:
-            if self.stopSerialkill == 1:
-                break
-            pass
+    def MITMproxyWrite(self,isconnected):
+        try:
+            self.qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
+            self.qpikaparams2 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds2)
+            self.qconnect2 = pika.BlockingConnection(self.qpikaparams2)
+            self.qchannel2 = self.qconnect2.channel()
+            while True:
+                try:
+                    self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
+                                                 body=self.device.read(self.epin, self.device.bMaxPacketSize0).tobytes())
+                    if self.isQconnected == 0:
+                        break
+
+                except:
+                    pass
+            self.qchannel2.close()
+        except Exception as e:
+            print(e)
+
+    def MITMproxyRQueues(self, ch, method, properties, body):
+        self.device.write(self.epin,binascii.unhexlify(body))
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        if self.isQconnected:
+            self.qchannel.close()
+
+
+
+    def MITMproxyRead(self):
+        try:
+            self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
+            self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
+            self.qconnect = pika.BlockingConnection(self.qpikaparams)
+            self.qchannel = self.qconnect.channel()
+            self.qchannel.basic_qos(prefetch_count=1)
+            self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
+            print("Connected to RabbitMQ, starting consumption!")
+            self.qchannel.start_consuming()
+        except Exception as e:
+            print(e)
+
 
     def replaymsgs(self, direction=None, sequence=None , message=None):
-        '''replay a message from host to device'''
+        '''This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device or vise versa
+
+        @direction: in or out
+        @sequence: the sequence number you would like to select to reply
+        @message: will allow you to send your selected message
+        '''
+        count = 0
         try:
             if self.device:
                 if sequence is None and direction is not None and message is None:
-                    self.searchResults = self.connection.execute('select RawAscii from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
+                    self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
                     for i in self.searchResults:
+                                count += 1
                                 try:
-                                    print("++++++++++v TO DEVICE v+++++++++++++")
+                                    print("[%d] ++++++++++v TO DEVICE v+++++++++++++"%count)
                                     self.device.write(self.epout, i[0],self.device.bMaxPacketSize0)
                                     print(i[0])
-                                    print("++++++++++^ TO DEVICE ^+++++++++++++")
+                                    print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
                                     sleep(0.5)
                                 except usb.core.USBError as e:
-                                    print("++++++++++v TO DEVICE v+++++++++++++")
+                                    print("[%d] ++++++++++v TO DEVICE v+++++++++++++"%count)
                                     print(e)
                                     if e.args == ('Operation timed out',):
                                         print("timedout\n")
                                         continue
-                                    print("++++++++++^ TO DEVICE ^+++++++++++++")
-                                finally:
-                                    pass
+                                    print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
                 elif sequence is not None and direction is not None and message is None:
+                    count += 1
                     #Not implemented yet
-                    self.searchResults = self.connection.execute('select RawAscii from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
+                    self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
                     pprint.pprint(self.searchResults[0][0])
                 elif message is not None:
+                    count += 1
                     #Not implemented yet
                     print("[-] Sending your custom message.")
                 else:
+                    count += 1
                     pass
         except Exception as e:
             print("[-] Can't find messages with your search\n",e)
 
 
     def searchmsgs(self):
-        '''search and select all messages for a pattern'''
+        '''
+        This method allows you to search and select all messages for a pattern
+
+        this method does not return anything
+        '''
         _cols = inspect(self.dbObj)
         _coldict = {}
         self._names= _cols.get_columns(self.dbname)
@@ -327,14 +390,19 @@ listen on gfs side host dev/hid.0 get messgae send to device write and read devi
 
 
     def usblyzerparse(self,dbname):
-        '''This method with parse your xml exported from usblyzer and then import them into the database'''
+        '''This method will parse your xml exported from usblyzer and then import them into a database
+
+        @dbname: this parameter is used to create a sqlite database in the folder ./databases with the specified name passed.
+
+        this method returns nothing
+        '''
         try:
-            self.dbname = dbname
+            self.dbname = "databases/"+dbname+"_"+self.SelectedDevice
             print("Creating Tables")
             self.dbObj,_table = self.createdb(self.dbname)
             self.connection = self.dbObj.connect()
             self.transaction = self.connection.begin()
-            self.xmlfile = input("Enter Path to USBlyzer xml dump: ")
+            self.xmlfile = input("Enter  Path to USBlyzer xml dump: ")
             print("Parsing the file..")
             with open(self.xmlfile) as fd:
                 self.xmlobj = xmltodict.parse(fd.read())
@@ -390,7 +458,7 @@ listen on gfs side host dev/hid.0 get messgae send to device write and read devi
                                 irpaddr=_irpAddr,
                                 RawDataSize = _mSize,
                                 RawData =_mData,
-                                RawAscii = _mDataAscii,
+                                RawBinary = _mDataAscii,
                                 replyfrom =_replyfrom)
                             self.connection.execute(_insert)
                     except Exception as e:
@@ -402,13 +470,37 @@ listen on gfs side host dev/hid.0 get messgae send to device write and read devi
 
 
     def clonedev(self):
+        '''
+        This method does not need any parameters it only saves a backup of the device incase you need to share it or use it later.
+        saves the device information in the ./clones/ directory.
+
+        The best option is to allow Agfs to claim the interfaces prior to cloning it as we need to gather more info on the device
+        before we clone it.
+
+        This method returns nothing.
+        '''
         try:
-            cloner = open("clones/%s" %self.SelectedDevice,'w')
-            print("setting up: %s" %self.device.manufacturer)
+            try:
+                self.device_hidrep
+            except:
+                print("Claim the interfaces before trying to clone the device. We need some info")
+                return "Cloning Failed"
+            try:
+                self.devcfg.bmAttributes
+            except:
+                print("Claim the interfaces before trying to clone the device. We need some info")
+                return "Cloning Failed"
+            try:
+                self.devcfg.bMaxPower
+            except:
+                print("Claim the interfaces before trying to clone the device. We need some info")
+                return "Cloning Failed"
+            cloner = open("clones/%s" % self.SelectedDevice, 'w')
+            print("setting up: %s" % self.manufacturer)
             print("Creating backup of device\n")
             self.devJson = json.dumps({"idVen":'0x{:04X}'.format(self.device.idVendor),\
                                   "idProd":'0x{:04X}'.format(self.device.idProduct),\
-                                  "manufacturer":self.device.manufacturer,\
+                                  "manufacturer":self.manufacturer,\
                                   "bcdDev":'0x{:04X}'.format(self.device.bcdDevice),\
                                   "bcdUSB":'0x{:04X}'.format(self.device.bcdUSB),\
                                   "serial":self.device.serial_number,\
@@ -429,14 +521,20 @@ listen on gfs side host dev/hid.0 get messgae send to device write and read devi
             print("Cannot clone the device!\n",e)
 
     def setupGadgetFS(self):
-        ''' setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option'''
+        ''' setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option
+        This method does not require any parameters.
+        calling this method creates a bash script file inside the directory ./gadgetscripts/ which can then be pushed
+        and executed on the pi Zero to emulate the device being tested.
+
+        This method returns nothing.
+        '''
         try:
             agfsscr = open("gadgetscripts/"+self.SelectedDevice+".sh",'w')
-            print("setting up: "+self.device.manufacturer)
+            print("setting up: "+self.manufacturer)
             print("Aquiring info about the device for Gadetfs\n")
             idVen = '0x{:04X}'.format(self.device.idVendor)
             idProd = '0x{:04X}'.format(self.device.idProduct)
-            manufacturer = self.device.manufacturer
+            manufacturer = self.manufacturer
             bcdDev = '0x{:04X}'.format(self.device.bcdDevice)
             bcdUSB = '0x{:04X}'.format(self.device.bcdUSB)
             serial = self.device.serial_number
@@ -450,7 +548,7 @@ listen on gfs side host dev/hid.0 get messgae send to device write and read devi
                 hidq = int(input("Which report would you like to use? "))
                 hidreport = self.device_hidrep[hidq]
             else:
-                hidreport=''
+                hidreport=''.encode('utf-8')
             bmAttributes = '0x{:02X}'.format(self.devcfg.bmAttributes)
             MaxPower = '0x{:02X}'.format(self.devcfg.bMaxPower)
             product = self.device.product
@@ -478,10 +576,10 @@ listen on gfs side host dev/hid.0 get messgae send to device write and read devi
             agfsscr.write("echo %s > %s/g/configs/c.1/MaxPower\n" % (MaxPower, basedir))
             agfsscr.write("echo %s > %s/g/configs/c.1/bmAttributes\n" % (bmAttributes, basedir))
             agfsscr.write("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration\n" %(basedir))
-            agfsscr.write("echo 0 > %s/g/functions/hid.usb0/protocol\n" %(basedir))
-            agfsscr.write("echo 64 > %s/g/functions/hid.usb0/report_length\n" % (basedir))
-            agfsscr.write("echo 0 > %s/g/functions/hid.usb0/subclass\n" % (basedir))
-            agfsscr.write("echo '%s' | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (str(hidreport),basedir))
+            agfsscr.write("echo %s > %s/g/functions/hid.usb0/protocol\n" %(protocol,basedir))
+            agfsscr.write("echo %s > %s/g/functions/hid.usb0/report_length\n" % (len(hidreport),basedir))
+            agfsscr.write("echo %s > %s/g/functions/hid.usb0/subclass\n" % (bDevSubClass,basedir))
+            agfsscr.write("echo '%s' | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (hidreport.decode("utf-8") ,basedir))
             agfsscr.write("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1\n"%(basedir,basedir))
             agfsscr.write("udevadm settle -t 5 || :\n")
             agfsscr.write("ls /sys/class/udc/ > %s/g/UDC\n"%(basedir))

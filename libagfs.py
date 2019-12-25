@@ -111,6 +111,7 @@ class agfs():
                     print('\t\tEndpoint Address: ' + \
                                      hex(ep.bEndpointAddress) + \
                                      '\n')
+
     def changeintf(self):
         '''will allow you to change the interfaces you use with the device '''
         self.deviceInterfaces()
@@ -229,7 +230,7 @@ class agfs():
         Like when switching and Android phone from MTP to PTP . you'll get a notification so you can check
         your inferfaces and adapt to that change using changeintf() method
         '''
-
+        print("Interface monitoring thread has started.")
         self.monIntKill = 0
         self.monIntThread = threading.Thread(target=self.monInterfaceChng,args=(self.device.idVendor,self.device.idProduct,))
         self.monIntThread.start()
@@ -279,16 +280,17 @@ class agfs():
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
 
-
     def MITMproxyRQueues(self, ch, method, properties, body):
-        response = self.device.write(self.epout,binascii.unhexlify(body))
-        if response:
-            self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
-                                     body=binascii.hexlify(bytearray(self.device.read(self.epin, self.device.bMaxPacketSize0))).decode('utf-8'))
+
+        print(body)
+        self.device.write(self.epout,binascii.unhexlify(body))
+        #if response:
+        self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
+                                     body=self.device.read(self.epin, self.device.bMaxPacketSize0))
         ch.basic_ack(delivery_tag=method.delivery_tag)
         if self.isQconnected:
-            self.qchannel.close()
-            self.qchannel2.close()
+            self.qconnect2.close()
+            self.qconnect.close()
 
     def MITMproxy(self):
         try:
@@ -526,9 +528,16 @@ class agfs():
             bcdDev = '0x{:04X}'.format(self.device.bcdDevice)
             bcdUSB = '0x{:04X}'.format(self.device.bcdUSB)
             serial = self.device.serial_number
-            bDevClass = '0x{:02X}'.format(self.device.bDeviceClass)
-            bDevSubClass = '0x{:02X}'.format(self.device.bDeviceSubClass)
-            protocol = '0x{:02X}'.format(self.device.bDeviceProtocol)
+            '''http://irq5.io/2016/12/22/raspberry-pi-zero-as-multiple-usb-gadgets/'''
+            windows = input("are you going to configure this gadget to work with windows [y/n] ?").lower()
+            if windows == 'y':
+                bDevClass = '0x{:02X}'.format(0xEF)
+                bDevSubClass = '0x{:02X}'.format(0x02)
+                protocol = '0x{:02X}'.format(0x01)
+            else:
+                bDevClass = '0x{:02X}'.format(self.device.bDeviceClass)
+                bDevSubClass = '0x{:02X}'.format(self.device.bDeviceSubClass)
+                protocol = '0x{:02X}'.format(self.device.bDeviceProtocol)
             MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
             if len(self.device_hidrep) != 0:
                 for i,j in enumerate(self.device_hidrep):

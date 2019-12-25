@@ -261,7 +261,6 @@ class agfs():
                     ptsx.write("Thread Terminated Successfully")
                     break
                 try:
-
                         ptsx.write(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))).decode('utf-8')+"\r\n")
                         ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
                         sleep(0.5)
@@ -282,17 +281,16 @@ class agfs():
 
 
     def MITMproxyRQueues(self, ch, method, properties, body):
-        response = self.device.write(self.epin,binascii.unhexlify(body))
+        response = self.device.write(self.epout,binascii.unhexlify(body))
         if response:
             self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
-                                     body=binascii.hexlify(bytearray(response)).decode('utf-8'))
+                                     body=binascii.hexlify(bytearray(self.device.read(self.epin, self.device.bMaxPacketSize0))).decode('utf-8'))
         ch.basic_ack(delivery_tag=method.delivery_tag)
         if self.isQconnected:
             self.qchannel.close()
             self.qchannel2.close()
 
-
-    def MITMproxyRead(self):
+    def MITMproxy(self):
         try:
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
@@ -310,7 +308,12 @@ class agfs():
         except Exception as e:
             print(e)
 
+    def devWrite(self,endpoint,payload):
+        '''To use this with a method you would write make sure to run the startSniffReadThread() method first so you can monitor
+        responses'''
+        self.device.write(endpoint,payload)
 
+#need cleanup i dont like how the mesages are sent
     def replaymsgs(self, direction=None, sequence=None , message=None):
         '''This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
         @direction: in or out

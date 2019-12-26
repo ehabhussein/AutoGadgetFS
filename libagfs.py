@@ -276,6 +276,7 @@ class agfs():
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: is you will use the queues for a full proxy between target and host
+       :param channel: rabbitmq channel
        :return: None
         """
         if queue and pts is None:
@@ -286,10 +287,14 @@ class agfs():
                     break
                 try:
                     recvread = self.device.read(endpoint, self.device.bMaxPacketSize0)
-                    self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
+                    if recvread:
+                        channel.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=recvread)
                     print("VVV++++++++++++++++FROM DEVICE\n",recvread,"^^^++++++++++++++++FROMDEVICE\n")
+                    recvread = False
                 except usb.core.USBError as e:
+                    channel.basic_publish(exchange='agfs', routing_key='tonull',
+                                          body="heartbeats")
                     if e.args == ('Operation timed out\r\n',):
                         pass
                     pass
@@ -337,8 +342,9 @@ class agfs():
         :return None
         """
         print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
-        self.device.write(self.epout,binascii.unhexlify(body))
+        self.device.write(self.epout, binascii.unhexlify(body))
         ch.basic_ack(delivery_tag=method.delivery_tag)
+
 
     def MITMproxy(self,endpoint):
         """
@@ -365,15 +371,46 @@ class agfs():
             print(e)
 
     def devWrite(self,endpoint,payload):
-        """To use this with a method you would write make sure to run the startSniffReadThread() method first so you can monitor
-        responses
+        """To use this with a method you would write make sure to run the startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None)
+         method first so you can monitor responses
         :param endpoint: endpoint address you want to write method
         :param payload: the message to be sent to the devices
         :return: None
         """
         self.device.write(endpoint,payload)
 
-#need cleanup i dont like how the mesages are sent
+    def rabbitmqfakeheartbeat(self, channel):
+        while True:
+            if self.hbkill == 1:
+                break
+            channel.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeat")
+            sleep(10)
+
+    def inithostwrite(self):
+        """initiates a connection to the queue to comminicate with the host"""
+        self.hbkill = 0
+        self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
+        self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds3)
+        self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
+        self.qchannel3 = self.qconnect3.channel()
+        self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
+        self.hbThread.start()
+        print("Queues to host are yours! now you can use self.hostwrite(payload)")
+
+    def hostwrite(self, payload):
+        """use this when you want to send payloads to a device driver on the host
+        :param payload: the message to be sent to the host example: "0102AAFFCC"
+        start the pizeroRouter.py with argv[2] set to anything so we can send the host messages to a null Queue
+        """
+        self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
+                                     body=binascii.unhexlify(payload))
+
+    def stophostwrite(self):
+        self.hbkill = 1
+        self.hbThread.join()
+        self.qconnect3.close()
+
+#needs cleanup i dont like how the mesages are sent
     def replaymsgs(self, direction=None, sequence=None , message=None):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
         :param direction: in or out

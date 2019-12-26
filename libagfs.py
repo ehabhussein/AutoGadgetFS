@@ -50,7 +50,9 @@ class agfs():
         """)
 
     def createdb(self, name):
-        '''create the sqlite table and columns for usblyzer dumps'''
+        """create the sqlite table and columns for usblyzer dumps
+        :param name: this receives a name for the database name to be created
+        """
 
         try:
             meta = MetaData()
@@ -62,6 +64,8 @@ class agfs():
             Column('Type',String),
             Column('seq', Integer),
             Column('io', String),
+
+
             Column('cie', String),
             Column('Duration', String),
             Column('DevObjAddr', String),
@@ -76,7 +80,7 @@ class agfs():
             print("[Error] cannot create db\n")
 
     def releasedev(self):
-        '''releases the device and re-attaches the kernel driver'''
+        """releases the device and re-attaches the kernel driver"""
         print("[-] Releasing the Interface")
         usb.util.release_interface(self.device, self.interfaces.bInterfaceNumber)
         print("[-] Attaching the kernel driver")
@@ -84,7 +88,7 @@ class agfs():
         print("[-] Device released!")
 
     def deviceInfo(self):
-        '''gets the complete info only for any usb connected to the host'''
+        """gets the complete info only for any usb connected to the host"""
         getusbs = usb.core.find(find_all=True)
         devices = dict(enumerate(str(dev.manufacturer) + ":" + str(dev.idProduct) + ":" + str(dev.idVendor) for dev in getusbs))
         for key, value in devices.items():
@@ -95,8 +99,8 @@ class agfs():
         print(device)
 
     def deviceInterfaces(self):
-        '''get all interfaces and endpoints on the device
-        Thanks to the pyusb tutorial'''
+        """get all interfaces and endpoints on the device
+        Thanks to the pyusb tutorial"""
         self.leninterfaces = 0
         for cfg in self.device:
             print("Configuration Value: "+str(int(cfg.bConfigurationValue)) + '\n')
@@ -113,7 +117,7 @@ class agfs():
                                      '\n')
 
     def changeintf(self):
-        '''will allow you to change the interfaces you use with the device '''
+        """will allow you to change the interfaces you use with the device """
         self.deviceInterfaces()
         self.precfg = int(input("which Configuration would you like to use: "))
         self.interfacenumber = int(input("which Interface would you like to use: "))
@@ -134,7 +138,7 @@ class agfs():
             print("Something went wrong while changing the interface\nError: ", e)
 
     def findSelect(self):
-        '''find your device and select it'''
+        """find your device and select it"""
         self.getusbs = usb.core.find(find_all=True)
         self.devices = dict(enumerate(str(dev.manufacturer)+":"+str(dev.idProduct)+":"+str(dev.idVendor) for dev in self.getusbs))
         for key,value in self.devices.items():
@@ -146,7 +150,7 @@ class agfs():
         detachKernel = str(input("do you want to detach the device from it's kernel driver: [y/n] "))
         if detachKernel.lower() == 'y':
             try:
-                '''https://stackoverflow.com/questions/23203563/pyusb-device-claimed-detach-kernel-driver-return-entity-not-found'''
+                """https://stackoverflow.com/questions/23203563/pyusb-device-claimed-detach-kernel-driver-return-entity-not-found"""
                 confer = 1
                 for configurations in self.device:
                     print("Disabling Interfaces on configuration: %d" %confer)
@@ -185,7 +189,7 @@ class agfs():
                     print(self.leninterfaces)
                     try:
                         self.device_hidrep = []
-                        '''Thanks https://wuffs.org/blog/mouse-adventures-part-5'''
+                        """Thanks https://wuffs.org/blog/mouse-adventures-part-5"""
                         for i in range(0,self.leninterfaces+1):
                             try:
                                 self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,i,0x400)))
@@ -210,7 +214,11 @@ class agfs():
             self.clonedev()
 
     def monInterfaceChng(self,ven,prod):
-        '''thread in charge of monitoring interfaces for changes'''
+        """thread in charge of monitoring interfaces for changes
+        :param ven: receives the vendorID of the device
+        :param prod: receives the productID of the device
+        :return: None
+        """
         temp = str(self.device)
         while True:
                 try:
@@ -226,73 +234,101 @@ class agfs():
                     print(e)
 
     def startMonInterfaceChng(self):
-        '''This method Allows you to monitor a device ever 10 second incase it suddenly changes its configuration.
+        """This method Allows you to monitor a device ever 10 second incase it suddenly changes its configuration.
         Like when switching and Android phone from MTP to PTP . you'll get a notification so you can check
         your inferfaces and adapt to that change using changeintf() method
-        '''
+        """
         print("Interface monitoring thread has started.")
         self.monIntKill = 0
         self.monIntThread = threading.Thread(target=self.monInterfaceChng,args=(self.device.idVendor,self.device.idProduct,))
         self.monIntThread.start()
 
     def stopMonInterfaceChang(self):
-        '''Stops the interface monitor thread'''
+        """Stops the interface monitor thread"""
         self.monIntKill = 1
         self.monIntThread.join()
         print("Monitoring of interface changes has stopped")
 
     def stopSniffing(self):
-        '''Kills the sniffing thread'''
+        """Kills the sniffing thread"""
         self.killthread = 1
         self.readerThread.join()
         print("Sniffing has stopped successfully!")
 
-    def startSniffReadThread(self,endpoint):
-       '''This is a thread to continuously read the replies from the device'''
-       mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
-       input("Press Enter when ready..on %s" % mypts)
-       self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint,mypts))
-       self.readerThread.start()
+    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None):
+        """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
+       :param endpoint: endpoint address you want to read from
+       :param pts: if you want to read the device without queues and send output to a specific tty
+       :param queue: is you will use the queues for a full proxy between target and host
+       :return: None
+       """
+        mypts = None
+        if pts is not None:
+            mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
+            input("Press Enter when ready..on %s" % mypts)
+        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue,channel))
+        self.readerThread.start()
 
-    def sniffdevice(self, endpoint,pts):
-        ''' read the communication between the device to hosts'''
-        with open('%s'%(pts.strip()), 'w') as ptsx:
+    def sniffdevice(self, endpoint, pts, queue,channel):
+        """ read the communication between the device to hosts
+        you can either choose set pts or queue but not both.s
+       :param endpoint: endpoint address you want to read from
+       :param pts: if you want to read the device without queues and send output to a specific tty
+       :param queue: is you will use the queues for a full proxy between target and host
+       :return: None
+        """
+        if queue and pts is None:
             while True:
                 if self.killthread == 1:
-                    ptsx.write("Thread Terminated Successfully")
+                    queue = None
+                    print("Thread Terminated Successfully")
                     break
                 try:
-                        ptsx.write(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))).decode('utf-8')+"\r\n")
-                        ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
-                        sleep(0.5)
+                    recvread = self.device.read(endpoint, self.device.bMaxPacketSize0)
+                    self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
+                                                 body=recvread)
+                    print("VVV++++++++++++++++FROM DEVICE\n",recvread,"^^^++++++++++++++++FROMDEVICE\n")
                 except usb.core.USBError as e:
                     if e.args == ('Operation timed out\r\n',):
                         pass
                     pass
+        elif pts and queue is None:
+            with open('%s'%(pts.strip()), 'w') as ptsx:
+                while True:
+                    if self.killthread == 1:
+                        pts = None
+                        ptsx.write("Thread Terminated Successfully")
+                        break
+                    try:
+                            ptsx.write(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))).decode('utf-8')+"\r\n")
+                            ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
+                            sleep(0.5)
+                    except usb.core.USBError as e:
+                        if e.args == ('Operation timed out\r\n',):
+                            pass
+                        pass
+        else:
+            print("either pass to a queue or to a tty")
 
-    def startMITMusbWifi(self):
+    def startMITMusbWifi(self,endpoint=None):
         self.isQconnected = 0
-        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy)
+        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,))
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
         self.isQconnected = 1
+        self.qconnect2.close()
+        self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
+        self.stopSniffing()
 
     def MITMproxyRQueues(self, ch, method, properties, body):
-
-        print(body)
+        print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
         self.device.write(self.epout,binascii.unhexlify(body))
-        #if response:
-        self.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',
-                                     body=self.device.read(self.epin, self.device.bMaxPacketSize0))
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        if self.isQconnected:
-            self.qconnect2.close()
-            self.qconnect.close()
 
-    def MITMproxy(self):
+    def MITMproxy(self,endpoint):
         try:
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
@@ -304,24 +340,26 @@ class agfs():
             self.qpikaparams2 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds2)
             self.qconnect2 = pika.BlockingConnection(self.qpikaparams2)
             self.qchannel2 = self.qconnect2.channel()
+            self.startSniffReadThread(endpoint=endpoint, pts=None, queue=1,channel=self.qchannel2)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
+            print("MITM Proxy stopped!")
         except Exception as e:
             print(e)
 
     def devWrite(self,endpoint,payload):
-        '''To use this with a method you would write make sure to run the startSniffReadThread() method first so you can monitor
-        responses'''
+        """To use this with a method you would write make sure to run the startSniffReadThread() method first so you can monitor
+        responses"""
         self.device.write(endpoint,payload)
 
 #need cleanup i dont like how the mesages are sent
     def replaymsgs(self, direction=None, sequence=None , message=None):
-        '''This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
-        @direction: in or out
-        @sequence: the sequence number you would like to select to reply
-        @message: will allow you to send your selected message
-        '''
+        """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
+        :param direction: in or out
+        :param sequence: the sequence number you would like to select to reply
+        :param message: will allow you to send your selected message
+        """
         count = 0
         try:
             if self.device:
@@ -355,11 +393,11 @@ class agfs():
 
 
     def searchmsgs(self):
-        '''
+        """
         This method allows you to search and select all messages for a pattern
 
         this method does not return anything
-        '''
+        """
         _cols = inspect(self.dbObj)
         _coldict = {}
         self._names= _cols.get_columns(self.dbname)
@@ -380,12 +418,12 @@ class agfs():
 
 
     def usblyzerparse(self,dbname):
-        '''This method will parse your xml exported from usblyzer and then import them into a database
+        """This method will parse your xml exported from usblyzer and then import them into a database
 
-        @dbname: this parameter is used to create a sqlite database in the folder ./databases with the specified name passed.
+        :param dbname: this parameter is used to create a sqlite database in the folder ./databases with the specified name passed.
 
         this method returns nothing
-        '''
+        """
         try:
             self.dbname = "databases/"+dbname+"_"+self.SelectedDevice
             print("Creating Tables")
@@ -460,7 +498,7 @@ class agfs():
 
 
     def clonedev(self):
-        '''
+        """
         This method does not need any parameters it only saves a backup of the device incase you need to share it or use it later.
         saves the device information in the ./clones/ directory.
 
@@ -468,7 +506,7 @@ class agfs():
         before we clone it.
 
         This method returns nothing.
-        '''
+        """
         try:
             try:
                 self.device_hidrep
@@ -511,13 +549,13 @@ class agfs():
             print("Cannot clone the device!\n",e)
 
     def setupGadgetFS(self):
-        ''' setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option
+        """ setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option
         This method does not require any parameters.
         calling this method creates a bash script file inside the directory ./gadgetscripts/ which can then be pushed
         and executed on the pi Zero to emulate the device being tested.
 
         This method returns nothing.
-        '''
+        """
         try:
             agfsscr = open("gadgetscripts/"+self.SelectedDevice+".sh",'w')
             print("setting up: "+self.manufacturer)
@@ -528,7 +566,7 @@ class agfs():
             bcdDev = '0x{:04X}'.format(self.device.bcdDevice)
             bcdUSB = '0x{:04X}'.format(self.device.bcdUSB)
             serial = self.device.serial_number
-            '''http://irq5.io/2016/12/22/raspberry-pi-zero-as-multiple-usb-gadgets/'''
+            """http://irq5.io/2016/12/22/raspberry-pi-zero-as-multiple-usb-gadgets/"""
             windows = input("are you going to configure this gadget to work with windows [y/n] ?").lower()
             if windows == 'y':
                 bDevClass = '0x{:02X}'.format(0xEF)

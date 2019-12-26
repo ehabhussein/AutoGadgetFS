@@ -260,6 +260,7 @@ class agfs():
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: is you will use the queues for a full proxy between target and host
+       :param channel: this is automatically passed if you use the self.startMITMusbWifi()
        :return: None
        """
         mypts = None
@@ -311,6 +312,10 @@ class agfs():
             print("either pass to a queue or to a tty")
 
     def startMITMusbWifi(self,endpoint=None):
+        """
+        :param endpoint: the OUT endpoint of the device most probably self.epin which is from the device to the PC
+        :return: None
+        """
         self.isQconnected = 0
         self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,))
         self.startMITMProxyThread.start()
@@ -324,11 +329,22 @@ class agfs():
         self.stopSniffing()
 
     def MITMproxyRQueues(self, ch, method, properties, body):
+        """
+        :param ch:  rabbitMQ channel
+        :param method: methods
+        :param properties: properties
+        :param body: Payload
+        :return None
+        """
         print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
         self.device.write(self.epout,binascii.unhexlify(body))
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def MITMproxy(self,endpoint):
+        """
+        :param endpoint: the IN endpoint
+        :return: None
+        """
         try:
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
@@ -350,7 +366,11 @@ class agfs():
 
     def devWrite(self,endpoint,payload):
         """To use this with a method you would write make sure to run the startSniffReadThread() method first so you can monitor
-        responses"""
+        responses
+        :param endpoint: endpoint address you want to write method
+        :param payload: the message to be sent to the devices
+        :return: None
+        """
         self.device.write(endpoint,payload)
 
 #need cleanup i dont like how the mesages are sent

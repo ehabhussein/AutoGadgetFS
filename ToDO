@@ -1,0 +1,100 @@
+<pre>
+Done:
+-Find usb and select
+-parser for usbalyzer xml and searcher
+-get usb device info
+-create gadgetfs ( needs more cleaning )
+-release the device, clean up and attach to kernel
+-proxy with sniffer
+-We now have a enumeration of all the interfaces and endpoints of the device we need to be able to use it
+-added the clones to a flat files via json much cleaner and better ...
+-- We have several hid reports now dependant on the usb device , when setting up GadgetFS ensure the user is presented with
+    options to choose which hid report to be passed to the gadget.
+--Setup GadgetFS method should only create a bashfile and push it to the Pi Zero and then execute it.
+-- you can detaches specific interfaces  and detach each from the kernel.
+-added a thread monitor to listen on interface changes
+-Piped the sniff method to a pesudo terminal /dev/pts/X not to clog ipython :)
+-detach the interfaces from the kernel driver inside the findselect() Method it will be better if we didnt blacklist the device driver
+"""
+https://stackoverflow.com/questions/23203563/pyusb-device-claimed-detach-kernel-driver-return-entity-not-found
+Your problem, like mine, is that you need to detach the kernel from each and every interface before you can set_configuration(). Here's the code I am using right now (including some scaffolding) for connecting to a USB audio device:
+import usb.core
+import usb.util
+scarlet = usb.core.find(idVendor = 0x1235)  # Focusrite
+if not scarlet: print"No Scarlet"
+c = 1
+for config in scarlet:
+    print 'config', c
+    print 'Interfaces', config.bNumInterfaces
+    for i in range(config.bNumInterfaces):
+        if scarlet.is_kernel_driver_active(i):
+            scarlet.detach_kernel_driver(i)
+        print i
+    c+=1
+scarlet.set_configuration()
+-rabbitMQ is configured see Installations section
+-- when coming to do the comms use Queue() so we can communicate directly to the thread
+
+TODO:
+-- add parse args to pizerorouter sso you can input the max packet size
+-send custom messages to the host queue
+- PI zero write a threaded method to hook to its UART and start the comms as th3e mitm proxy
+-when we present the endpoints and its interfaces it will be more user friendly to show if the endpoint is in or out
+
+-send messages to device or host with ability to manipulate the payload
+-fuzzer method
+-simulate device or host by pushing to a Pi zero
+-replay msg or whole communication from db [ partially done but we need to work on the timing issue and threading the read portion]
+-tutorial
+-push bash file for gadgetfs to raspberrypi over ssh
+-use Pi zero in UART mode to connect to it and free up the usb and not use wifi, this can act as the proxy method.
+
+"""
+
+
+
+Questions can cancelations:
+-is it possible to make DMA calls (getting physical with USB Type-C) ?
+
+- add a method to add the device to udev blacklist rules and also add a check for devices in blacklist since you cannot get the active
+configuration during the findselect() method. /etc/udev/rules.d/disable-usb-device.rules
+#ACTION=="add", ATTR{idVendor}=="0416", ATTR{idProduct}=="511c", RUN="/bin/sh -c 'echo 0 >/sys/\$devpath/authorized'"
+
+
+
+Installations:
+
+$ sudo apt install rabbitmq-server
+$ sudo rabbitmq-plugins enable rabbitmq_management
+|http://localhost:15672 ; guest/guest
+ ---> upload the file rabbit_Wakanda2019-12-23.json and not worry about the below stuff
+
+$ sudo rabbitmqctl add_user autogfs usb4ever
+$ sudo rabbitmqctl set_user_tags autogfs administrator
+$ sudo service rabbitmq-server restart
+
+
+
+1) goto web interface http://localhost:15672 and login with user: autogfs password: usb4ever  > Admin > click on autogfs username >
+    set permission to virtualhost / ,dont need to do anything except press the Set permission button
+
+2) goto Exchange > click on Add a new exchange > set the name to agfs , set the Type to Direct , set Durability to Durable >
+    click Add exchange.
+
+3)a) goto Queues > click on Add a new queue > set the name to: todevice , set durability to Durable > click add queue.
+ 3)b) goto Queues > click on Add a new queue > set the name to: tohost , set durability to Durable > click add queue.
+
+4)a) goto Exchange > click on agfs > click on Bindings > to Queue set it to todevice , routingkey set to todev > click Bind
+4)b) goto Exchange > click on agfs > click on Bindings > to Queue set it to tohost , routingkey set to tohst > click Bind
+
+Done
+
+----------------------------------------------------------------
+In [7]: while 1:
+   ...:     try:
+   ...:         x.qchannel2.basic_publish(exchange='agfs', routing_key='tohst',body=x.device.read(0x82, x.device.bMaxPacketSize0))
+   ...:     except:
+   ...:         pass
+   
+   
+   </pre>

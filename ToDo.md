@@ -32,6 +32,7 @@ TODO:
 -replay msg or whole communication from db [ partially done but we need to work on the timing issue and threading the read portion]
 -tutorial
 -drop use of wifi and opt for a faster communication
+-Add support for Mass storage and NDIS devices
 
 
 

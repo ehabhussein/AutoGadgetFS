@@ -15,8 +15,8 @@ import pprint
 from time import time,sleep
 import json
 import threading
-
-
+import getpass
+import paramiko
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -97,6 +97,7 @@ class agfs():
         idProd, idVen = devices[int(hook)].split(':')[1:]
         device = usb.core.find(idVendor=int(idVen), idProduct=int(idProd))
         print(device)
+
 
     def deviceInterfaces(self):
         """get all interfaces and endpoints on the device
@@ -189,9 +190,12 @@ class agfs():
                     print(self.leninterfaces)
                     try:
                         self.device_hidrep = []
-                        """Thanks https://wuffs.org/blog/mouse-adventures-part-5"""
+                        """Thanks https://wuffs.org/blog/mouse-adventures-part-5
+                        https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
+                        """
                         for i in range(0,self.leninterfaces+1):
                             try:
+                                #Need to make this more generic so we can get other missed reports
                                 self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,i,0x400)))
                                 print(self.device_hidrep)
                             except usb.core.USBError:
@@ -212,6 +216,11 @@ class agfs():
         cloneit = input("Do you want to save this device's information?[y/n]")
         if cloneit.lower() == 'y':
             self.clonedev()
+
+
+    def fuzzer(self):
+        """To be implemented"""
+        pass
 
     def monInterfaceChng(self,ven,prod):
         """thread in charge of monitoring interfaces for changes
@@ -273,7 +282,7 @@ class agfs():
     def sniffdevice(self, endpoint, pts, queue,channel):
         """ read the communication between the device to hosts
         you can either choose set pts or queue but not both.s
-       :param endpoint: endpoint address you want to read from
+       :param endpoint: endpoint address you want to read from)
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: is you will use the queues for a full proxy between target and host
        :param channel: rabbitmq channel
@@ -378,6 +387,17 @@ class agfs():
         :return: None
         """
         self.device.write(endpoint,payload)
+
+    def devctrltrnsf(self,bmRequestType,bmRequest,wValue,wIndex,wLength):
+        """Usually you'll find the parameters for this method in the vendor's data sheet.
+        https://www.beyondlogic.org/usbnutshell/usb6.shtml
+        :param bmRequestType: direction of the request
+        :param bmRequest: determines the request being made
+        :param wValue: parameters to be passed with the request
+        :param wIndex: parameters to be passed with the request
+        :param wLength: Number of bytes to transfer if there is a data phase
+        """
+        self.device.ctrl_transfer(bmRequestType,bmRequest,wValue,wIndex,wLength)
 
     def rabbitmqfakeheartbeat(self, channel):
         while True:
@@ -677,5 +697,31 @@ class agfs():
             agfsscr.write("ls /sys/class/udc/ > %s/g/UDC\n"%(basedir))
             agfsscr.close()
             print("- Done wrote bash script. Try testing your gadget\n")
+            push2pi = input("Do you want to push the gadget to the Pi zero ?[y/n] ").lower()
+            if push2pi == 'y':
+                '''https://stackoverflow.com/questions/3635131/paramikos-sshclient-with-sftps'''
+                pihost = input("Enter the ip addres of the Pi zero: ")
+                piport = int(input("Enter the port of the Pi zero: "))
+                piuser = input("Enter the username: ")
+                pipass = getpass.getpass()
+                print("Connecting...")
+                pusher = paramiko.Transport((pihost,piport))
+                pusher.connect(None, piuser, pipass)
+                sftp = paramiko.SFTPClient.from_transport(pusher)
+                print("Sending...")
+                sftp.put("gadgetscripts/"+self.SelectedDevice+".sh", self.SelectedDevice+".sh")
+                print("Done!")
+                if sftp:
+                    sftp.close()
+                if pusher:
+                    pusher.close()
+                rungadget = input("Do you want to run the gadget? [y/n]").lower()
+                if rungadget == 'y':
+                    gogadget = paramiko.SSHClient()
+                    gogadget.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    gogadget.connect(pihost, port=piport, username=piuser, password=pipass)
+                    stdin, stdout, stderr = gogadget.exec_command('chmod a+x %s;sudo ./%s' %(self.SelectedDevice+".sh", self.SelectedDevice+".sh"))
+                    print("Gadget should now be running")
+
         except Exception as e:
             print("You need to call FindSelect() then clonedev() method method prior to setting up GadgetFS", e)

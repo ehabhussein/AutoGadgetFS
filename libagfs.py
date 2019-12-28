@@ -431,7 +431,7 @@ class agfs():
         self.qconnect3.close()
 
 #needs cleanup i dont like how the mesages are sent
-    def replaymsgs(self, direction=None, sequence=None , message=None):
+    def replaymsgs(self, direction=None, sequence=None ):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
         :param direction: in or out
         :param sequence: the sequence number you would like to select to reply
@@ -440,7 +440,7 @@ class agfs():
         count = 0
         try:
             if self.device:
-                if sequence is None and direction is not None and message is None:
+                if sequence is None and direction is not None:
                     self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
                     for i in self.searchResults:
                                 count += 1
@@ -457,14 +457,11 @@ class agfs():
                                         print("timedout\n")
                                         continue
                                     print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
-                elif sequence is not None and direction is not None and message is None:
+                elif sequence is not None and direction is not None:
                     count += 1
                     #Not implemented yet
-                    self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchall()
+                    self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchone()
                     pprint.pprint(self.searchResults[0][0])
-                elif message is not None:
-                    print("[-] Sending your custom message.")
-                    self.device.write(self.epout, message)
         except Exception as e:
             print("[-] Can't find messages with your search\n",e)
 

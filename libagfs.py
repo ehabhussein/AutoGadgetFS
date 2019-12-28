@@ -340,7 +340,6 @@ class agfs():
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
-        self.qconnect2.close()
         self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
@@ -356,6 +355,7 @@ class agfs():
         """
         print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
         self.device.write(self.epout, binascii.unhexlify(body))
+        sleep(1)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 

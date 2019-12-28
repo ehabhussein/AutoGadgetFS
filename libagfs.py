@@ -301,13 +301,13 @@ class agfs():
                     print("Thread Terminated Successfully")
                     break
                 try:
-                    packet = self.device.read(endpoint, self.device.bMaxPacketSize0)
+                    packet = self.device.read(endpoint, 64)
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")
-                    sleep(1)
+                    sleep(0.5)
                 except usb.core.USBError as e:
-                    channel.basic_publish(exchange='agfs', routing_key='tonull',
+                    self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',
                                           body="heartbeats")
                     if e.args == ('Operation timed out\r\n',):
                         pass
@@ -355,7 +355,7 @@ class agfs():
         """
         print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
         self.device.write(self.epout, binascii.unhexlify(body))
-        sleep(1)
+        sleep(0.5)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 

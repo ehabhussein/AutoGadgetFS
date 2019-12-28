@@ -213,6 +213,7 @@ class agfs():
         else:
             self.manufacturer = self.device.manufacturer
         self.SelectedDevice = self.manufacturer + "-" + str(self.device.idVendor) + "-" + str(self.device.idProduct) + "-" + str(time())
+        self.SelectedDevice = self.SelectedDevice.replace(" ",'')
         cloneit = input("Do you want to save this device's information?[y/n]")
         if cloneit.lower() == 'y':
             self.clonedev()
@@ -263,6 +264,7 @@ class agfs():
         self.killthread = 1
         self.readerThread.join()
         print("Sniffing has stopped successfully!")
+        self.killthread = 0
 
     def startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
@@ -330,12 +332,11 @@ class agfs():
         :param endpoint: the OUT endpoint of the device most probably self.epin which is from the device to the PC
         :return: None
         """
-        self.isQconnected = 0
+        self.killthread = 0
         self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,))
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
-        self.isQconnected = 1
         self.qconnect2.close()
         self.qconnect.close()
         self.startMITMProxyThread.join()

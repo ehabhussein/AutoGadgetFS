@@ -20,12 +20,14 @@ Done:
 -push bash file for gadgetfs to raspberrypi over ssh
 -add a method for ctrl transfers
 -simulate device or host by pushing to a Pi zero
+-send custom messages to the host queue
+
 
 
 TODO:
 - add parse args to pizerorouter so you can input the max packet size
--send custom messages to the host queue
-- PI zero write a threaded method to hook to its UART and start the comms as th3e mitm proxy
+-add support in MITMwifi() to select between bulk or control tranfere 
+- PI zero write a threaded method to hook to its UART and start the comms as the mitm proxy
 -when we present the endpoints and its interfaces it will be more user friendly to show if the endpoint is in or out
 -send messages to device or host with ability to manipulate the payload
 -fuzzer method

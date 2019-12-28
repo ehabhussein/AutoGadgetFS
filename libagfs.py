@@ -301,7 +301,7 @@ class agfs():
                     if recvread:
                         channel.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=recvread)
-                    print("VVV++++++++++++++++FROM DEVICE\n",recvread,"^^^++++++++++++++++FROMDEVICE\n")
+                    #print("VVV++++++++++++++++FROM DEVICE\n",recvread,"^^^++++++++++++++++FROMDEVICE\n")
                     recvread = False
                 except usb.core.USBError as e:
                     channel.basic_publish(exchange='agfs', routing_key='tonull',
@@ -353,6 +353,8 @@ class agfs():
         """
         print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
         self.device.write(self.epout, binascii.unhexlify(body))
+        self.qchannel.basic_publish(exchange='agfs', routing_key='tohst',body=self.device.read(self.epin, self.device.bMaxPacketSize0))
+        print("here")
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
@@ -372,7 +374,7 @@ class agfs():
             self.qpikaparams2 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds2)
             self.qconnect2 = pika.BlockingConnection(self.qpikaparams2)
             self.qchannel2 = self.qconnect2.channel()
-            self.startSniffReadThread(endpoint=endpoint, pts=None, queue=1,channel=self.qchannel2)
+            #self.startSniffReadThread(endpoint=endpoint, pts=None, queue=1,channel=self.qchannel2)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
@@ -430,6 +432,7 @@ class agfs():
         self.hbkill = 1
         self.hbThread.join()
         self.qconnect3.close()
+        self.hbkill = 0
 
 #needs cleanup i dont like how the mesages are sent
     def replaymsgs(self, direction=None, sequence=None ):
@@ -687,7 +690,7 @@ class agfs():
             agfsscr.write("echo %s > %s/g/configs/c.1/bmAttributes\n" % (bmAttributes, basedir))
             agfsscr.write("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration\n" %(basedir))
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/protocol\n" %(protocol,basedir))
-            agfsscr.write("echo %s > %s/g/functions/hid.usb0/report_length\n" % (len(hidreport),basedir))
+            agfsscr.write("echo 4096 > %s/g/functions/hid.usb0/report_length\n")
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/subclass\n" % (bDevSubClass,basedir))
             agfsscr.write("echo '%s' | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (hidreport.decode("utf-8") ,basedir))
             agfsscr.write("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1\n"%(basedir,basedir))

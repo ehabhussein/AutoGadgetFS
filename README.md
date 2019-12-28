@@ -1,6 +1,7 @@
+
+[Read the wiki for the Class documentation](https://github.com/ehabhussein/AutoGadgetFS/wiki)
 <pre>
 INSERT tutorial video here #ToDO
-
 
 # AutoGadgetFS
 Usb testing framework

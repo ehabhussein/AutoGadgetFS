@@ -266,7 +266,7 @@ class agfs():
         print("Sniffing has stopped successfully!")
         self.killthread = 0
 
-    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None):
+    def startSniffReadThread(self,endpoint=None, pts=None, queue=None):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
@@ -278,10 +278,10 @@ class agfs():
         if pts is not None:
             mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
             input("Press Enter when ready..on %s" % mypts)
-        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue,channel))
+        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue))
         self.readerThread.start()
 
-    def sniffdevice(self, endpoint, pts, queue,channel):
+    def sniffdevice(self, endpoint, pts, queue):
         """ read the communication between the device to hosts
         you can either choose set pts or queue but not both.s
        :param endpoint: endpoint address you want to read from)
@@ -291,18 +291,21 @@ class agfs():
        :return: None
         """
         if queue and pts is None:
+            self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
+            self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds3)
+            self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
+            self.qchannel3 = self.qconnect3.channel()
             while True:
                 if self.killthread == 1:
                     queue = None
                     print("Thread Terminated Successfully")
                     break
                 try:
-                    recvread = self.device.read(endpoint, self.device.bMaxPacketSize0)
-                    if recvread:
-                        channel.basic_publish(exchange='agfs', routing_key='tohst',
-                                                 body=recvread)
-                    #print("VVV++++++++++++++++FROM DEVICE\n",recvread,"^^^++++++++++++++++FROMDEVICE\n")
-                    recvread = False
+                    packet = self.device.read(endpoint, self.device.bMaxPacketSize0)
+                    self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
+                                                 body=packet)
+                    #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")
+                    sleep(1)
                 except usb.core.USBError as e:
                     channel.basic_publish(exchange='agfs', routing_key='tonull',
                                           body="heartbeats")
@@ -353,8 +356,6 @@ class agfs():
         """
         print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
         self.device.write(self.epout, binascii.unhexlify(body))
-        self.qchannel.basic_publish(exchange='agfs', routing_key='tohst',body=self.device.read(self.epin, self.device.bMaxPacketSize0))
-        print("here")
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
@@ -370,11 +371,7 @@ class agfs():
             self.qchannel = self.qconnect.channel()
             self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
-            self.qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams2 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds2)
-            self.qconnect2 = pika.BlockingConnection(self.qpikaparams2)
-            self.qchannel2 = self.qconnect2.channel()
-            #self.startSniffReadThread(endpoint=endpoint, pts=None, queue=1,channel=self.qchannel2)
+            self.startSniffReadThread(endpoint=self.epin, queue=1)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()

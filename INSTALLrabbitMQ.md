@@ -21,6 +21,6 @@ $ sudo service rabbitmq-server restart
 
 4)a) goto Exchange > click on agfs > click on Bindings > to Queue set it to todevice , routingkey set to todev > click Bind
 4)b) goto Exchange > click on agfs > click on Bindings > to Queue set it to tohost , routingkey set to tohst > click Bind
-
+4)c) goto Exchange > click on agfs > click on Bindings > to Queue set it to tonull , routingkey set to tonull > click Bind
 Done
 </pre>

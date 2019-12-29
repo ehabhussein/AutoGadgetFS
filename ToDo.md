@@ -21,19 +21,17 @@ Done:
 -add a method for ctrl transfers
 -simulate device or host by pushing to a Pi zero
 -send custom messages to the host queue
-
+-send messages to device or host with ability to manipulate the payload
+-support for HID
 
 
 TODO:
 - add parse args to pizerorouter so you can input the max packet size
--add support in MITMwifi() to select between bulk or control tranfere 
-- PI zero write a threaded method to hook to its UART and start the comms as the mitm proxy
+-add support in MITMwifi() to select between bulk or control transfer
 -when we present the endpoints and its interfaces it will be more user friendly to show if the endpoint is in or out
--send messages to device or host with ability to manipulate the payload
 -fuzzer method
 -replay msg or whole communication from db [ partially done but we need to work on the timing issue and threading the read portion]
 -tutorial
--drop use of wifi and opt for a faster communication
 -Add support for Mass storage and NDIS devices
 
 

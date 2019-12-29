@@ -266,7 +266,7 @@ class agfs():
         print("Sniffing has stopped successfully!")
         self.killthread = 0
 
-    def startSniffReadThread(self,endpoint=None, pts=None, queue=None):
+    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0.5):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
@@ -278,10 +278,10 @@ class agfs():
         if pts is not None:
             mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
             input("Press Enter when ready..on %s" % mypts)
-        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue))
+        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue, timeout))
         self.readerThread.start()
 
-    def sniffdevice(self, endpoint, pts, queue):
+    def sniffdevice(self, endpoint, pts, queue,timeout):
         """ read the communication between the device to hosts
         you can either choose set pts or queue but not both.s
        :param endpoint: endpoint address you want to read from)
@@ -305,7 +305,7 @@ class agfs():
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")
-                    sleep(0.5)
+                    sleep(timeout)
                 except usb.core.USBError as e:
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',
                                           body="heartbeats")
@@ -687,7 +687,7 @@ class agfs():
             agfsscr.write("echo %s > %s/g/configs/c.1/bmAttributes\n" % (bmAttributes, basedir))
             agfsscr.write("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration\n" %(basedir))
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/protocol\n" %(protocol,basedir))
-            agfsscr.write("echo 256 > %s/g/functions/hid.usb0/report_length\n")
+            agfsscr.write("echo 4096 > %s/g/functions/hid.usb0/report_length\n")
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/subclass\n" % (bDevSubClass,basedir))
             agfsscr.write("echo '%s' | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (hidreport.decode("utf-8") ,basedir))
             agfsscr.write("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1\n"%(basedir,basedir))

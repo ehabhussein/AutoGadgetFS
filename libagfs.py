@@ -307,11 +307,11 @@ class agfs():
                     #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")
                     sleep(timeout)
                 except usb.core.USBError as e:
-                    self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',
-                                          body="heartbeats")
+
                     if e.args == ('Operation timed out\r\n',):
-                        pass
+                        print("Operation timed out cannot read from device")
                     pass
+                self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeats")
         elif pts and queue is None:
             with open('%s'%(pts.strip()), 'w') as ptsx:
                 while True:
@@ -322,9 +322,8 @@ class agfs():
                     try:
                             ptsx.write(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))).decode('utf-8')+"\r\n")
                             ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
-                            sleep(0.5)
                     except usb.core.USBError as e:
-                        if e.args == ('Operation timed out\r\n',):
+                        if e.args == ('Operation timed out! Cannot read from device\n',):
                             pass
                         pass
         else:
@@ -432,13 +431,19 @@ class agfs():
         self.hbkill = 0
 
 #needs cleanup i dont like how the mesages are sent
-    def replaymsgs(self, direction=None, sequence=None ):
+    def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
         :param direction: in or out
         :param sequence: the sequence number you would like to select to reply
         :param message: will allow you to send your selected message
+        :param timeout: how long to wait between messages
         """
         count = 0
+        if direction is 'in':
+            self.inithostwrite()
+        if sequence is not None:
+
+
         try:
             if self.device:
                 if sequence is None and direction is not None:
@@ -447,10 +452,15 @@ class agfs():
                                 count += 1
                                 try:
                                     print("[%d] ++++++++++v TO DEVICE v+++++++++++++"%count)
-                                    self.device.write(self.epout, i[0],self.device.bMaxPacketSize0)
-                                    print(i[0])
-                                    print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
-                                    sleep(0.5)
+                                    if direction is 'out':
+                                        self.device.write(self.epout, i[0],self.device.bMaxPacketSize0)
+                                        print(i[0])
+                                        print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
+                                        sleep(timeout)
+                                    if direction is 'in':
+                                        self.hostwrite(i[0])
+                                        sleep(timeout)
+
                                 except usb.core.USBError as e:
                                     print("[%d] ++++++++++v TO DEVICE v+++++++++++++"%count)
                                     print(e)
@@ -460,9 +470,8 @@ class agfs():
                                     print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
                 elif sequence is not None and direction is not None:
                     count += 1
-                    #Not implemented yet
                     self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchone()
-                    pprint.pprint(self.searchResults[0][0])
+                    self.device.write(self.epout, self.searchResults[0], self.device.bMaxPacketSize0)
         except Exception as e:
             print("[-] Can't find messages with your search\n",e)
 

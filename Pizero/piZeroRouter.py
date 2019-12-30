@@ -1,10 +1,12 @@
 import binascii
-import os,sys
+import sys
 import pika
+import os
 import multiprocessing
 from time import sleep
+fdW = os.open("/dev/hidg0",os.O_WRONLY)
 
-def mitmproxy(ip,fdR):
+def mitmproxy(ip,fdR,mode,length):
         try:
             qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
             qpikaparams2 = pika.ConnectionParameters(sys.argv[1], 5672, '/', qcreds2)
@@ -12,32 +14,51 @@ def mitmproxy(ip,fdR):
             qchannel2 = qconnect2.channel()
             while True:
                 packet = fdR.read(64)
-                #if packet:
-                qchannel2.basic_publish(exchange='agfs', routing_key='todev',body=binascii.hexlify(packet))
+                #print(packet)
+                qchannel2.basic_publish(exchange='agfs', routing_key='todev' if mode is None else 'tonull',body=binascii.hexlify(packet))
         except Exception as e:
+            qchannel2.basic_publish(exchange='agfs', routing_key='tonull',body="HeartBeat")
             print(e)
+            pass
 
 def write2host(ch, method, properties, body):
-    with open("/dev/hidg0",mode='wb') as fdW:
+    #with os.open("/dev/hidg0",mode='wb') as fdW:
+        #x = os.open("/dev/hidg0",os.O_WRONLY)
+        print("VVV----------------FROM DEVICE\n")
         print(body)
-        s = fdW.write(body)
-    print("--------------------------\n")
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+       #fdW.write(body)
+        ilen = os.write(fdW,body)
+        print(ilen)
+        #os.close(x)
+        #sleep(0.5)
+       # print("^^^----------------FROM DEVICE\n")
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
 if __name__ == '__main__':
     try:
         fdR =  open("/dev/hidg0",mode='rb')
-        router = multiprocessing.Process(target=mitmproxy, args=(sys.argv[1],fdR))
+        #print("Starting Router")
+        try:
+            mode = sys.argv[2]
+        except:
+            mode = None
+        try:
+            readlen = int(sys.argv[3])
+        except: 
+            readlen = 64
+        router = multiprocessing.Process(target=mitmproxy, args=(sys.argv[1],fdR,mode,readlen))
         router.start()
+        print("Router Started")
+        print("Initiating Connection to RabbitMQ")
         qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
         qpikaparams = pika.ConnectionParameters(sys.argv[1], 5672, '/', qcreds)
         qconnect = pika.BlockingConnection(qpikaparams)
         qchannel = qconnect.channel()
         qchannel.basic_qos(prefetch_count=1)
         qchannel.basic_consume(on_message_callback=write2host, queue='tohost')
+        print("Starting Consumption of queue")
         qchannel.start_consuming()
-
+        
     except KeyboardInterrupt:
         router.terminate()
-        #fdR.close()
-        #fdW.close()
+        fdR.close()

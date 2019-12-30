@@ -23,6 +23,7 @@ Done:
 -send custom messages to the host queue
 -send messages to device or host with ability to manipulate the payload
 -support for HID
+-replay msg or whole communication from usblyzer db
 
 
 TODO:
@@ -30,7 +31,6 @@ TODO:
 -add support in MITMwifi() to select between bulk or control transfer
 -when we present the endpoints and its interfaces it will be more user friendly to show if the endpoint is in or out
 -fuzzer method
--replay msg or whole communication from db [ partially done but we need to work on the timing issue and threading the read portion]
 -tutorial
 -Add support for Mass storage and NDIS devices
 

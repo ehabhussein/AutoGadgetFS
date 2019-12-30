@@ -441,9 +441,6 @@ class agfs():
         count = 0
         if direction is 'in':
             self.inithostwrite()
-        if sequence is not None:
-
-
         try:
             if self.device:
                 if sequence is None and direction is not None:

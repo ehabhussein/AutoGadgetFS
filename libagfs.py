@@ -339,7 +339,6 @@ class agfs():
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
-        self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
         self.stopSniffing()
@@ -375,6 +374,7 @@ class agfs():
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
             print("MITM Proxy stopped!")
+            self.qconnect.close()
         except Exception as e:
             print(e)
 

@@ -33,6 +33,7 @@ TODO:
 -fuzzer method
 -tutorial
 -Add support for Mass storage and NDIS devices
+-Parse the usb packets 
 
 
 

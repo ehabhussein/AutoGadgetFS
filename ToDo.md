@@ -34,7 +34,7 @@ TODO:
 -tutorial
 -Add support for Mass storage and NDIS devices
 -Parse the usb packets 
-
+-add sniffs to database to future reference
 
 
 Questions can cancelations:

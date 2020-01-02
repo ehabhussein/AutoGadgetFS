@@ -430,6 +430,20 @@ class agfs():
         self.qconnect3.close()
         self.hbkill = 0
 
+    def clearqueues(self):
+        """this method clears all the queues on the rabbitMQ queues that are set up"""
+        self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
+        self.qpikaparams4 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds4)
+        self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
+        self.qchannel4 = self.qconnect4.channel()
+        self.qchannel4.queue_purge('todevice')
+        print("cleared todevice queue")
+        self.qchannel4.queue_purge('tohost')
+        print("cleared tohost queue")
+        self.qchannel4.queue_purge('tonull')
+        print("cleared tonull queue")
+        self.qconnect4.close()
+
 #needs cleanup i dont like how the mesages are sent
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device

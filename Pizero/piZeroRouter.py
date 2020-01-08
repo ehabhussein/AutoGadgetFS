@@ -7,19 +7,20 @@ from time import sleep
 fdW = os.open("/dev/hidg0",os.O_WRONLY)
 
 def mitmproxy(ip,fdR,mode,length):
-        try:
             qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
             qpikaparams2 = pika.ConnectionParameters(sys.argv[1], 5672, '/', qcreds2)
             qconnect2 = pika.BlockingConnection(qpikaparams2)
             qchannel2 = qconnect2.channel()
             while True:
-                packet = fdR.read(64)
-                #print(packet)
-                qchannel2.basic_publish(exchange='agfs', routing_key='todev' if mode is None else 'tonull',body=binascii.hexlify(packet))
-        except Exception as e:
-            qchannel2.basic_publish(exchange='agfs', routing_key='tonull',body="HeartBeat")
-            print(e)
-            pass
+                try:
+                        packet = fdR.read(64)
+                        #print(packet)
+                        qchannel2.basic_publish(exchange='agfs', routing_key='todev' if mode is None else 'tonull',body=binascii.hexlify(packet))
+                except Exception as e:
+                        qchannel2.basic_publish(exchange='agfs', routing_key='tonull',body="HeartBeat")
+                        print(e)
+                        pass
+                qchannel2.basic_publish(exchange='agfs', routing_key='tonull',body="HeartBeat")
 
 def write2host(ch, method, properties, body):
     #with os.open("/dev/hidg0",mode='wb') as fdW:

@@ -12,5 +12,5 @@ Click on the image to watch the video tutorial
 
 <pre>
 <h1>Supported by</h1>
-
+<img src="https://github.com/ehabhussein/AutoGadgetFS/blob/master/JetBrains.png">
 </pre>

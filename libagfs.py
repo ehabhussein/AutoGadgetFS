@@ -470,13 +470,27 @@ class agfs():
                                 count += 1
                                 try:
                                     if direction is 'out':
-                                        self.device.write(self.epout, i[0],self.device.bMaxPacketSize0)
-                                        print(i[0])
+                                        if self.fuzzdevice ==1:
+                                            packet = memoryview(i[0]).tolist()
+                                            random.shuffle(packet)
+                                            packet = binascii.unhexlify(''.join(format(x, '02x') for x in packet))
+                                            print(packet)
+                                            self.device.write(self.epout, packet,self.device.bMaxPacketSize0)
+                                        else:
+                                            self.device.write(self.epout, i[0], self.device.bMaxPacketSize0)
+                                            print(i[0])
                                         print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
                                         sleep(timeout)
                                     if direction is 'in':
-                                        print(i[0])
-                                        self.hostwrite(i[0])
+                                        if self.fuzzhost == 1:
+                                            packet = memoryview(i[0]).tolist()
+                                            random.shuffle(packet)
+                                            packet = binascii.unhexlify(''.join(format(x, '02x') for x in packet))
+                                            print(packet)
+                                            self.hostwrite(packet)
+                                        else:
+                                            print(i[0])
+                                            self.hostwrite(i[0])
                                         print("[%d] ++++++++++^ TO HOST ^+++++++++++++" % count)
                                         sleep(timeout)
 

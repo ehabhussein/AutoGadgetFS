@@ -9,7 +9,7 @@ import xmltodict
 import platform
 import binascii
 from sys import exit,stdout
-from os import geteuid
+from os import geteuid,urandom
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
 from time import time,sleep
@@ -140,6 +140,8 @@ class agfs():
             usb.util.claim_interface(self.device, self.interfacenumber)
         except Exception as e:
             print("Something went wrong while changing the interface\nError: ", e)
+
+
 
     def findSelect(self):
         """find your device and select it"""
@@ -307,7 +309,7 @@ class agfs():
                         s = memoryview(binascii.unhexlify(packet)).tolist()
                         random.shuffle(s)
                         packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
-                        
+
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")
@@ -454,6 +456,10 @@ class agfs():
         self.qchannel4.queue_purge('tonull')
         print("cleared tonull queue")
         self.qconnect4.close()
+
+    def devbrutefuzz(self,endpoint, howmany):
+        for i in range(howmany):
+            self.device.write(endpoint, urandom(self.device.bMaxPacketSize0))
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device

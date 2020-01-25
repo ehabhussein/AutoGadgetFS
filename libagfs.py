@@ -222,9 +222,7 @@ class agfs():
             self.clonedev()
 
 
-    def fuzzer(self):
-        """To be implemented"""
-        pass
+
 
     def monInterfaceChng(self,ven,prod):
         """thread in charge of monitoring interfaces for changes
@@ -304,7 +302,12 @@ class agfs():
                     print("Thread Terminated Successfully")
                     break
                 try:
-                    packet = self.device.read(endpoint, 64)
+                    packet = self.device.read(endpoint, self.device.bMaxPacketSize0)
+                    if self.fuzzhost == 1:
+                        s = memoryview(binascii.unhexlify(packet)).tolist()
+                        random.shuffle(s)
+                        packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
+                        
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")

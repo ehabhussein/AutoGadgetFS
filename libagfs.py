@@ -17,6 +17,7 @@ import json
 import threading
 import getpass
 import paramiko
+import random
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -48,6 +49,8 @@ class agfs():
 *AutoGadgetFS: Automated USB testing based on gadgetfs*************************
 *******************************************************************************     
         """)
+        self.fuzzdevice = 0
+        self.fuzzhost = 0
 
     def createdb(self, name):
         """create the sqlite table and columns for usblyzer dumps
@@ -307,7 +310,6 @@ class agfs():
                     #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")
                     sleep(timeout)
                 except usb.core.USBError as e:
-
                     if e.args == ('Operation timed out\r\n',):
                         print("Operation timed out cannot read from device")
                     pass
@@ -339,6 +341,7 @@ class agfs():
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
+        self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
         self.stopSniffing()
@@ -352,6 +355,12 @@ class agfs():
         :return None
         """
         print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
+        if self.fuzzdevice == 1:
+            packet = memoryview(binascii.unhexlify(body)).tolist()
+            random.shuffle(packet)
+            body = ''.join(format(x, '02x') for x in packet)
+            print("payload shuffled->", packet)
+            print("+++++++++++++++^^ manipulated payload^^++++++++++++++++++++++++++++++")
         self.device.write(self.epout, binascii.unhexlify(body))
         sleep(0.5)
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -374,7 +383,6 @@ class agfs():
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
             print("MITM Proxy stopped!")
-            self.qconnect.close()
         except Exception as e:
             print(e)
 
@@ -444,7 +452,6 @@ class agfs():
         print("cleared tonull queue")
         self.qconnect4.close()
 
-#needs cleanup i dont like how the mesages are sent
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
         :param direction: in or out
@@ -458,30 +465,31 @@ class agfs():
         try:
             if self.device:
                 if sequence is None and direction is not None:
-                    self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
+                    self.searchResults = self.connection.execute('select distinct RawBinary from "%s" where io="%s"'%(self.dbname,direction)).fetchall()
                     for i in self.searchResults:
                                 count += 1
                                 try:
-                                    print("[%d] ++++++++++v TO DEVICE v+++++++++++++"%count)
                                     if direction is 'out':
                                         self.device.write(self.epout, i[0],self.device.bMaxPacketSize0)
                                         print(i[0])
                                         print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
                                         sleep(timeout)
                                     if direction is 'in':
+                                        print(i[0])
                                         self.hostwrite(i[0])
+                                        print("[%d] ++++++++++^ TO HOST ^+++++++++++++" % count)
                                         sleep(timeout)
 
                                 except usb.core.USBError as e:
-                                    print("[%d] ++++++++++v TO DEVICE v+++++++++++++"%count)
+                                    print("[%d] ++++++++++ Comms Error +++++++++++++"%count)
                                     print(e)
                                     if e.args == ('Operation timed out',):
                                         print("timedout\n")
                                         continue
-                                    print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
+                                    print("[%d]++++++++++ Comms Error +++++++++++++"%count)
                 elif sequence is not None and direction is not None:
                     count += 1
-                    self.searchResults = self.connection.execute('select RawBinary from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchone()
+                    self.searchResults = self.connection.execute('select distinct RawBinary from "%s" where io="%s" and seq=%d' %(self.dbname, direction,sequence)).fetchone()
                     self.device.write(self.epout, self.searchResults[0], self.device.bMaxPacketSize0)
         except Exception as e:
             print("[-] Can't find messages with your search\n",e)
@@ -502,7 +510,7 @@ class agfs():
         pprint.pprint(_coldict)
         self.colSelection = int(input("Search in which column id: "))
         self.searcher = input("Enter search text: ")
-        self.searchResults = self.connection.execute('select * from "%s" where %s like "%%%s%%"'\
+        self.searchResults = self.connection.execute('select distinct * from "%s" where %s like "%%%s%%"'\
                                                      %(self.dbname, _coldict[self.colSelection], self.searcher)).fetchall()
         self.searchdict = {}
         for i,j in enumerate(self.searchResults):
@@ -718,7 +726,7 @@ class agfs():
             push2pi = input("Do you want to push the gadget to the Pi zero ?[y/n] ").lower()
             if push2pi == 'y':
                 '''https://stackoverflow.com/questions/3635131/paramikos-sshclient-with-sftps'''
-                pihost = input("Enter the ip addres of the Pi zero: ")
+                pihost = input("Enter the ip address of the Pi zero: ")
                 piport = int(input("Enter the port of the Pi zero: "))
                 piuser = input("Enter the username: ")
                 pipass = getpass.getpass()

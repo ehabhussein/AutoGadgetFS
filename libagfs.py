@@ -458,32 +458,39 @@ class agfs():
         self.qconnect4.close()
 
     def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
-        for i in range(howmany):
-            print("****************VVV Packet #%d  VVV**********************"%i)
-            if size == 'fixed':
-                s = urandom(self.device.bMaxPacketSize0)
-                print("sent-->\n",binascii.hexlify(s))
-                self.device.write(self.epout, s)
-                print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tostring()))
-            else:
-                s = urandom(random.randint(0, 255))
-                print("sent-->\n",binascii.hexlify(s))
-                self.device.write(self.epout, s)
-                print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
-            sleep(timeout)
+            for i in range(howmany):
+                try:
+                    print("****************VVV Packet #%d  VVV**********************"%i)
+                    if size == 'fixed':
+                        s = urandom(self.device.bMaxPacketSize0)
+                        print("sent-->\n",binascii.hexlify(s))
+                        self.device.write(self.epout, s)
+                        print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tostring()))
+                    else:
+                        s = urandom(random.randint(0, 255))
+                        print("sent-->\n",binascii.hexlify(s))
+                        self.device.write(self.epout, s)
+                        print("\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
+                    sleep(timeout)
+                except usb.core.USBError:
+                    print("received -->Timed Out\n")
+                    pass
 
-    def devbrutefuzz(self, ranger=0xffffffffff+1,timeout=0):
+    def devbrutefuzz(self, starter=0x00,ranger=0xffffffffff+1,timeout=0):
         '''https://stackoverflow.com/questions/46739981/ways-to-increment-hex-in-python?rq=1'''
-        for i in range(ranger):
-            print("****************VVV Packet #%d  VVV**********************" % int(i))
-            makebytes= i.to_bytes((i.bit_length() + 7) // 8 or 1, 'big')
-            s = binascii.unhexlify(binascii.hexlify(makebytes).ljust(self.device.bMaxPacketSize0*2, b'0'))
-            self.device.write(self.epout, s)
-            print("sent-->\n", binascii.hexlify(s))
-            print("received -->\n",
-                  binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
-            sleep(timeout)
-
+        for i,j in enumerate(range(starter,ranger)):
+            try:
+                print("****************VVV Packet #%d  VVV**********************" % int(i))
+                makebytes= j.to_bytes((j.bit_length() + 7) // 8 or 1, 'big')
+                s = binascii.unhexlify(binascii.hexlify(makebytes).ljust(self.device.bMaxPacketSize0*2, b'0'))
+                self.device.write(self.epout, s)
+                print("sent-->\n", binascii.hexlify(s))
+                print("received -->\n",
+                      binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
+                sleep(timeout)
+            except usb.core.USBError:
+                print("received --> Timed Out\n")
+                pass
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device

@@ -457,12 +457,20 @@ class agfs():
         print("cleared tonull queue")
         self.qconnect4.close()
 
-    def devbrutefuzz(self,endpoint, howmany , size='fixed'):
+    def devbrutefuzz(self, howmany, size='fixed'):
         for i in range(howmany):
+            print("****************VVV Packet #%d  VVV**********************"%i)
             if size == 'fixed':
-                self.device.write(endpoint, urandom(self.device.bMaxPacketSize0))
+                s = urandom(self.device.bMaxPacketSize0)
+                print("sent-->\n",binascii.hexlify(s))
+                self.device.write(self.epout, s)
+                print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tostring()))
             else:
-                self.device.write(endpoint, urandom(random.randint(0,255)))
+                s = urandom(random.randint(0, 255))
+                print("sent-->\n",binascii.hexlify(s))
+                self.device.write(self.epout, s)
+                print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
+            sleep(0.5)
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device

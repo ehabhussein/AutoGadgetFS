@@ -470,7 +470,7 @@ class agfs():
                         s = urandom(random.randint(0, 255))
                         print("sent-->\n",binascii.hexlify(s))
                         self.device.write(self.epout, s)
-                        print("\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
+                        print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
                     sleep(timeout)
                 except usb.core.USBError:
                     print("received -->Timed Out\n")

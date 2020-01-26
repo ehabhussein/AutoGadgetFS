@@ -473,6 +473,7 @@ class agfs():
             sleep(timeout)
 
     def devbrutefuzz(self, ranger=0xffffffffff+1,timeout=0):
+        '''https://stackoverflow.com/questions/46739981/ways-to-increment-hex-in-python?rq=1'''
         for i in range(ranger):
             print("****************VVV Packet #%d  VVV**********************" % int(i))
             makebytes= i.to_bytes((i.bit_length() + 7) // 8 or 1, 'big')

@@ -346,6 +346,7 @@ class agfs():
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
+        ''' Stops the man in the middle between the host and the device'''
         self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
@@ -430,6 +431,7 @@ class agfs():
         print("Queues to host are yours! now you can use self.hostwrite(payload)")
 
     def hostwrite(self, payload):
+        ''' This method writes packets to the host either targeting a software or a driver in control of the device'''
         """use this when you want to send payloads to a device driver on the host
         :param payload: the message to be sent to the host example: "0102AAFFCC"
         start the pizeroRouter.py with argv[2] set to anything so we can send the host messages to a null Queue
@@ -438,6 +440,7 @@ class agfs():
                                      body=binascii.unhexlify(payload))
 
     def stophostwrite(self):
+        ''' stop the thread incharge of communicating with the host machine'''
         self.hbkill = 1
         self.hbThread.join()
         self.qconnect3.close()
@@ -458,6 +461,13 @@ class agfs():
         self.qconnect4.close()
 
     def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
+            '''
+            this method allows you to create fixed or random size packets created using urandom
+            :param howmany: how many packets to be sent to the device`
+            :param size: string value whether its fixed o random size
+            :param timeout: timeOUT !
+            :return: None
+            '''
             for i in range(howmany):
                 try:
                     print("****************VVV Packet #%d  VVV**********************"%i)
@@ -477,6 +487,13 @@ class agfs():
                     pass
 
     def devbrutefuzz(self, starter=0x00,ranger=0xffffffffff+1,timeout=0):
+        '''
+        This method allows you to create sequencial increment packets
+        :param starter: start value to bruteforce from in hex notation
+        :param ranger: end value where the bruteforce ends in hex notation
+        :param timeout: timeout!
+        :return:  none
+        '''
         '''https://stackoverflow.com/questions/46739981/ways-to-increment-hex-in-python?rq=1'''
         for i,j in enumerate(range(starter,ranger)):
             try:

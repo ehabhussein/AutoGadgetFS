@@ -51,6 +51,7 @@ class agfs():
         """)
         self.fuzzdevice = 0
         self.fuzzhost = 0
+        self.ingui = 0
 
     def createdb(self, name):
         """create the sqlite table and columns for usblyzer dumps
@@ -200,8 +201,7 @@ class agfs():
                         """
                         for i in range(0,self.leninterfaces+1):
                             try:
-                                #Need to make this more generic so we can get other missed reports
-                                self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(self.epin,6,0x2200,i,0x400)))
+                                self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, self.devcfg.wTotalLength)))
                                 print(self.device_hidrep)
                             except usb.core.USBError:
                                 pass
@@ -430,14 +430,44 @@ class agfs():
         self.hbThread.start()
         print("Queues to host are yours! now you can use self.hostwrite(payload)")
 
-    def hostwrite(self, payload):
+
+
+    def hostwrite(self, payload, isfuzz=0):
         ''' This method writes packets to the host either targeting a software or a driver in control of the device'''
         """use this when you want to send payloads to a device driver on the host
         :param payload: the message to be sent to the host example: "0102AAFFCC"
         start the pizeroRouter.py with argv[2] set to anything so we can send the host messages to a null Queue
         """
-        self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
+        if isfuzz == 0:
+            self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                      body=binascii.unhexlify(payload))
+        else:
+            self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
+                                         body=payload)
+
+    def hstrandfuzz(self, howmany=1000, size='fixed', timeout=0.5):
+        '''
+        this method allows you to create fixed or random size packets created using urandom
+        :param howmany: how many packets to be sent to the device`
+        :param size: string value whether its fixed o random size
+        :param timeout: timeOUT !
+        :return: None
+        '''
+        for i in range(howmany):
+            try:
+                print("****************VVV Packet #%d  VVV**********************" % i)
+                if size == 'fixed':
+                    s = urandom(self.device.bMaxPacketSize0)
+                    print("sent-->\n", binascii.hexlify(s))
+                    self.hostwrite(s,isfuzz=1)
+                else:
+                    s = urandom(random.randint(0, 255))
+                    print("sent-->\n", binascii.hexlify(s))
+                    self.hostwrite(s, isfuzz=1)
+                sleep(timeout)
+            except Exception as e:
+                print("Error -->%s\n" %e)
+                pass
 
     def stophostwrite(self):
         ''' stop the thread incharge of communicating with the host machine'''
@@ -445,6 +475,9 @@ class agfs():
         self.hbThread.join()
         self.qconnect3.close()
         self.hbkill = 0
+
+
+
 
     def clearqueues(self):
         """this method clears all the queues on the rabbitMQ queues that are set up"""
@@ -459,6 +492,8 @@ class agfs():
         self.qchannel4.queue_purge('tonull')
         print("cleared tonull queue")
         self.qconnect4.close()
+
+
 
     def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
             '''

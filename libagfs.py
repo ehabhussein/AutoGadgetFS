@@ -156,6 +156,7 @@ class agfs():
         print(str(self.device))
         detachKernel = str(input("do you want to detach the device from it's kernel driver: [y/n] "))
         if detachKernel.lower() == 'y':
+            self.device.reset()
             try:
                 """https://stackoverflow.com/questions/23203563/pyusb-device-claimed-detach-kernel-driver-return-entity-not-found"""
                 confer = 1
@@ -438,26 +439,23 @@ class agfs():
         :param payload: the message to be sent to the host example: "0102AAFFCC"
         start the pizeroRouter.py with argv[2] set to anything so we can send the host messages to a null Queue
         """
-        if isfuzz == 0:
-            self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
-                                     body=binascii.unhexlify(payload))
-        else:
-            self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
-                                         body=payload)
+        self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
+                                     body=binascii.unhexlify(payload) if isfuzz == 0 else payload)
 
-    def hstrandfuzz(self, howmany=1000, size='fixed', timeout=0.5):
+    def hstrandfuzz(self, howmany=1, size=None, timeout=0.5):
         '''
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
-        :param size: string value whether its fixed o random size
+        :param size: the value whether its fixed or random size if you need fixed size send an int if you want random send another type to the size parameter
+        size = 10 to generate a length 10 packet or size = "foobar" to generate a random length packet
         :param timeout: timeOUT !
         :return: None
         '''
         for i in range(howmany):
             try:
                 print("****************VVV Packet #%d  VVV**********************" % i)
-                if size == 'fixed':
-                    s = urandom(self.device.bMaxPacketSize0)
+                if type(size) is type(int()):
+                    s = urandom(size)
                     print("sent-->\n", binascii.hexlify(s))
                     self.hostwrite(s,isfuzz=1)
                 else:
@@ -477,8 +475,6 @@ class agfs():
         self.hbkill = 0
 
 
-
-
     def clearqueues(self):
         """this method clears all the queues on the rabbitMQ queues that are set up"""
         self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
@@ -492,6 +488,9 @@ class agfs():
         self.qchannel4.queue_purge('tonull')
         print("cleared tonull queue")
         self.qconnect4.close()
+
+    def blacklistdevice(self):
+        pass
 
 
 

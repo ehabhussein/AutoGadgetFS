@@ -86,9 +86,17 @@ class agfs():
     def releasedev(self):
         """releases the device and re-attaches the kernel driver"""
         print("[-] Releasing the Interface")
-        usb.util.release_interface(self.device, self.interfaces.bInterfaceNumber)
-        print("[-] Attaching the kernel driver")
-        self.device.attach_kernel_driver(self.interfaces.bInterfaceNumber)
+        for configurations in self.device:
+            print("Releasing interfaces :\n\t%s" % configurations.bNumInterfaces)
+            print("[-] Attaching the kernel driver")
+            for inter in range(configurations.bNumInterfaces + 1):
+                try:
+                    usb.util.release_interface(self.device, inter)
+                    print("Releasing interface: %d" % inter)
+                    self.device.attach_kernel_driver(inter)
+                    print("Interface reattached")
+                except:
+                    pass
         print("[-] Device released!")
 
     def deviceInfo(self):

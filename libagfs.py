@@ -210,7 +210,8 @@ class agfs():
                         """
                         for i in range(0,self.leninterfaces+1):
                             try:
-                                self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, self.devcfg.wTotalLength)))
+                                #length is wrong we need to get this via another control transfer request
+                                self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff)))
                                 print(self.device_hidrep)
                             except usb.core.USBError:
                                 pass

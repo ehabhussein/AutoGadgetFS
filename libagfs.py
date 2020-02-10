@@ -551,6 +551,7 @@ class agfs():
 
     def devEnumCtrltrnsf(self,fuzz="fast"):
         """
+        This method enumerates all possible combinations of a control transfer request
         :param fuzz: "fast" fuzzer (bmRequest is fuzzed against 0x81 and 0xc0 and the other parameters are limited to one byte
                      "full" fuzzing (bmRequest is range(0xff) , wValue is range(0xffff) , wIndex is range(0xffff)
         :return: None

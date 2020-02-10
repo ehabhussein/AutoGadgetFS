@@ -18,27 +18,23 @@ Done:
 -rabbitMQ is configured see Installations section
 -when coming to do the comms use Queue() so we can communicate directly to the thread
 -push bash file for gadgetfs to raspberrypi over ssh
--add a method for ctrl transfers
+-add a method for custom ctrl transfers
 -simulate device or host by pushing to a Pi zero
 -send custom messages to the host queue
+-replay msg or whole communication from db
+-tutorial uploaded to youtube
+- Clear and purge the queues
+-fuzzer method for device
 -send messages to device or host with ability to manipulate the payload
--support for HID
--replay msg or whole communication from usblyzer db
-
+-fuzzer method for host
+-control transfers are now fuzzed or custom
 
 TODO:
 - add parse args to pizerorouter so you can input the max packet size
 -add support in MITMwifi() to select between bulk or control transfer
 -when we present the endpoints and its interfaces it will be more user friendly to show if the endpoint is in or out
--fuzzer method
--tutorial
--Add support for Mass storage and NDIS devices
--Parse the usb packets 
--add sniffs to database to future reference
-
-
-Questions can cancelations:
--is it possible to make DMA calls (getting physical with USB Type-C) ?
+-for the queues make a method to return just a channel.
+-Make sense of the data returned !
 
 
    </pre>

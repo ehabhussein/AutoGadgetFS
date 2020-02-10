@@ -46,7 +46,7 @@ class agfs():
     def __init__(self):
         print("""
 *******************************************************************************
-*AutoGadgetFS: Automated USB testing based on gadgetfs*************************
+*AutoGadgetFS: For automated USB security testing *****************************
 *******************************************************************************     
         """)
         self.fuzzdevice = 0
@@ -187,6 +187,7 @@ class agfs():
                 self.device.reset()
             try:
                 self.precfg = int(input("which Configuration would you like to use: "))
+                self.device.set_configuration(self.precfg)
                 self.devcfg = self.device.get_active_configuration()
                 self.interfacenumber = int(input("which Interface would you like to use: "))
                 self.Alternate = int(input("which Alternate setting would you like to use: "))
@@ -232,9 +233,6 @@ class agfs():
         cloneit = input("Do you want to save this device's information?[y/n]")
         if cloneit.lower() == 'y':
             self.clonedev()
-
-
-
 
     def monInterfaceChng(self,ven,prod):
         """thread in charge of monitoring interfaces for changes
@@ -322,7 +320,6 @@ class agfs():
 
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
-                    #print("VVV++++++++++++++++FROM DEVICE\n",packet,"^^^++++++++++++++++FROMDEVICE\n")
                     sleep(timeout)
                 except usb.core.USBError as e:
                     if e.args == ('Operation timed out\r\n',):
@@ -411,7 +408,7 @@ class agfs():
         """
         self.device.write(endpoint,payload)
 
-    def devctrltrnsf(self,bmRequestType,bmRequest,wValue,wIndex,wLength):
+    def devctrltrnsf(self,bmRequestType, bRequest, wValue=0, wIndex=0, wLength=None, timeout=None):
         """Usually you'll find the parameters for this method in the vendor's data sheet.
         https://www.beyondlogic.org/usbnutshell/usb6.shtml
         :param bmRequestType: direction of the request
@@ -420,7 +417,7 @@ class agfs():
         :param wIndex: parameters to be passed with the request
         :param wLength: Number of bytes to transfer if there is a data phase
         """
-        self.device.ctrl_transfer(bmRequestType,bmRequest,wValue,wIndex,wLength)
+        self.device.ctrl_transfer(bmRequestType,bRequest,wValue,wIndex,wLength)
 
     def rabbitmqfakeheartbeat(self, channel):
         while True:
@@ -507,7 +504,7 @@ class agfs():
             '''
             this method allows you to create fixed or random size packets created using urandom
             :param howmany: how many packets to be sent to the device`
-            :param size: string value whether its fixed o random size
+            :param size: string value whether its fixed or random size
             :param timeout: timeOUT !
             :return: None
             '''
@@ -540,7 +537,7 @@ class agfs():
         '''https://stackoverflow.com/questions/46739981/ways-to-increment-hex-in-python?rq=1'''
         for i,j in enumerate(range(starter,ranger)):
             try:
-                print("****************VVV Packet #%d  VVV**********************" % int(i))
+                print("****************VVV Packet #%d  VVV**********************" %i)
                 makebytes= j.to_bytes((j.bit_length() + 7) // 8 or 1, 'big')
                 s = binascii.unhexlify(binascii.hexlify(makebytes).ljust(self.device.bMaxPacketSize0*2, b'0'))
                 self.device.write(self.epout, s)
@@ -551,6 +548,40 @@ class agfs():
             except usb.core.USBError:
                 print("received --> Timed Out\n")
                 pass
+
+    def devEnumCtrltrnsf(self,fuzz="fast"):
+        """
+        :param fuzz: "fast" fuzzer (bmRequest is fuzzed against 0x81 and 0xc0 and the other parameters are limited to one byte
+                     "full" fuzzing (bmRequest is range(0xff) , wValue is range(0xffff) , wIndex is range(0xffff)
+        :return: None
+        """
+        print("started")
+        bRequest = 0xff
+        if fuzz == "full":
+            bm_request = range(256)
+            wValue = 0xffff
+            wIndex = 0xffff
+        else:
+            bm_request = [0x81, 0xC0]
+            wValue = 0xff
+            wIndex = 0xff
+        for i in bm_request:
+            for j in range(bRequest):
+                for q in range(wValue):
+                    for w in range(wIndex):
+                        try:
+                            responder = self.device.ctrl_transfer(i,j,q,w,50)
+                            """Put all responses in sqlite database later"""
+                            if responder[0] > 0 or responder[1] > 0:
+                                print("Found Valid Control Transfer request")
+                                print("bmRequest=",i,"bRequest=",j, "wValue=",q,"wIndex=",0, "data_length=",50)
+                                print("received:", binascii.unhexlify(binascii.hexlify(responder.tostring())))
+                        except KeyboardInterrupt:
+                            print (i,j,q,w,50)
+                            pass
+                        except Exception as e:
+                            pass
+        print("Ended!")
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
@@ -712,6 +743,7 @@ class agfs():
             self.transaction.commit()
         except Exception as e:
             print("Unable to create or parse!",e)
+
 
 
     def clonedev(self):

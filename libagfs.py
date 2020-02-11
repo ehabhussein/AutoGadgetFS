@@ -574,11 +574,12 @@ class agfs():
                             responder = self.device.ctrl_transfer(i,j,q,w,50)
                             """Put all responses in sqlite database later"""
                             if responder[0] > 0 or responder[1] > 0:
-                                print("Found Valid Control Transfer request")
-                                print("bmRequest=",i,"bRequest=",j, "wValue=",q,"wIndex=",0, "data_length=",50)
+                                print("Found Valid Control Transfer request on device: %s" %self.SelectedDevice)
+                                print("bmRequest=",hex(i),"bRequest=",hex(j), "wValue=",hex(q),"wIndex=",hex(w), "data_length=",50)
                                 print("received:", binascii.unhexlify(binascii.hexlify(responder.tostring())))
                         except KeyboardInterrupt:
-                            print (i,j,q,w,50)
+                            print("bmRequest=", hex(i), "bRequest=", hex(j), "wValue=", hex(q), "wIndex=", hex(w),
+                                  "data_length=", 50)
                             pass
                         except Exception as e:
                             pass

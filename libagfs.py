@@ -53,6 +53,9 @@ class agfs():
         self.fuzzhost = 0
         self.ingui = 0
 
+    def createctrltrsnfDB(self):
+        pass
+
     def createdb(self, name):
         """create the sqlite table and columns for usblyzer dumps
         :param name: this receives a name for the database name to be created
@@ -181,7 +184,7 @@ class agfs():
                 print("[-] Kernel driver detached")
                 self.device.set_configuration()
             except Exception as e:
-                    print("Failed to detach the kernel driver from the interfaces.",e )
+                    print("Failed to detach the kernel driver from the interfaces.",e)
             self.deviceInterfaces()
             if input("Do you want to reset the device? [y/n]: ").lower() == 'y':
                 self.device.reset()
@@ -195,6 +198,18 @@ class agfs():
                 self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
                 self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
                 self.killthread = 0
+                print("Checking if device supports DFU mode based on USB DFU R1.1")
+                '''based on USB Device Firmware Upgrade Specification, Revision 1.1'''
+                dfu = 0
+                for configurations in self.device:
+                    for interface in configurations.interfaces():
+                        if interface.bInterfaceClass == 0xFF:
+                            print(f"This configuration #{configurations} on interface #{interface} needs vendor specific Drivers")
+                        if interface.bInterfaceClass == 0xFE and interface.bInterfaceSubClass == 0x01:
+                            print(f"This Device supports DFU mode on configuration {configurations}, interface {interface}")
+                            dfu += 1
+                if dfu == 0:
+                    print("This Device doesnt support DFU mode")
             except Exception as e:
                 print(e)
                 print("Couldn't get device configuration!")
@@ -206,13 +221,16 @@ class agfs():
                     print(self.leninterfaces)
                     try:
                         self.device_hidrep = []
+                        self.device_hidrepdecoded = []
                         """Thanks https://wuffs.org/blog/mouse-adventures-part-5
                         https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
                         """
                         for i in range(0,self.leninterfaces+1):
                             try:
                                 #length is wrong we need to get this via another control transfer request
-                                self.device_hidrep.append(binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff)))
+                                response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
+                                self.device_hidrep.append(response)
+                                self.device_hidrepdecoded.append(response)
                                 print(self.device_hidrep)
                             except usb.core.USBError:
                                 pass
@@ -574,16 +592,47 @@ class agfs():
                             responder = self.device.ctrl_transfer(i,j,q,w,50)
                             """Put all responses in sqlite database later"""
                             if responder[0] > 0 or responder[1] > 0:
-                                print("Found Valid Control Transfer request on device: %s" %self.SelectedDevice)
-                                print("bmRequest=",hex(i),"bRequest=",hex(j), "wValue=",hex(q),"wIndex=",hex(w), "data_length=",50)
-                                print("received:", binascii.unhexlify(binascii.hexlify(responder.tostring())))
+                                stdout.write("Found Valid Control Transfer request on device: %s" %self.SelectedDevice)
+                                stdout.write("\n")
+                                stdout.write("bmRequest=0x{0:2X}, bRequest=0x{1:2X},wValue=0x{2:2X} , wIndex=0x{3:2X}, data_length=50".format(i,j,q,w))
+                                stdout.write("\n")
+                                stdout.write("received:", binascii.unhexlify(binascii.hexlify(responder.tostring())))
+                                stdout.write("\n")
+                                stdout.flush()
                         except KeyboardInterrupt:
-                            print("bmRequest=", hex(i), "bRequest=", hex(j), "wValue=", hex(q), "wIndex=", hex(w),
-                                  "data_length=", 50)
+                            stdout.write("bmRequest=0x{0:2X}, bRequest=0x{1:2X},wValue=0x{2:2X} , wIndex=0x{3:2X}, data_length=50".format(i,j,q,w))
+                            stdout.write("\n")
+                            stdout.flush()
                             pass
                         except Exception as e:
                             pass
         print("Ended!")
+
+    def gogogadgetduckymaker(self,endpoint):
+        '''
+        create rubber ducky like scripts to be run on the host machine with pi zero emulating a keyboard
+        :param endpoint: endpoint IN of keyboard to sniff from
+        :return: None
+        '''
+        import keymap
+        keyser = keymap.kbdmap()
+        self.gogopackets= []
+        while True:
+            try:
+                pkt = self.device.read(endpoint,self.device.bMaxPacketSize0,timeout=0).tolist()
+                self.gogopackets.append(bytearray(pkt))
+              #  print(pkt)
+                if pkt[0]:
+                    stdout.write(f"{keyser.mapf[pkt[0]]}")
+                if pkt[2]:
+                    stdout.write(f"{keyser.mapk[pkt[2]]}")
+                stdout.flush()
+            except KeyboardInterrupt:
+                # print(e) save the gogo script to a file.
+                break
+            except Exception as e:
+                pass
+
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
@@ -863,7 +912,7 @@ class agfs():
             agfsscr.write("echo %s > %s/g/configs/c.1/bmAttributes\n" % (bmAttributes, basedir))
             agfsscr.write("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration\n" %(basedir))
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/protocol\n" %(protocol,basedir))
-            agfsscr.write("echo 256 > %s/g/functions/hid.usb0/report_length\n")
+            agfsscr.write("echo 256 > %s/g/functions/hid.usb0/report_length\n"%basedir)
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/subclass\n" % (bDevSubClass,basedir))
             agfsscr.write("echo '%s' | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (hidreport.decode("utf-8") ,basedir))
             agfsscr.write("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1\n"%(basedir,basedir))

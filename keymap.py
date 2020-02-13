@@ -91,7 +91,7 @@ class kbdmap():
                     82:'[UP]',
                     73:'[INS]',
                     74:'[HOME]',
-                    75:'[PGUP]',`
+                    75:'[PGUP]',
                     78:'[PGDN]',
                     76:'[DEL]',
                     77:'[END]',

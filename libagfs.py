@@ -608,31 +608,37 @@ class agfs():
                             pass
         print("Ended!")
 
-    def gogogadgetduckymaker(self,endpoint):
+    def gogogadgetduckymaker(self,endpoint=None):
         '''
-        create rubber ducky like scripts to be run on the host machine with pi zero emulating a keyboard
+        create rubber ducky like scripts to be run on the host machine with pi zero emulating a US keyboard
+        I'm to lazy to implement capslock please use SHIFT keys
         :param endpoint: endpoint IN of keyboard to sniff from
         :return: None
         '''
         import keymap
         keyser = keymap.kbdmap()
         self.gogopackets= []
+        print("[-]Press ctrl+c to end!")
         while True:
             try:
                 pkt = self.device.read(endpoint,self.device.bMaxPacketSize0,timeout=0).tolist()
                 self.gogopackets.append(bytearray(pkt))
-              #  print(pkt)
                 if pkt[0]:
                     stdout.write(f"{keyser.mapf[pkt[0]]}")
                 if pkt[2]:
                     stdout.write(f"{keyser.mapk[pkt[2]]}")
                 stdout.flush()
             except KeyboardInterrupt:
-                # print(e) save the gogo script to a file.
+                rep = input("Do you want to save this gogo gadget [y/n]").lower()
+                if rep == 'y':
+                    with open("gogogadgets/"+input("Enter filename to save script:"),'wb') as fpkts:
+                        for i in self.gogopackets:
+                            fpkts.write(binascii.hexlify(i))
+                            fpkts.write(b'\r\n')
+                        fpkts.close()
                 break
             except Exception as e:
                 pass
-
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device

@@ -95,7 +95,8 @@ class kbdmap():
                     78:'[PGDN]',
                     76:'[DEL]',
                     77:'[END]',
-                    101:'[MENUK]'
+                    101:'[MENUK]',
+                    84:'/'
         }
         self.mapf = {
             2:'[SHIFTL]',

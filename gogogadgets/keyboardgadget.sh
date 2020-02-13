@@ -21,7 +21,7 @@ echo 0x32 > /sys/kernel/config/usb_gadget/g/configs/c.1/MaxPower
 echo 0xA0 > /sys/kernel/config/usb_gadget/g/configs/c.1/bmAttributes
 echo 'Default Configuration' > /sys/kernel/config/usb_gadget/g/configs/c.1/strings/0x409/configuration
 echo 0x01 > /sys/kernel/config/usb_gadget/g/functions/hid.usb0/protocol
-echo 256 > %s/g/functions/hid.usb0/report_length
+echo 256 > /sys/kernel/config/usb_gadget/g/functions/hid.usb0/report_length
 echo 0x02 > /sys/kernel/config/usb_gadget/g/functions/hid.usb0/subclass
 echo '05010906a101050719e029e71500250175019508810295017508810195037501050819012903910295057501910195067508150026ff00050719002aff008100c0' | xxd -r -ps > /sys/kernel/config/usb_gadget/g/functions/hid.usb0/report_desc
 ln -s /sys/kernel/config/usb_gadget/g/functions/hid.usb0 /sys/kernel/config/usb_gadget/g/configs/c.1

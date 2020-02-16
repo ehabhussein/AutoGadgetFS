@@ -1,3 +1,5 @@
+#import blackmagic
+#import only, god, knows, how, this, works
 import random
 
 class Probability():

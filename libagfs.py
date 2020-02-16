@@ -9,7 +9,7 @@ import xmltodict
 import platform
 import binascii
 from sys import exit,stdout
-from os import geteuid,urandom
+from os import geteuid,urandom,listdir
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
 from time import time,sleep
@@ -18,6 +18,8 @@ import threading
 import getpass
 import paramiko
 import random
+import keymap
+import EDAP
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -52,12 +54,14 @@ class agfs():
         self.fuzzdevice = 0
         self.fuzzhost = 0
         self.ingui = 0
+        self.edap = EDAP.Probability()
 
     def createctrltrsnfDB(self):
         pass
 
     def createdb(self, name):
-        """create the sqlite table and columns for usblyzer dumps
+        """
+        create the sqlite table and columns for usblyzer dumps
         :param name: this receives a name for the database name to be created
         """
 
@@ -71,8 +75,6 @@ class agfs():
             Column('Type',String),
             Column('seq', Integer),
             Column('io', String),
-
-
             Column('cie', String),
             Column('Duration', String),
             Column('DevObjAddr', String),
@@ -295,7 +297,7 @@ class agfs():
         print("Sniffing has stopped successfully!")
         self.killthread = 0
 
-    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0.5):
+    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0.5,genpkts=0):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
@@ -307,10 +309,10 @@ class agfs():
         if pts is not None:
             mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
             input("Press Enter when ready..on %s" % mypts)
-        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue, timeout))
+        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue, timeout,genpkts))
         self.readerThread.start()
 
-    def sniffdevice(self, endpoint, pts, queue,timeout):
+    def sniffdevice(self, endpoint, pts, queue,timeout, genpkts):
         """ read the communication between the device to hosts
         you can either choose set pts or queue but not both.s
        :param endpoint: endpoint address you want to read from)
@@ -337,6 +339,9 @@ class agfs():
                         packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
 
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
+                                                 body=packet)
+                    if genpkts == 1:
+                        self.qchannel3.basic_publish(exchange='agfs', routing_key='edapdev',
                                                  body=packet)
                     sleep(timeout)
                 except usb.core.USBError as e:
@@ -371,7 +376,7 @@ class agfs():
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
-        ''' Stops the man in the middle between the host and the device'''
+        """ Stops the man in the middle between the host and the device"""
         self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
@@ -458,23 +463,35 @@ class agfs():
 
 
     def hostwrite(self, payload, isfuzz=0):
-        ''' This method writes packets to the host either targeting a software or a driver in control of the device'''
-        """use this when you want to send payloads to a device driver on the host
+        """ This method writes packets to the host either targeting a software or a driver in control of the device
+        use this when you want to send payloads to a device driver on the host
+
         :param payload: the message to be sent to the host example: "0102AAFFCC"
+        :param isfuzz: is the payload coming from the fuzzer ?
         start the pizeroRouter.py with argv[2] set to anything so we can send the host messages to a null Queue
         """
         self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                      body=binascii.unhexlify(payload) if isfuzz == 0 else payload)
 
+    def stophostwrite(self):
+        """ stop the thread incharge of communicating with the host machine"""
+        self.hbkill = 1
+        self.hbThread.join()
+        self.qconnect3.close()
+        self.hbkill = 0
+
+
     def hstrandfuzz(self, howmany=1, size=None, timeout=0.5):
-        '''
+        """
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
         :param size: the value whether its fixed or random size if you need fixed size send an int if you want random send another type to the size parameter
         size = 10 to generate a length 10 packet or size = "foobar" to generate a random length packet
         :param timeout: timeOUT !
         :return: None
-        '''
+        """
+        self.inithostwrite()
+        sleep(1)
         for i in range(howmany):
             try:
                 print("****************VVV Packet #%d  VVV**********************" % i)
@@ -483,7 +500,7 @@ class agfs():
                     print("sent-->\n", binascii.hexlify(s))
                     self.hostwrite(s,isfuzz=1)
                 else:
-                    s = urandom(random.randint(0, 255))
+                    s = urandom(random.randint(0, 2049))
                     print("sent-->\n", binascii.hexlify(s))
                     self.hostwrite(s, isfuzz=1)
                 sleep(timeout)
@@ -491,12 +508,6 @@ class agfs():
                 print("Error -->%s\n" %e)
                 pass
 
-    def stophostwrite(self):
-        ''' stop the thread incharge of communicating with the host machine'''
-        self.hbkill = 1
-        self.hbThread.join()
-        self.qconnect3.close()
-        self.hbkill = 0
 
 
     def clearqueues(self):
@@ -519,14 +530,14 @@ class agfs():
 
 
     def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
-            '''
-            this method allows you to create fixed or random size packets created using urandom
-            :param howmany: how many packets to be sent to the device`
-            :param size: string value whether its fixed or random size
-            :param timeout: timeOUT !
-            :return: None
-            '''
-            for i in range(howmany):
+        """
+        this method allows you to create fixed or random size packets created using urandom
+        :param howmany: how many packets to be sent to the device`
+        :param size: string value whether its fixed or random size
+        :param timeout: timeOUT !
+        :return: None
+        """
+        for i in range(howmany):
                 try:
                     print("****************VVV Packet #%d  VVV**********************"%i)
                     if size == 'fixed':
@@ -545,13 +556,13 @@ class agfs():
                     pass
 
     def devbrutefuzz(self, starter=0x00,ranger=0xffffffffff+1,timeout=0):
-        '''
+        """
         This method allows you to create sequencial increment packets
         :param starter: start value to bruteforce from in hex notation
         :param ranger: end value where the bruteforce ends in hex notation
         :param timeout: timeout!
         :return:  none
-        '''
+        """
         '''https://stackoverflow.com/questions/46739981/ways-to-increment-hex-in-python?rq=1'''
         for i,j in enumerate(range(starter,ranger)):
             try:
@@ -608,14 +619,15 @@ class agfs():
                             pass
         print("Ended!")
 
-    def gogogadgetduckymaker(self,endpoint=None):
-        '''
+    def gogogadgetKeyboard(self, endpoint=None, debug='off'):
+        """
         create rubber ducky like scripts to be run on the host machine with pi zero emulating a US keyboard
         I'm to lazy to implement capslock please use SHIFT keys
         :param endpoint: endpoint IN of keyboard to sniff from
+        :param debug: print the pkt in list form useful for debugging
         :return: None
-        '''
-        import keymap
+        """
+        self.inithostwrite()
         keyser = keymap.kbdmap()
         self.gogopackets= []
         print("[-]Press ctrl+c to end!")
@@ -623,15 +635,42 @@ class agfs():
             try:
                 pkt = self.device.read(endpoint,self.device.bMaxPacketSize0,timeout=0).tolist()
                 self.gogopackets.append(bytearray(pkt))
+                if debug == 'on':
+                    print(pkt)
                 if pkt[0]:
                     stdout.write(f"{keyser.mapf[pkt[0]]}")
+                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
+                    self.gogopackets.append(bytearray(pkt))
                 if pkt[2]:
                     stdout.write(f"{keyser.mapk[pkt[2]]}")
+                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
+                    self.gogopackets.append(bytearray(pkt))
+                if pkt[3]:
+                    stdout.write(f"{keyser.mapk[pkt[3]]}")
+                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
+                    self.gogopackets.append(bytearray(pkt))
+                if pkt[4]:
+                    stdout.write(f"{keyser.mapk[pkt[4]]}")
+                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
+                    self.gogopackets.append(bytearray(pkt))
+                if pkt[5]:
+                    stdout.write(f"{keyser.mapk[pkt[5]]}")
+                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
+                    self.gogopackets.append(bytearray(pkt))
+                if pkt[6]:
+                    stdout.write(f"{keyser.mapk[pkt[6]]}")
+                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
+                    self.gogopackets.append(bytearray(pkt))
+                if pkt[7]:
+                    stdout.write(f"{keyser.mapk[pkt[7]]}")
+                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
+                    self.gogopackets.append(bytearray(pkt))
                 stdout.flush()
             except KeyboardInterrupt:
-                rep = input("Do you want to save this gogo gadget [y/n]").lower()
+                rep = input("Do1 you want to save this gogo gadget [y/n]").lower()
                 if rep == 'y':
-                    with open("gogogadgets/"+input("Enter filename to save script:"),'wb') as fpkts:
+                    gogofile = input("Enter filename to save script: ")
+                    with open("gogogadgets/"+gogofile,'wb') as fpkts:
                         for i in self.gogopackets:
                             fpkts.write(binascii.hexlify(i))
                             fpkts.write(b'\r\n')
@@ -639,6 +678,71 @@ class agfs():
                 break
             except Exception as e:
                 pass
+        for i in open('gogogadgets/' + gogofile).readlines():
+            self.hostwrite(i.strip())
+            sleep(0.5)
+        self.stophostwrite()
+
+    def GenPackets(self,engine=None,samples=100,direction=None,filename=None):
+        """
+        This method is still uncomplete i need to send the generated packets to a queue
+        :param engine: choice between smart, random , patterns
+        :param samples: number of samples to be generated
+        :param direction: 'hst' ot 'dev'
+        :param filename: 'filename to learn from'
+        :return: none
+        """
+        self.edap.charset = list()
+        self.edap.alphaupperindexes = list()
+        self.edap.alphalowerindexes = list()
+        self.edap.integerindexes = list()
+        self.edap.nonalphanumindexes = list()
+        self.edap.frequencies = dict()
+        self.edap.fullkeyboard = list("`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?")
+        self.edap.discardedcharset = list()
+        self.edap.finalcharset = list()
+        self.edap.countUpper = 0
+        self.edap.countLower = 0
+        self.edap.countDigits = 0
+        self.edap.countOther = 0
+        self.edap.pppc = 1
+        self.word_dct = dict()
+        self.edap.packets = []
+        self.edap.howmany = samples
+        self.edap.readwords = list(set([i.decode('utf-8') for i in open(filename, 'rb')]))
+        self.edap.unusedindexes = list(range(len(max(self.edap.readwords, key=len).strip())))
+        self.edap.getcharset()
+        self.edap.getindexes()
+        self.edap.printgeneralstats()
+        self.edap.frequency_index_vertical()
+        self.edap.frequency_index_horizontal()
+        self.edap.charswithfriendswithwords()
+        self.edap.PrefinalAnalysis()
+        if engine == "smart":
+            for i in range(samples):
+                self.edap.smartGenerator()
+        elif engine == "patterns":
+            for i in range(samples):
+                self.edap.patterngenerator()
+        if engine == "random":
+            self.edap.randomgenerator()
+        print(f"\n\n**********************************\ngenerated:{len(self.edap.packets)} Packets\n**********************************\n")
+
+
+
+
+
+    def sendGogogadgetToHost(self):
+        """ This method sends the selected sysreq key to the host over Queues"""
+        gogodir = listdir('gogogadgets/')
+        pprint.pprint({str(i):j for i,j in enumerate(gogodir)})
+        responser = int(input("select a file [0-9]:"))
+        #self.inithostwrite()
+        for i in open('gogogadgets/' + gogodir[responser]).readlines():
+            print(f"Sent-->\n{i}\n-----------------")
+         #   self.hostwrite(i.strip())
+            sleep(0.5)
+       # self.stophostwrite()
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
@@ -723,7 +827,8 @@ class agfs():
 
 
     def usblyzerparse(self,dbname):
-        """This method will parse your xml exported from usblyzer and then import them into a database
+        """
+        This method will parse your xml exported from usblyzer and then import them into a database
 
         :param dbname: this parameter is used to create a sqlite database in the folder ./databases with the specified name passed.
 
@@ -918,7 +1023,7 @@ class agfs():
             agfsscr.write("echo %s > %s/g/configs/c.1/bmAttributes\n" % (bmAttributes, basedir))
             agfsscr.write("echo 'Default Configuration' > %s/g/configs/c.1/strings/0x409/configuration\n" %(basedir))
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/protocol\n" %(protocol,basedir))
-            agfsscr.write("echo 256 > %s/g/functions/hid.usb0/report_length\n"%basedir)
+            agfsscr.write("echo 256 > %s/g/functions/hid.usb0/report_length\n" %(basedir))
             agfsscr.write("echo %s > %s/g/functions/hid.usb0/subclass\n" % (bDevSubClass,basedir))
             agfsscr.write("echo '%s' | xxd -r -ps > %s/g/functions/hid.usb0/report_desc\n" % (hidreport.decode("utf-8") ,basedir))
             agfsscr.write("ln -s %s/g/functions/hid.usb0 %s/g/configs/c.1\n"%(basedir,basedir))

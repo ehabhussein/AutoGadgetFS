@@ -284,9 +284,9 @@ class Probability():
         print("NonAN index usage           : %d%%"%(100 * len(self.nonalphanumindexes)/len(self.unusedindexes)))
         print("NonAN index locations       :",sorted(self.nonalphanumindexes))
         print("Counter statistics          : Uppercase: %d , Lowercase: %d, Digits:%d , NonAlphaNumeric:%d" %(self.countUpper ,self.countLower ,self.countDigits , self.countOther))
-       # print("All char Frequencies        : (\'Found Character\'  Repeated How many Times)")
-       # for i in (str(sorted(list(self.frequencies.items()), key=lambda x: x[1])).replace("[","").replace("]","").split(",")):
-       #     print(i.strip(), end=' ')
+        print("All char Frequencies        : ")
+        for i in list(self.frequencies.items()):
+            print(f"character:{i[0]} found:{i[1]} times")
 
 
 

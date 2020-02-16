@@ -1,5 +1,5 @@
-#import blackmagic
-#import only, god, knows, how, this, works
+#from blackmagic import GodOnlyKnowsHowThisWorks
+
 import random
 
 class Probability():

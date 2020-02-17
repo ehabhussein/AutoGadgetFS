@@ -305,6 +305,11 @@ class agfs():
        :param channel: this is automatically passed if you use the self.startMITMusbWifi()
        :return: None
        """
+        if queue is not None:
+            self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
+            self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds3)
+            self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
+            self.qchannel3 = self.qconnect3.channel()
         mypts = None
         if pts is not None:
             mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
@@ -322,10 +327,6 @@ class agfs():
        :return: None
         """
         if queue and pts is None:
-            self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds3)
-            self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
-            self.qchannel3 = self.qconnect3.channel()
             while True:
                 if self.killthread == 1:
                     queue = None
@@ -334,7 +335,7 @@ class agfs():
                 try:
                     packet = self.device.read(endpoint, self.device.bMaxPacketSize0)
                     if self.fuzzhost == 1:
-                        s = memoryview(binascii.unhexlify(packet)).tolist()
+                        s = memoryview(binascii.unhexlify(binascii.hexlify(packet))).tolist()
                         random.shuffle(s)
                         packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
 
@@ -371,13 +372,21 @@ class agfs():
         :param endpoint: the OUT endpoint of the device most probably self.epin which is from the device to the PC
         :return: None
         """
+        self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
+        self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
+        self.qconnect = pika.BlockingConnection(self.qpikaparams)
+        self.qchannel = self.qconnect.channel()
+        self.qchannel.basic_qos(prefetch_count=1)
         self.killthread = 0
         self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,))
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
         """ Stops the man in the middle between the host and the device"""
-        self.qconnect.close()
+        try:
+            self.qchannel.close()
+        except:
+            pass
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
         self.stopSniffing()
@@ -390,7 +399,7 @@ class agfs():
         :param body: Payload
         :return None
         """
-        print("VVV++++++++++++++++FROM HOST\n", body, "^^^++++++++++++++++FROM HOST\n")
+        print("VVV++++++++++++++++FROM HOST\n", body, "\n^^^++++++++++++++++FROM HOST\n")
         if self.fuzzdevice == 1:
             packet = memoryview(binascii.unhexlify(body)).tolist()
             random.shuffle(packet)
@@ -408,11 +417,7 @@ class agfs():
         :return: None
         """
         try:
-            self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
-            self.qconnect = pika.BlockingConnection(self.qpikaparams)
-            self.qchannel = self.qconnect.channel()
-            self.qchannel.basic_qos(prefetch_count=1)
+
             self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
             self.startSniffReadThread(endpoint=self.epin, queue=1)
             print("Connected to RabbitMQ, starting consumption!")
@@ -449,7 +454,7 @@ class agfs():
             channel.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeat")
             sleep(10)
 
-    def inithostwrite(self):
+    def initQueuewrite(self):
         """initiates a connection to the queue to comminicate with the host"""
         self.hbkill = 0
         self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
@@ -458,8 +463,7 @@ class agfs():
         self.qchannel3 = self.qconnect3.channel()
         self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
         self.hbThread.start()
-        print("Queues to host are yours! now you can use self.hostwrite(payload)")
-
+        print("Queues to host are yours! now you can use self.qchannel3 as the channel")
 
 
     def hostwrite(self, payload, isfuzz=0):
@@ -473,7 +477,7 @@ class agfs():
         self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                      body=binascii.unhexlify(payload) if isfuzz == 0 else payload)
 
-    def stophostwrite(self):
+    def stopQueuewrite(self):
         """ stop the thread incharge of communicating with the host machine"""
         self.hbkill = 1
         self.hbThread.join()
@@ -481,26 +485,28 @@ class agfs():
         self.hbkill = 0
 
 
-    def hstrandfuzz(self, howmany=1, size=None, timeout=0.5):
+    def hstrandfuzz(self, howmany=1, size=None, min=None, max = None, timeout=0.5):
         """
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
         :param size: the value whether its fixed or random size if you need fixed size send an int if you want random send another type to the size parameter
         size = 10 to generate a length 10 packet or size = "foobar" to generate a random length packet
+        :param min minimum size value to generate a packet
+        :param max maximum size value to generate a packet
         :param timeout: timeOUT !
         :return: None
         """
-        self.inithostwrite()
+        self.initQueuewrite()
         sleep(1)
         for i in range(howmany):
             try:
                 print("****************VVV Packet #%d  VVV**********************" % i)
-                if type(size) is type(int()):
+                if size:
                     s = urandom(size)
                     print("sent-->\n", binascii.hexlify(s))
                     self.hostwrite(s,isfuzz=1)
-                else:
-                    s = urandom(random.randint(0, 2049))
+                elif min is not None and max is not None:
+                    s = urandom(random.randint(min, max))
                     print("sent-->\n", binascii.hexlify(s))
                     self.hostwrite(s, isfuzz=1)
                 sleep(timeout)
@@ -582,7 +588,7 @@ class agfs():
         """
         This method enumerates all possible combinations of a control transfer request
         :param fuzz: "fast" fuzzer (bmRequest is fuzzed against 0x81 and 0xc0 and the other parameters are limited to one byte
-                     "full" fuzzing (bmRequest is range(0xff) , wValue is range(0xffff) , wIndex is range(0xffff)
+                     "full" fuzzing (bmRequest is range(0xff) , wValue is range(0xffff) , wIndex is range(0xffff) . USE WITH CARE !!
         :return: None
         """
         print("started")
@@ -602,16 +608,15 @@ class agfs():
                         try:
                             responder = self.device.ctrl_transfer(i,j,q,w,50)
                             """Put all responses in sqlite database later"""
-                            if responder[0] > 0 or responder[1] > 0:
-                                stdout.write("Found Valid Control Transfer request on device: %s" %self.SelectedDevice)
-                                stdout.write("\n")
-                                stdout.write("bmRequest=0x{0:2X}, bRequest=0x{1:2X},wValue=0x{2:2X} , wIndex=0x{3:2X}, data_length=50".format(i,j,q,w))
-                                stdout.write("\n")
-                                stdout.write("received:", binascii.unhexlify(binascii.hexlify(responder.tostring())))
-                                stdout.write("\n")
-                                stdout.flush()
+                            stdout.write("*******************************\nFound Valid Control Transfer request on device: %s" %self.SelectedDevice)
+                            stdout.write("\n")
+                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=50".format(i,j,q,w))
+                            stdout.write("\n")
+                            stdout.write(f"received: {binascii.unhexlify(binascii.hexlify(responder.tostring()))}")
+                            stdout.write("\n")
+                            stdout.flush()
                         except KeyboardInterrupt:
-                            stdout.write("bmRequest=0x{0:2X}, bRequest=0x{1:2X},wValue=0x{2:2X} , wIndex=0x{3:2X}, data_length=50".format(i,j,q,w))
+                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=50 *******************************\n".format(i,j,q,w))
                             stdout.write("\n")
                             stdout.flush()
                             pass
@@ -621,13 +626,12 @@ class agfs():
 
     def gogogadgetKeyboard(self, endpoint=None, debug='off'):
         """
-        create rubber ducky like scripts to be run on the host machine with pi zero emulating a US keyboard
-        I'm to lazy to implement capslock please use SHIFT keys
+        capture keyboard keys and write scripts to be run on the host machine with pi zero emulating a US keyboard
         :param endpoint: endpoint IN of keyboard to sniff from
-        :param debug: print the pkt in list form useful for debugging
+        :param debug: print the pkt in list format
         :return: None
         """
-        self.inithostwrite()
+        self.initQueuewrite()
         keyser = keymap.kbdmap()
         self.gogopackets= []
         print("[-]Press ctrl+c to end!")
@@ -667,7 +671,7 @@ class agfs():
                     self.gogopackets.append(bytearray(pkt))
                 stdout.flush()
             except KeyboardInterrupt:
-                rep = input("Do1 you want to save this gogo gadget [y/n]").lower()
+                rep = input("Do you want to save this gogo gadget [y/n]").lower()
                 if rep == 'y':
                     gogofile = input("Enter filename to save script: ")
                     with open("gogogadgets/"+gogofile,'wb') as fpkts:
@@ -681,14 +685,17 @@ class agfs():
         for i in open('gogogadgets/' + gogofile).readlines():
             self.hostwrite(i.strip())
             sleep(0.5)
-        self.stophostwrite()
+        self.stopQueuewrite()
 
-    def GenPackets(self,engine=None,samples=100,direction=None,filename=None):
+    def NNGenPackets(self,engine=None,samples=100,direction=None,filename=None):
         """
-        This method is still uncomplete i need to send the generated packets to a queue
+        This method is still incomplete i need to send the generated packets to a queue
         :param engine: choice between smart, random , patterns
+            random: [truly random based on charset , length , chars found]
+            smart: [based on input , weight & positions]
+            patterns: [based on smart + char cases]
         :param samples: number of samples to be generated
-        :param direction: 'hst' ot 'dev'
+        :param direction: 'hst' to 'dev'
         :param filename: 'filename to learn from'
         :return: none
         """
@@ -727,6 +734,7 @@ class agfs():
         if engine == "random":
             self.edap.randomgenerator()
         print(f"\n\n**********************************\ngenerated:{len(self.edap.packets)} Packets\n**********************************\n")
+        
 
 
 
@@ -737,12 +745,12 @@ class agfs():
         gogodir = listdir('gogogadgets/')
         pprint.pprint({str(i):j for i,j in enumerate(gogodir)})
         responser = int(input("select a file [0-9]:"))
-        #self.inithostwrite()
+        #self.initQueuewrite()
         for i in open('gogogadgets/' + gogodir[responser]).readlines():
             print(f"Sent-->\n{i}\n-----------------")
          #   self.hostwrite(i.strip())
             sleep(0.5)
-       # self.stophostwrite()
+       # self.stopQueuewrite()
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
@@ -753,7 +761,7 @@ class agfs():
         """
         count = 0
         if direction is 'in':
-            self.inithostwrite()
+            self.initQueuewrite()
         try:
             if self.device:
                 if sequence is None and direction is not None:

@@ -1,0 +1,18 @@
+--- /usr/local/lib/python3.7/dist-packages/usb/util.py	2020-02-19 01:01:18.552048675 +0200
++++ pyusb_patches/util.py	2020-02-19 01:01:40.280048414 +0200
+@@ -311,11 +311,13 @@
+     langids = dev.langids
+ 
+     if 0 == len(langids):
+-        raise ValueError("The device has no langid")
++        return "Error Reading LangID"
++        #raise ValueError("The device has no langid")
+     if langid is None:
+         langid = langids[0]
+     elif langid not in langids:
+-        raise ValueError("The device does not support the specified langid")
++        return "Error Reading LangID"
++    	#raise ValueError("The device does not support the specified langid")
+ 
+     buf = get_descriptor(
+                 dev,

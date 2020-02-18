@@ -57,7 +57,26 @@ class agfs():
         self.edap = EDAP.Probability()
 
     def createctrltrsnfDB(self):
-        pass
+        """"""
+        try:
+            meta = MetaData()
+            db = create_engine('sqlite:///devEnumCT/%s.db' %(self.SelectedDevice))
+            db.echo = False
+            self.devECT = Table(
+            self.SelectedDevice,
+            meta,
+            Column('bmRequest', String),
+            Column('bRequest', String),
+            Column('wValue', String),
+            Column('wIndex', String),
+            Column('Data_length', String),
+            Column('Data_returned', String),
+            Column('Data_returned_Ascii', String))
+            meta.create_all(db)
+            return db, self.devECT
+        except Exception as e:
+            print(e)
+            print("[Error] cannot create db\n")
 
     def createdb(self, name):
         """
@@ -119,6 +138,7 @@ class agfs():
     def deviceInterfaces(self):
         """get all interfaces and endpoints on the device
         Thanks to the pyusb tutorial"""
+        self.device = usb.core.find(idVendor=self.device.idVendor, idProduct=self.device.idProduct)
         self.leninterfaces = 0
         for cfg in self.device:
             print("Configuration Value: "+str(int(cfg.bConfigurationValue)) + '\n')
@@ -133,28 +153,6 @@ class agfs():
                     print('\t\tEndpoint Address: ' + \
                                      hex(ep.bEndpointAddress) + \
                                      '\n')
-
-    def changeintf(self):
-        """will allow you to change the interfaces you use with the device """
-        self.deviceInterfaces()
-        self.precfg = int(input("which Configuration would you like to use: "))
-        self.interfacenumber = int(input("which Interface would you like to use: "))
-        self.Alternate = int(input("which Alternate setting would you like to use: "))
-        self.epin = int(input("which Endpoint IN would you like to use:[0x??] "), 16)
-        self.epout = int(input("which Endpoint OUT would you like to use:[0x??] "), 16)
-        try:
-            if self.device.is_kernel_driver_active(self.interfacenumber):
-                self.device.detach_kernel_driver(self.interfacenumber)
-                print("[-] Kernel driver detached from interface")
-            else:
-                print("[-] Kernel driver not detached from interface!!!!")
-            self.device.set_configuration(self.precfg)
-            self.devcfg = self.device.get_active_configuration()
-            self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
-            usb.util.claim_interface(self.device, self.interfacenumber)
-        except Exception as e:
-            print("Something went wrong while changing the interface\nError: ", e)
-
 
 
     def findSelect(self):
@@ -220,10 +218,8 @@ class agfs():
             if claim.lower() == 'y':
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
                     print("Checking HID report retrieval\n")
-                    print(self.leninterfaces)
                     try:
                         self.device_hidrep = []
-                        self.device_hidrepdecoded = []
                         """Thanks https://wuffs.org/blog/mouse-adventures-part-5
                         https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
                         """
@@ -232,12 +228,11 @@ class agfs():
                                 #length is wrong we need to get this via another control transfer request
                                 response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
                                 self.device_hidrep.append(response)
-                                self.device_hidrepdecoded.append(response)
-                                print(self.device_hidrep)
                             except usb.core.USBError:
                                 pass
                         if self.device_hidrep:
-                            print(self.device_hidrep)
+                            print(self.device_hidrep[0])
+                            self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0]))
                         else:
                             self.device_hidrep = []
                     except Exception as e:
@@ -360,6 +355,7 @@ class agfs():
                     try:
                             ptsx.write(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))).decode('utf-8')+"\r\n")
                             ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
+                            ptsx.flush()
                     except usb.core.USBError as e:
                         if e.args == ('Operation timed out! Cannot read from device\n',):
                             pass
@@ -372,6 +368,7 @@ class agfs():
         :param endpoint: the OUT endpoint of the device most probably self.epin which is from the device to the PC
         :return: None
         """
+        self.mitm =0
         self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
         self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
         self.qconnect = pika.BlockingConnection(self.qpikaparams)
@@ -383,10 +380,8 @@ class agfs():
 
     def stopMITMusbWifi(self):
         """ Stops the man in the middle between the host and the device"""
-        try:
-            self.qchannel.close()
-        except:
-            pass
+
+        self.qchannel.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
         self.stopSniffing()
@@ -399,7 +394,7 @@ class agfs():
         :param body: Payload
         :return None
         """
-        print("VVV++++++++++++++++FROM HOST\n", body, "\n^^^++++++++++++++++FROM HOST\n")
+        print("VVV++++++++++++++++FROM HOST\n", body,"\n^^^++++++++++++++++FROM HOST\n")
         if self.fuzzdevice == 1:
             packet = memoryview(binascii.unhexlify(body)).tolist()
             random.shuffle(packet)
@@ -417,7 +412,6 @@ class agfs():
         :return: None
         """
         try:
-
             self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
             self.startSniffReadThread(endpoint=self.epin, queue=1)
             print("Connected to RabbitMQ, starting consumption!")
@@ -426,6 +420,7 @@ class agfs():
             print("MITM Proxy stopped!")
         except Exception as e:
             print(e)
+
 
     def devWrite(self,endpoint,payload):
         """To use this with a method you would write make sure to run the startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None)
@@ -552,7 +547,7 @@ class agfs():
                         self.device.write(self.epout, s)
                         print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tostring()))
                     else:
-                        s = urandom(random.randint(0, 255))
+                        s = urandom(random.randint(0, 512))
                         print("sent-->\n",binascii.hexlify(s))
                         self.device.write(self.epout, s)
                         print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
@@ -591,38 +586,72 @@ class agfs():
                      "full" fuzzing (bmRequest is range(0xff) , wValue is range(0xffff) , wIndex is range(0xffff) . USE WITH CARE !!
         :return: None
         """
+        self.devECTdbObj, _table = self.createctrltrsnfDB()
+        self.CTconnection = self.devECTdbObj.connect()
+        self.CTtransaction = self.CTconnection.begin()
         print("started")
         bRequest = 0xff
         if fuzz == "full":
-            bm_request = range(256)
-            wValue = 0xffff
-            wIndex = 0xffff
+            bm_request = [0x2,0x21,0xA1,0x80,0xC0,0x00,0x81,0x1,0x82]
+            wValue = 0xff
+            wIndex = 0x1
         else:
             bm_request = [0x81, 0xC0]
             wValue = 0xff
             wIndex = 0xff
         for i in bm_request:
-            for j in range(bRequest):
-                for q in range(wValue):
-                    for w in range(wIndex):
+            for j in range(bRequest+1):
+                for q in range(wValue+1):
+                    for w in range(wIndex+1):
                         try:
-                            responder = self.device.ctrl_transfer(i,j,q,w,50)
-                            """Put all responses in sqlite database later"""
+                            responder = self.device.ctrl_transfer(i,j,q,w,0xfff)
                             stdout.write("*******************************\nFound Valid Control Transfer request on device: %s" %self.SelectedDevice)
                             stdout.write("\n")
-                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=50".format(i,j,q,w))
+                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=0xfff".format(i,j,q,w))
                             stdout.write("\n")
-                            stdout.write(f"received: {binascii.unhexlify(binascii.hexlify(responder.tostring()))}")
+                            stdout.write(f"received: {binascii.unhexlify(binascii.hexlify(responder.tostring()))[:10]}...[SNIP]")
                             stdout.write("\n")
                             stdout.flush()
+                            try:
+                                _insert = _table.insert().values(
+                                    bmRequest=i,
+                                    bRequest=j,
+                                    wValue=q,
+                                    wIndex=w,
+                                    Data_length=len(binascii.unhexlify(binascii.hexlify(responder.tostring()))),
+                                    Data_returned=binascii.unhexlify(binascii.hexlify(responder.tostring())),
+                                    Data_returned_Ascii=self.decodePacketAscii(payload=binascii.unhexlify(binascii.hexlify(responder.tostring()))))
+                                self.CTconnection.execute(_insert)
+                                break
+                            except Exception as e:
+                                print("unable to insert data into database!", e)
+                                break
                         except KeyboardInterrupt:
-                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=50 *******************************\n".format(i,j,q,w))
+                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=0xff *******************************\n".format(i,j,q,w))
                             stdout.write("\n")
                             stdout.flush()
-                            pass
                         except Exception as e:
                             pass
+        try:
+            self.CTtransaction.commit()
+            self.CTconnection.close()
+        except:
+            pass
         print("Ended!")
+
+    def decodePacketAscii(self,payload=None):
+        """
+        :param payload: bytes of payload to be converted to ascii
+        :return: decoded payload
+        """
+        retpayload = ""
+        for i in payload:
+            decode = chr(ord(chr(i)))
+            if decode.isalnum():
+                retpayload += decode
+            else:
+                retpayload += "."
+        return retpayload
 
     def gogogadgetKeyboard(self, endpoint=None, debug='off'):
         """
@@ -687,7 +716,11 @@ class agfs():
             sleep(0.5)
         self.stopQueuewrite()
 
-    def NNGenPackets(self,engine=None,samples=100,direction=None,filename=None):
+    def startNNGPqueue(self,direction=None ,wait_for_N_packets=10):
+        pass
+
+
+    def NNGenPackets(self,engine=None,samples=100,direction=None,filename=None,fromQueue=None):
         """
         This method is still incomplete i need to send the generated packets to a queue
         :param engine: choice between smart, random , patterns
@@ -695,10 +728,16 @@ class agfs():
             smart: [based on input , weight & positions]
             patterns: [based on smart + char cases]
         :param samples: number of samples to be generated
-        :param direction: 'hst' to 'dev'
+        :param direction: 'hst' or 'dev'
         :param filename: 'filename to learn from'
         :return: none
         """
+        if filename is not None:
+            self.edap.readwords =list(set([i.decode('utf-8') for i in open(filename, 'rb')]))
+        elif fromQueue is not None:
+            self.edap.readwords = fromQueue
+        else:
+            return "nothing to do"
         self.edap.charset = list()
         self.edap.alphaupperindexes = list()
         self.edap.alphalowerindexes = list()
@@ -716,7 +755,6 @@ class agfs():
         self.word_dct = dict()
         self.edap.packets = []
         self.edap.howmany = samples
-        self.edap.readwords = list(set([i.decode('utf-8') for i in open(filename, 'rb')]))
         self.edap.unusedindexes = list(range(len(max(self.edap.readwords, key=len).strip())))
         self.edap.getcharset()
         self.edap.getindexes()

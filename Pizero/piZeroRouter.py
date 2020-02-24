@@ -33,7 +33,6 @@ def mitmProxy(ipaddress, pktlen):
                     for fileno, event in events:
                         if event & select.EPOLLIN:
                             packet = hidg.read(pktlen)
-                            print(packet)
                             qchannel2.basic_publish(exchange='agfs', routing_key='todev', body=binascii.hexlify(packet))
                     qchannel2.basic_publish(exchange='agfs', routing_key='tonull', body='')
         except Exception as e:

@@ -1,65 +1,71 @@
+from time import sleep
 import binascii
-import sys
 import pika
 import os
-import multiprocessing
-from time import sleep
-fdW = os.open("/dev/hidg0",os.O_WRONLY)
+import threading
+import select
+import argparse
+try:
+    fdW = os.open("/dev/hidg0",os.O_WRONLY)
+except FileNotFoundError:
+    print("Did you run your gadget? Guess not!\n Quitting...")
+    exit(-1)
+terminator = 0
 
-def mitmproxy(ip,fdR,mode,length):
-            qcreds2 = pika.PlainCredentials('autogfs', 'usb4ever')
-            qpikaparams2 = pika.ConnectionParameters(sys.argv[1], 5672, '/', qcreds2)
-            qconnect2 = pika.BlockingConnection(qpikaparams2)
-            qchannel2 = qconnect2.channel()
-            while True:
-                try:
-                        packet = fdR.read(64)
-                        #print(packet)
-                        qchannel2.basic_publish(exchange='agfs', routing_key='todev' if mode is None else 'tonull',body=binascii.hexlify(packet))
-                except Exception as e:
-                        qchannel2.basic_publish(exchange='agfs', routing_key='tonull',body="HeartBeat")
-                        print(e)
-                        pass
-                qchannel2.basic_publish(exchange='agfs', routing_key='tonull',body="HeartBeat")
+def makeChannel(ipaddress):
+    qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
+    qpikaparams = pika.ConnectionParameters(ipaddress, 5672, '/',qcreds, heartbeat=60,blocked_connection_timeout=300,socket_timeout=None)
+    qconnect = pika.BlockingConnection(qpikaparams)
+    return qconnect.channel()
+
+
+def mitmProxy(ipaddress, pktlen):
+        try:
+            print("Monitoring /dev/hidg0 started!")
+            qchannel2 = makeChannel(ipaddress)
+            with open('/dev/hidg0', 'rb') as hidg:
+                epoll = select.epoll()
+                epoll.register(hidg.fileno(), select.EPOLLIN)
+                while True:
+                    if terminator == 1:
+                        break
+                    events = epoll.poll(0.5)
+                    for fileno, event in events:
+                        if event & select.EPOLLIN:
+                            packet = hidg.read(pktlen)
+                            print(packet)
+                            qchannel2.basic_publish(exchange='agfs', routing_key='todev', body=binascii.hexlify(packet))
+                    qchannel2.basic_publish(exchange='agfs', routing_key='tonull', body='')
+        except Exception as e:
+            print(e)
+            pass
+
 
 def write2host(ch, method, properties, body):
-    #with os.open("/dev/hidg0",mode='wb') as fdW:
-        #x = os.open("/dev/hidg0",os.O_WRONLY)
         print("VVV----------------FROM DEVICE\n")
         print(body)
-       #fdW.write(body)
-        ilen = os.write(fdW,body)
-        print(ilen)
-        #os.close(x)
-        #sleep(0.5)
-       # print("^^^----------------FROM DEVICE\n")
+        os.write(fdW,body)
         ch.basic_ack(delivery_tag=method.delivery_tag)
+
 
 if __name__ == '__main__':
     try:
-        fdR =  open("/dev/hidg0",mode='rb')
-        #print("Starting Router")
-        try:
-            mode = sys.argv[2]
-        except:
-            mode = None
-        try:
-            readlen = int(sys.argv[3])
-        except: 
-            readlen = 64
-        router = multiprocessing.Process(target=mitmproxy, args=(sys.argv[1],fdR,mode,readlen))
+        argparse = argparse.ArgumentParser()
+        argparse.add_argument('-ip',dest='ipaddress',help='ip address of RabbitMQ', required=True)
+        argparse.add_argument('-l',dest='pktlen',help='packet length. Check bMaxPacketsize0 on your device', required=True)
+        args = argparse.parse_args()
+        print("Go go gadget MITM!")
+        router = threading.Thread(target=mitmProxy, args=(args.ipaddress, int(args.pktlen),))
         router.start()
-        print("Router Started")
         print("Initiating Connection to RabbitMQ")
-        qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
-        qpikaparams = pika.ConnectionParameters(sys.argv[1], 5672, '/', qcreds)
-        qconnect = pika.BlockingConnection(qpikaparams)
-        qchannel = qconnect.channel()
+        qchannel = makeChannel(args.ipaddress)
         qchannel.basic_qos(prefetch_count=1)
         qchannel.basic_consume(on_message_callback=write2host, queue='tohost')
         print("Starting Consumption of queue")
+        print("Started!")
         qchannel.start_consuming()
         
     except KeyboardInterrupt:
-        router.terminate()
-        fdR.close()
+        terminator = 1
+        router.join()
+

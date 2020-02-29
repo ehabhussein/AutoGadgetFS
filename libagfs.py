@@ -3,7 +3,7 @@ __author__ = "Ehab Hussein"
 __credits__ = ['Josep Pi Rodriguez',    'Dani Martinez']
 __version__ = "1.0"
 __twitter__ = "@0xRaindrop"
-__status__ = "Development"
+__status__ = "Alpha 1.0"
 ##################### Imports
 import xmltodict
 import platform
@@ -20,6 +20,7 @@ import paramiko
 import random
 import keymap
 import EDAP
+from termcolor import colored, cprint
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -32,6 +33,7 @@ if int(platform.uname()[2][0]) < 4:
     print("Seems like you have an incompatible kernel, upgrade to something >= 4.x\nThis might not work properly..You have been warned!!!\n")
     print("GadgetFS might not work!!\n")
 try:
+    import usb
     import usb.core
     import usb.util
 except:
@@ -46,11 +48,7 @@ except:
 
 class agfs():
     def __init__(self):
-        print("""
-*******************************************************************************
-*AutoGadgetFS: For automated USB security testing *****************************
-*******************************************************************************     
-        """)
+        self.showMessage("AutoGadgetFS: USB testing made easy",color="white")
         self.fuzzdevice = 0
         self.fuzzhost = 0
         self.ingui = 0
@@ -154,6 +152,9 @@ class agfs():
                                      hex(ep.bEndpointAddress) + \
                                      '\n')
 
+    def showMessage(self,string,color='green',blink=None):
+        cprint(f"{'*'*(len(string)+4)}\n* {string} *\n{'*'*(len(string)+4)}",color, attrs=[] if blink is None else ['blink'])
+
 
     def findSelect(self):
         """find your device and select it"""
@@ -201,12 +202,12 @@ class agfs():
                 print("Checking if device supports DFU mode based on USB DFU R1.1")
                 '''based on USB Device Firmware Upgrade Specification, Revision 1.1'''
                 dfu = 0
-                for configurations in self.device:
-                    for interface in configurations.interfaces():
+                for i,configurations in enumerate(self.device):
+                    for j,interface in enumerate(configurations.interfaces()):
                         if interface.bInterfaceClass == 0xFF:
-                            print(f"This configuration #{configurations} on interface #{interface} needs vendor specific Drivers")
+                            print(f"Configuration #{i+1} on interface #{j} needs vendor specific Drivers")
                         if interface.bInterfaceClass == 0xFE and interface.bInterfaceSubClass == 0x01:
-                            print(f"This Device supports DFU mode on configuration {configurations}, interface {interface}")
+                            print(f"This Device supports DFU mode on configuration {i+1}, interface {j}")
                             dfu += 1
                 if dfu == 0:
                     print("This Device doesnt support DFU mode")
@@ -214,7 +215,7 @@ class agfs():
                 print(e)
                 print("Couldn't get device configuration!")
 
-            claim = str(input("Do you want pyUSB to claim the device interface: [y/n] "))
+            claim = str(input("Do you want to claim the device interface: [y/n] "))
             if claim.lower() == 'y':
                     usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
                     print("Checking HID report retrieval\n")
@@ -225,14 +226,17 @@ class agfs():
                         """
                         for i in range(0,self.leninterfaces+1):
                             try:
-                                #length is wrong we need to get this via another control transfer request
+                                #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
                                 response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
                                 self.device_hidrep.append(response)
                             except usb.core.USBError:
                                 pass
                         if self.device_hidrep:
                             print(self.device_hidrep[0])
-                            self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0]))
+                            print(self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0])))
+                            if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
+                                self.showMessage("Possible data leakage detected in HID report!",color='red',blink='y')
+
                         else:
                             self.device_hidrep = []
                     except Exception as e:
@@ -292,7 +296,7 @@ class agfs():
         print("Sniffing has stopped successfully!")
         self.killthread = 0
 
-    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0.5,genpkts=0):
+    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0,genpkts=0,savetofile=0):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
@@ -302,7 +306,7 @@ class agfs():
        """
         if queue is not None:
             self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds3)
+            self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/',  self.qcreds3,heartbeat=60)
             self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
             self.qchannel3 = self.qconnect3.channel()
         mypts = None
@@ -332,19 +336,26 @@ class agfs():
                     if self.fuzzhost == 1:
                         s = memoryview(binascii.unhexlify(binascii.hexlify(packet))).tolist()
                         random.shuffle(s)
-                        packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
-
+                        print("************************************##################")
+                        print(packet)
+                        print(s)
+                        print(binascii.unhexlify(''.join(format(x, '02x') for x in s)))
+                    #elif savefile == 1:
+                    #    self.filetest.write(packet)
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     if genpkts == 1:
                         self.qchannel3.basic_publish(exchange='agfs', routing_key='edapdev',
                                                  body=packet)
-                    sleep(timeout)
+                    #sleep(timeout)
                 except usb.core.USBError as e:
                     if e.args == ('Operation timed out\r\n',):
                         print("Operation timed out cannot read from device")
                     pass
+                except Exception as e:
+                    print("+++++",e)
                 self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeats")
+                #sleep(1)
         elif pts and queue is None:
             with open('%s'%(pts.strip()), 'w') as ptsx:
                 while True:
@@ -368,20 +379,14 @@ class agfs():
         :param endpoint: the OUT endpoint of the device most probably self.epin which is from the device to the PC
         :return: None
         """
-        self.mitm =0
-        self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
-        self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
-        self.qconnect = pika.BlockingConnection(self.qpikaparams)
-        self.qchannel = self.qconnect.channel()
-        self.qchannel.basic_qos(prefetch_count=1)
         self.killthread = 0
         self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,))
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
-        """ Stops the man in the middle between the host and the device"""
-
-        self.qchannel.close()
+        ''' Stops the man in the middle between the host and the device'''
+        self.killthread = 1
+        self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
         self.stopSniffing()
@@ -394,7 +399,7 @@ class agfs():
         :param body: Payload
         :return None
         """
-        print("VVV++++++++++++++++FROM HOST\n", body,"\n^^^++++++++++++++++FROM HOST\n")
+        print("VVV++++++++++++++++FROM HOST\n", binascii.unhexlify(body), "^^^++++++++++++++++FROM HOST\n")
         if self.fuzzdevice == 1:
             packet = memoryview(binascii.unhexlify(body)).tolist()
             random.shuffle(packet)
@@ -402,7 +407,7 @@ class agfs():
             print("payload shuffled->", packet)
             print("+++++++++++++++^^ manipulated payload^^++++++++++++++++++++++++++++++")
         self.device.write(self.epout, binascii.unhexlify(body))
-        sleep(0.5)
+        #sleep(0.5)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
@@ -412,6 +417,12 @@ class agfs():
         :return: None
         """
         try:
+            #self.filetest = open("testbintransfered.bin",'wb')
+            self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
+            self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
+            self.qconnect = pika.BlockingConnection(self.qpikaparams)
+            self.qchannel = self.qconnect.channel()
+            #self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
             self.startSniffReadThread(endpoint=self.epin, queue=1)
             print("Connected to RabbitMQ, starting consumption!")
@@ -420,6 +431,7 @@ class agfs():
             print("MITM Proxy stopped!")
         except Exception as e:
             print(e)
+
 
 
     def devWrite(self,endpoint,payload):
@@ -453,7 +465,7 @@ class agfs():
         """initiates a connection to the queue to comminicate with the host"""
         self.hbkill = 0
         self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
-        self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds3)
+        self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/',  self.qcreds3,heartbeat=60)
         self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
         self.qchannel3 = self.qconnect3.channel()
         self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
@@ -492,7 +504,6 @@ class agfs():
         :return: None
         """
         self.initQueuewrite()
-        sleep(1)
         for i in range(howmany):
             try:
                 print("****************VVV Packet #%d  VVV**********************" % i)
@@ -508,13 +519,14 @@ class agfs():
             except Exception as e:
                 print("Error -->%s\n" %e)
                 pass
+        self.qconnect3.close()
 
 
 
     def clearqueues(self):
         """this method clears all the queues on the rabbitMQ queues that are set up"""
         self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
-        self.qpikaparams4 = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds4)
+        self.qpikaparams4 = pika.ConnectionParameters('localhost', 5672, '/',self.qcreds4,heartbeat=60)
         self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
         self.qchannel4 = self.qconnect4.channel()
         self.qchannel4.queue_purge('todevice')
@@ -523,6 +535,9 @@ class agfs():
         print("cleared tohost queue")
         self.qchannel4.queue_purge('tonull')
         print("cleared tonull queue")
+        self.qchannel4.queue_purge('edapdev')
+        self.qchannel4.queue_purge('edaphst')
+        print("cleared edap queues")
         self.qconnect4.close()
 
     def blacklistdevice(self):
@@ -600,6 +615,7 @@ class agfs():
             wValue = 0xff
             wIndex = 0xff
         for i in bm_request:
+            self.showMessage(f"Now at bmRequest {hex(i)}",color="blue",blink='y')
             for j in range(bRequest+1):
                 for q in range(wValue+1):
                     for w in range(wIndex+1):
@@ -624,13 +640,14 @@ class agfs():
                                 self.CTconnection.execute(_insert)
                                 break
                             except Exception as e:
-                                print("unable to insert data into database!", e)
+                                self.showMessage("unable to insert data into database!",color='red')
                                 break
                         except KeyboardInterrupt:
                             stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=0xff *******************************\n".format(i,j,q,w))
                             stdout.write("\n")
                             stdout.flush()
                         except Exception as e:
+                            #print(e)
                             pass
         try:
             self.CTtransaction.commit()
@@ -663,7 +680,7 @@ class agfs():
         self.initQueuewrite()
         keyser = keymap.kbdmap()
         self.gogopackets= []
-        print("[-]Press ctrl+c to end!")
+        self.showMessage("[-]Press ctrl+c to end!",blink='y')
         while True:
             try:
                 pkt = self.device.read(endpoint,self.device.bMaxPacketSize0,timeout=0).tolist()
@@ -716,7 +733,7 @@ class agfs():
             sleep(0.5)
         self.stopQueuewrite()
 
-    def startNNGPqueue(self,direction=None ,wait_for_N_packets=10):
+    def startNNGenPktsQueue(self,direction=None ,wait_for_N_packets=10):
         pass
 
 
@@ -771,12 +788,8 @@ class agfs():
                 self.edap.patterngenerator()
         if engine == "random":
             self.edap.randomgenerator()
-        print(f"\n\n**********************************\ngenerated:{len(self.edap.packets)} Packets\n**********************************\n")
+        self.showMessage(f"generated:{len(self.edap.packets)} Packets")
         
-
-
-
-
 
     def sendGogogadgetToHost(self):
         """ This method sends the selected sysreq key to the host over Queues"""

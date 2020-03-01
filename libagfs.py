@@ -504,7 +504,7 @@ class agfs():
         :param timeout: timeOUT !
         :return: None
         """
-        self.initQueuewrite()
+        self.startQueuewrite()
         for i in range(howmany):
             try:
                 print("****************VVV Packet #%d  VVV**********************" % i)
@@ -678,7 +678,7 @@ class agfs():
         :param debug: print the pkt in list format
         :return: None
         """
-        self.initQueuewrite()
+        self.startQueuewrite()
         keyser = keymap.kbdmap()
         self.gogopackets= []
         self.showMessage("[-]Press ctrl+c to end!",blink='y')
@@ -797,7 +797,7 @@ class agfs():
         gogodir = listdir('gogogadgets/')
         pprint.pprint({str(i):j for i,j in enumerate(gogodir)})
         responser = int(input("select a file [0-9]:"))
-        #self.initQueuewrite()
+        #self.startQueuewrite()
         for i in open('gogogadgets/' + gogodir[responser]).readlines():
             print(f"Sent-->\n{i}\n-----------------")
          #   self.hostwrite(i.strip())
@@ -813,7 +813,7 @@ class agfs():
         """
         count = 0
         if direction is 'in':
-            self.initQueuewrite()
+            self.startQueuewrite()
         try:
             if self.device:
                 if sequence is None and direction is not None:

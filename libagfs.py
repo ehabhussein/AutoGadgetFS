@@ -462,7 +462,7 @@ class agfs():
             channel.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeat")
             sleep(10)
 
-    def initQueuewrite(self):
+    def startQueuewrite(self):
         """initiates a connection to the queue to comminicate with the host"""
         self.hbkill = 0
         self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')

@@ -153,11 +153,18 @@ class agfs():
                                      '\n')
 
     def showMessage(self,string,color='green',blink=None):
+        """shows messages if error or warn or info"""
         cprint(f"{'*'*(len(string)+4)}\n* {string} *\n{'*'*(len(string)+4)}",color, attrs=[] if blink is None else ['blink'])
 
+    def newProject(self):
+        """ creates a new project name if you were testing something else"""
+        self.SelectedDevice = None
+        self.releasedev()
+        self.findSelect()
 
     def findSelect(self):
         """find your device and select it"""
+        projname = self.SelectedDevice if self.SelectedDevice else input("Give your project a name?!: ")
         self.getusbs = usb.core.find(find_all=True)
         self.devices = dict(enumerate(str(dev.manufacturer)+":"+str(dev.idProduct)+":"+str(dev.idVendor) for dev in self.getusbs))
         for key,value in self.devices.items():
@@ -248,7 +255,7 @@ class agfs():
         else:
             self.manufacturer = self.device.manufacturer
         self.SelectedDevice = self.manufacturer + "-" + str(self.device.idVendor) + "-" + str(self.device.idProduct) + "-" + str(time())
-        self.SelectedDevice = self.SelectedDevice.replace(" ",'')
+        self.SelectedDevice = projname+"-"+self.SelectedDevice.replace(" ",'')
         cloneit = input("Do you want to save this device's information?[y/n]")
         if cloneit.lower() == 'y':
             self.clonedev()

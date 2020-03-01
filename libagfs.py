@@ -333,13 +333,13 @@ class agfs():
                     break
                 try:
                     packet = self.device.read(endpoint, self.device.bMaxPacketSize0)
-                    if self.fuzzhost == 1:
-                        s = memoryview(binascii.unhexlify(binascii.hexlify(packet))).tolist()
-                        random.shuffle(s)
-                        print("************************************##################")
-                        print(packet)
-                        print(s)
-                        print(binascii.unhexlify(''.join(format(x, '02x') for x in s)))
+                    try:
+                        if self.fuzzhost == 1:
+                            s = memoryview(binascii.unhexlify(binascii.hexlify(packet))).tolist()
+                            random.shuffle(s)
+                            packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
+                    except:
+                        pass
                     #elif savefile == 1:
                     #    self.filetest.write(packet)
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
@@ -385,11 +385,12 @@ class agfs():
 
     def stopMITMusbWifi(self):
         ''' Stops the man in the middle between the host and the device'''
+        self.stopSniffing()
         self.killthread = 1
         self.qconnect.close()
         self.startMITMProxyThread.join()
         print("MITM Proxy has now been terminated!")
-        self.stopSniffing()
+
 
     def MITMproxyRQueues(self, ch, method, properties, body):
         """
@@ -399,12 +400,12 @@ class agfs():
         :param body: Payload
         :return None
         """
-        print("VVV++++++++++++++++FROM HOST\n", binascii.unhexlify(body), "^^^++++++++++++++++FROM HOST\n")
+        print("VVV++++++++++++++++FROM HOST\n", binascii.unhexlify(body))
         if self.fuzzdevice == 1:
             packet = memoryview(binascii.unhexlify(body)).tolist()
             random.shuffle(packet)
             body = ''.join(format(x, '02x') for x in packet)
-            print("payload shuffled->", packet)
+            #print("payload shuffled->", packet)
             print("+++++++++++++++^^ manipulated payload^^++++++++++++++++++++++++++++++")
         self.device.write(self.epout, binascii.unhexlify(body))
         #sleep(0.5)
@@ -562,7 +563,7 @@ class agfs():
                         self.device.write(self.epout, s)
                         print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tostring()))
                     else:
-                        s = urandom(random.randint(0, 512))
+                        s = urandom(random.randint(0, 64))
                         print("sent-->\n",binascii.hexlify(s))
                         self.device.write(self.epout, s)
                         print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))

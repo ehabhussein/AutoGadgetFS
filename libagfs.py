@@ -53,6 +53,7 @@ class agfs():
         self.fuzzhost = 0
         self.ingui = 0
         self.edap = EDAP.Probability()
+        self.SelectedDevice = None
 
     def createctrltrsnfDB(self):
         """"""
@@ -217,10 +218,10 @@ class agfs():
                             print(f"This Device supports DFU mode on configuration {i+1}, interface {j}")
                             dfu += 1
                 if dfu == 0:
-                    print("This Device doesnt support DFU mode")
+                    self.showMessage("This Device doesnt support DFU mode",color="green")
             except Exception as e:
                 print(e)
-                print("Couldn't get device configuration!")
+                self.showMessage("Couldn't get device configuration!",color="red",blink='y')
 
             claim = str(input("Do you want to claim the device interface: [y/n] "))
             if claim.lower() == 'y':
@@ -242,14 +243,14 @@ class agfs():
                             print(self.device_hidrep[0])
                             print(self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0])))
                             if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
-                                self.showMessage("Possible data leakage detected in HID report!",color='red',blink='y')
+                                self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
 
                         else:
                             self.device_hidrep = []
                     except Exception as e:
                         print (e)
                         self.device_hidrep = []
-                        print("Couldn't get a hid report but we have claimed the device.")
+                        self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
         if type(self.device.manufacturer) is type(None):
             self.manufacturer = "UnkManufacturer"
         else:
@@ -274,8 +275,7 @@ class agfs():
                     device = usb.core.find(idVendor=ven, idProduct=prod)
                     if temp != str(device):
                         temp = str(device)
-                        stdout.write("\nDevice Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-                        stdout.flush()
+                        self.showMessage("\nDevice Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n",color='blue',blink='y')
                     sleep(10)
                 except Exception as e:
                     print(e)
@@ -285,7 +285,7 @@ class agfs():
         Like when switching and Android phone from MTP to PTP . you'll get a notification so you can check
         your inferfaces and adapt to that change using changeintf() method
         """
-        print("Interface monitoring thread has started.")
+        self.showMessage("Interface monitoring thread has started.",color='green')
         self.monIntKill = 0
         self.monIntThread = threading.Thread(target=self.monInterfaceChng,args=(self.device.idVendor,self.device.idProduct,))
         self.monIntThread.start()
@@ -294,13 +294,13 @@ class agfs():
         """Stops the interface monitor thread"""
         self.monIntKill = 1
         self.monIntThread.join()
-        print("Monitoring of interface changes has stopped")
+        self.showMessage("Monitoring of interface changes has stopped",color='green')
 
     def stopSniffing(self):
         """Kills the sniffing thread"""
         self.killthread = 1
         self.readerThread.join()
-        print("Sniffing has stopped successfully!")
+        self.showMessage("Sniffing has stopped successfully!",color='green')
         self.killthread = 0
 
     def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0,genpkts=0,savetofile=0):
@@ -336,7 +336,7 @@ class agfs():
             while True:
                 if self.killthread == 1:
                     queue = None
-                    print("Thread Terminated Successfully")
+                    self.showMessage("Thread Terminated Successfully",color='green')
                     break
                 try:
                     packet = self.device.read(endpoint, self.device.bMaxPacketSize0)
@@ -357,10 +357,10 @@ class agfs():
                     #sleep(timeout)
                 except usb.core.USBError as e:
                     if e.args == ('Operation timed out\r\n',):
-                        print("Operation timed out cannot read from device")
+                        self.showMessage("Operation timed out cannot read from device",color='red',blink='y')
                     pass
                 except Exception as e:
-                    print("+++++",e)
+                    self.showMessage(e,color='red')
                 self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeats")
                 #sleep(1)
         elif pts and queue is None:
@@ -375,11 +375,11 @@ class agfs():
                             ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
                             ptsx.flush()
                     except usb.core.USBError as e:
-                        if e.args == ('Operation timed out! Cannot read from device\n',):
-                            pass
+                        ##if e.args == ('Operation timed out! Cannot read from device\n',):
+                         #   pass
                         pass
         else:
-            print("either pass to a queue or to a tty")
+            self.showMessage("either pass to a queue or to a tty",color='red',blink='y')
 
     def startMITMusbWifi(self,endpoint=None):
         """
@@ -396,7 +396,7 @@ class agfs():
         self.killthread = 1
         self.qconnect.close()
         self.startMITMProxyThread.join()
-        print("MITM Proxy has now been terminated!")
+        self.showMessage("MITM Proxy has now been terminated!",color='green')
 
 
     def MITMproxyRQueues(self, ch, method, properties, body):
@@ -436,10 +436,9 @@ class agfs():
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
-            print("MITM Proxy stopped!")
+            self.showMessage("MITM Proxy stopped!",color="green")
         except Exception as e:
-            print(e)
-
+            self.showMessage(e,color="red",blink='y')
 
 
     def devWrite(self,endpoint,payload):
@@ -478,7 +477,7 @@ class agfs():
         self.qchannel3 = self.qconnect3.channel()
         self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
         self.hbThread.start()
-        print("Queues to host are yours! now you can use self.qchannel3 as the channel")
+        self.showMessage("Queues to host are yours!",color='blue')
 
 
     def hostwrite(self, payload, isfuzz=0):
@@ -525,7 +524,7 @@ class agfs():
                     self.hostwrite(s, isfuzz=1)
                 sleep(timeout)
             except Exception as e:
-                print("Error -->%s\n" %e)
+                self.showMessage("Error -->%s\n" %e,color='red',blink='y')
                 pass
         self.qconnect3.close()
 
@@ -550,7 +549,6 @@ class agfs():
 
     def blacklistdevice(self):
         pass
-
 
 
     def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
@@ -612,7 +610,7 @@ class agfs():
         self.devECTdbObj, _table = self.createctrltrsnfDB()
         self.CTconnection = self.devECTdbObj.connect()
         self.CTtransaction = self.CTconnection.begin()
-        print("started")
+        self.showMessage("started",color='green')
         bRequest = 0xff
         if fuzz == "full":
             bm_request = [0x2,0x21,0xA1,0x80,0xC0,0x00,0x81,0x1,0x82]
@@ -648,7 +646,7 @@ class agfs():
                                 self.CTconnection.execute(_insert)
                                 break
                             except Exception as e:
-                                self.showMessage("unable to insert data into database!",color='red')
+                                self.showMessage("unable to insert data into database!",color='red',blink='y')
                                 break
                         except KeyboardInterrupt:
                             stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=0xff *******************************\n".format(i,j,q,w))
@@ -662,7 +660,7 @@ class agfs():
             self.CTconnection.close()
         except:
             pass
-        print("Ended!")
+        self.showMessage("Ended!",color="green")
 
     def decodePacketAscii(self,payload=None):
         """
@@ -796,7 +794,7 @@ class agfs():
                 self.edap.patterngenerator()
         if engine == "random":
             self.edap.randomgenerator()
-        self.showMessage(f"generated:{len(self.edap.packets)} Packets")
+        self.showMessage(f"generated:{len(self.edap.packets)} Packets",color='green')
         
 
     def sendGogogadgetToHost(self):
@@ -967,11 +965,11 @@ class agfs():
                                 replyfrom =_replyfrom)
                             self.connection.execute(_insert)
                     except Exception as e:
-                        print("unable to insert data into database!",e)
+                        self.showMessage("unable to insert data into database!\n%s" %e,color='red',blink='y')
                         break
             self.transaction.commit()
         except Exception as e:
-            print("Unable to create or parse!",e)
+            self.showMessage("Unable to create or parse!\n%s" %e,color='red',blink='y')
 
 
 
@@ -989,17 +987,17 @@ class agfs():
             try:
                 self.device_hidrep
             except:
-                print("Claim the interfaces before trying to clone the device. We need some info")
+                self.showMessage("Claim the interfaces before trying to clone the device. We need some info",color='red')
                 return "Cloning Failed"
             try:
                 self.devcfg.bmAttributes
             except:
-                print("Claim the interfaces before trying to clone the device. We need some info")
+                self.showMessage("Claim the interfaces before trying to clone the device. We need some info",color='red')
                 return "Cloning Failed"
             try:
                 self.devcfg.bMaxPower
             except:
-                print("Claim the interfaces before trying to clone the device. We need some info")
+                self.showMessage("Claim the interfaces before trying to clone the device. We need some info",color='red')
                 return "Cloning Failed"
             cloner = open("clones/%s" % self.SelectedDevice, 'w')
             print("setting up: %s" % self.manufacturer)
@@ -1024,7 +1022,7 @@ class agfs():
             print("- Done: Device settings copied to file.\n")
             cloner.close()
         except Exception as e:
-            print("Cannot clone the device!\n",e)
+            self.showMessage("Cannot clone the device!\n%s"%e, color='red',blink='y')
 
     def setupGadgetFS(self):
         """ setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option
@@ -1122,7 +1120,7 @@ class agfs():
                     gogadget.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                     gogadget.connect(pihost, port=piport, username=piuser, password=pipass)
                     stdin, stdout, stderr = gogadget.exec_command('chmod a+x %s;sudo ./%s' %(self.SelectedDevice+".sh", self.SelectedDevice+".sh"))
-                    print("Gadget should now be running")
+                    self.showMessage("Gadget should now be running",color='blue')
 
         except Exception as e:
-            print("You need to call FindSelect() then clonedev() method method prior to setting up GadgetFS", e)
+            self.showMessage("You need to call FindSelect() then clonedev() method method prior to setting up GadgetFS\n%s" %e, color='red',blink='y')

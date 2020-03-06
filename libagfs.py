@@ -307,8 +307,10 @@ class agfs():
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
-       :param queue: is you will use the queues for a full proxy between target and host
+       :param queue: if you will use the queues for a full proxy between target and host
        :param channel: this is automatically passed if you use the self.startMITMusbWifi()
+       :param savetofile: fill in ********************
+       :param genpkts: fill in ********************
        :return: None
        """
         if queue is not None:
@@ -360,7 +362,7 @@ class agfs():
                         self.showMessage("Operation timed out cannot read from device",color='red',blink='y')
                     pass
                 except Exception as e:
-                    self.showMessage(e,color='red')
+                    self.showMessage("Error read from device",color='red')
                 self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeats")
                 #sleep(1)
         elif pts and queue is None:
@@ -450,7 +452,7 @@ class agfs():
         """
         self.device.write(endpoint,payload)
 
-    def devctrltrnsf(self,bmRequestType, bRequest, wValue=0, wIndex=0, wLength=None, timeout=None):
+    def devctrltrnsf(self,bmRequestType, bRequest, wValue, wIndex, wLength):
         """Usually you'll find the parameters for this method in the vendor's data sheet.
         https://www.beyondlogic.org/usbnutshell/usb6.shtml
         :param bmRequestType: direction of the request
@@ -459,7 +461,7 @@ class agfs():
         :param wIndex: parameters to be passed with the request
         :param wLength: Number of bytes to transfer if there is a data phase
         """
-        self.device.ctrl_transfer(bmRequestType,bRequest,wValue,wIndex,wLength)
+        print(binascii.hexlify(self.device.ctrl_transfer(bmRequestType,bRequest,wValue,wIndex,wLength)))
 
     def rabbitmqfakeheartbeat(self, channel):
         while True:
@@ -475,7 +477,7 @@ class agfs():
         self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/',  self.qcreds3,heartbeat=60)
         self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
         self.qchannel3 = self.qconnect3.channel()
-        self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
+       # self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
         self.hbThread.start()
         self.showMessage("Queues to host are yours!",color='blue')
 
@@ -503,14 +505,15 @@ class agfs():
         """
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
-        :param size: the value whether its fixed or random size if you need fixed size send an int if you want random send another type to the size parameter
-        size = 10 to generate a length 10 packet or size = "foobar" to generate a random length packet
+        :param size: fixed size packet length
+        size = 10 to generate a length 10 packet
         :param min minimum size value to generate a packet
         :param max maximum size value to generate a packet
         :param timeout: timeOUT !
         :return: None
         """
         self.startQueuewrite()
+        sleep(1)
         for i in range(howmany):
             try:
                 print("****************VVV Packet #%d  VVV**********************" % i)
@@ -524,7 +527,7 @@ class agfs():
                     self.hostwrite(s, isfuzz=1)
                 sleep(timeout)
             except Exception as e:
-                self.showMessage("Error -->%s\n" %e,color='red',blink='y')
+                self.showMessage("Error -->sending packet\n",color='red',blink='y')
                 pass
         self.qconnect3.close()
 
@@ -566,12 +569,12 @@ class agfs():
                         s = urandom(self.device.bMaxPacketSize0)
                         print("sent-->\n",binascii.hexlify(s))
                         self.device.write(self.epout, s)
-                        print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tostring()))
+                        print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tobytes()))
                     else:
                         s = urandom(random.randint(0, 64))
                         print("sent-->\n",binascii.hexlify(s))
                         self.device.write(self.epout, s)
-                        print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
+                        print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tobytes()))
                     sleep(timeout)
                 except usb.core.USBError:
                     print("received -->Timed Out\n")
@@ -594,7 +597,7 @@ class agfs():
                 self.device.write(self.epout, s)
                 print("sent-->\n", binascii.hexlify(s))
                 print("received -->\n",
-                      binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tostring()))
+                      binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tobytes()))
                 sleep(timeout)
             except usb.core.USBError:
                 print("received --> Timed Out\n")
@@ -631,7 +634,7 @@ class agfs():
                             stdout.write("\n")
                             stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=0xfff".format(i,j,q,w))
                             stdout.write("\n")
-                            stdout.write(f"received: {binascii.unhexlify(binascii.hexlify(responder.tostring()))[:10]}...[SNIP]")
+                            stdout.write(f"received: {binascii.unhexlify(binascii.hexlify(responder.tobytes()))[:10]}...[SNIP]")
                             stdout.write("\n")
                             stdout.flush()
                             try:
@@ -640,9 +643,9 @@ class agfs():
                                     bRequest=j,
                                     wValue=q,
                                     wIndex=w,
-                                    Data_length=len(binascii.unhexlify(binascii.hexlify(responder.tostring()))),
-                                    Data_returned=binascii.unhexlify(binascii.hexlify(responder.tostring())),
-                                    Data_returned_Ascii=self.decodePacketAscii(payload=binascii.unhexlify(binascii.hexlify(responder.tostring()))))
+                                    Data_length=len(binascii.unhexlify(binascii.hexlify(responder.tobytes()))),
+                                    Data_returned=binascii.unhexlify(binascii.hexlify(responder.tobytes())),
+                                    Data_returned_Ascii=self.decodePacketAscii(payload=binascii.unhexlify(binascii.hexlify(responder.tobytes()))))
                                 self.CTconnection.execute(_insert)
                                 break
                             except Exception as e:
@@ -965,11 +968,11 @@ class agfs():
                                 replyfrom =_replyfrom)
                             self.connection.execute(_insert)
                     except Exception as e:
-                        self.showMessage("unable to insert data into database!\n%s" %e,color='red',blink='y')
+                        self.showMessage("unable to insert data into database!\n",color='red',blink='y')
                         break
             self.transaction.commit()
         except Exception as e:
-            self.showMessage("Unable to create or parse!\n%s" %e,color='red',blink='y')
+            self.showMessage("Unable to create or parse!\n",color='red',blink='y')
 
 
 
@@ -1022,7 +1025,7 @@ class agfs():
             print("- Done: Device settings copied to file.\n")
             cloner.close()
         except Exception as e:
-            self.showMessage("Cannot clone the device!\n%s"%e, color='red',blink='y')
+            self.showMessage("Cannot clone the device!\n", color='red',blink='y')
 
     def setupGadgetFS(self):
         """ setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option
@@ -1123,4 +1126,4 @@ class agfs():
                     self.showMessage("Gadget should now be running",color='blue')
 
         except Exception as e:
-            self.showMessage("You need to call FindSelect() then clonedev() method method prior to setting up GadgetFS\n%s" %e, color='red',blink='y')
+            self.showMessage("You need to call FindSelect() then clonedev() method method prior to setting up GadgetFS", color='red',blink='y')

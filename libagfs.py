@@ -160,7 +160,10 @@ class agfs():
     def newProject(self):
         """ creates a new project name if you were testing something else"""
         self.SelectedDevice = None
-        self.releasedev()
+        try:
+            self.releasedev()
+        except:
+            pass
         self.findSelect()
 
     def findSelect(self):
@@ -275,7 +278,7 @@ class agfs():
                     device = usb.core.find(idVendor=ven, idProduct=prod)
                     if temp != str(device):
                         temp = str(device)
-                        self.showMessage("\nDevice Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n",color='blue',blink='y')
+                        self.showMessage("Device Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",color='blue',blink='y')
                     sleep(10)
                 except Exception as e:
                     print(e)
@@ -300,6 +303,8 @@ class agfs():
         """Kills the sniffing thread"""
         self.killthread = 1
         self.readerThread.join()
+        self.qchannel3.stop_consuming()
+        self.qconnect3.close()
         self.showMessage("Sniffing has stopped successfully!",color='green')
         self.killthread = 0
 
@@ -349,8 +354,8 @@ class agfs():
                             packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
                     except:
                         pass
-                    #elif savefile == 1:
-                    #    self.filetest.write(packet)
+                    if self.savefile:
+                        self.bintransfered.write(packet)
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     if genpkts == 1:
@@ -362,6 +367,7 @@ class agfs():
                         self.showMessage("Operation timed out cannot read from device",color='red',blink='y')
                     pass
                 except Exception as e:
+                    print(e)
                     self.showMessage("Error read from device",color='red')
                 self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeats")
                 #sleep(1)
@@ -383,11 +389,16 @@ class agfs():
         else:
             self.showMessage("either pass to a queue or to a tty",color='red',blink='y')
 
-    def startMITMusbWifi(self,endpoint=None):
+    def startMITMusbWifi(self,endpoint=None,savefile=None):
         """
         :param endpoint: the OUT endpoint of the device most probably self.epin which is from the device to the PC
+        :param savefile: if you would like the packets from the host to be saved to a binary file
         :return: None
         """
+        if savefile:
+            self.savefile = 1
+        else:
+            self.savefile = None
         self.killthread = 0
         self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,))
         self.startMITMProxyThread.start()
@@ -395,7 +406,14 @@ class agfs():
     def stopMITMusbWifi(self):
         ''' Stops the man in the middle between the host and the device'''
         self.stopSniffing()
+        try:
+            if self.savefile:
+                self.bintransfered.close()
+        except:
+            pass
+        self.savefile = None
         self.killthread = 1
+        self.qchannel.stop_consuming()
         self.qconnect.close()
         self.startMITMProxyThread.join()
         self.showMessage("MITM Proxy has now been terminated!",color='green')
@@ -421,13 +439,15 @@ class agfs():
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
-    def MITMproxy(self,endpoint):
+    def MITMproxy(self,endpoint,savetofile=None):
         """
         :param endpoint: the IN endpoint
         :return: None
         """
         try:
-            #self.filetest = open("testbintransfered.bin",'wb')
+            if savetofile:
+                self.savefile = 1
+                self.bintransfered = open("testbintransfered.bin",'wb')
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
@@ -440,7 +460,8 @@ class agfs():
             self.qchannel.start_consuming()
             self.showMessage("MITM Proxy stopped!",color="green")
         except Exception as e:
-            self.showMessage(e,color="red",blink='y')
+            self.showMessage("Problem stopping",color="red",blink='y')
+
 
 
     def devWrite(self,endpoint,payload):
@@ -478,7 +499,7 @@ class agfs():
         self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
         self.qchannel3 = self.qconnect3.channel()
        # self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
-        self.hbThread.start()
+        #self.hbThread.start()
         self.showMessage("Queues to host are yours!",color='blue')
 
 
@@ -496,7 +517,8 @@ class agfs():
     def stopQueuewrite(self):
         """ stop the thread incharge of communicating with the host machine"""
         self.hbkill = 1
-        self.hbThread.join()
+        #self.hbThread.join()
+        self.qchannel3.stop_consuming()
         self.qconnect3.close()
         self.hbkill = 0
 
@@ -529,7 +551,7 @@ class agfs():
             except Exception as e:
                 self.showMessage("Error -->sending packet\n",color='red',blink='y')
                 pass
-        self.qconnect3.close()
+        self.stopQueuewrite()
 
 
 

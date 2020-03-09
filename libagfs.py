@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 __author__ = "Ehab Hussein"
 __credits__ = ['Josep Pi Rodriguez',    'Dani Martinez']
-__version__ = "1.0"
+__version__ = "2.0"
+__status__ = "Beta"
 __twitter__ = "@0xRaindrop"
-__status__ = "Alpha 1.0"
 ##################### Imports
 import xmltodict
 import platform
@@ -197,63 +197,64 @@ class agfs():
                 self.device.set_configuration()
             except Exception as e:
                     print("Failed to detach the kernel driver from the interfaces.",e)
-            self.deviceInterfaces()
-            if input("Do you want to reset the device? [y/n]: ").lower() == 'y':
-                self.device.reset()
-            try:
-                self.precfg = int(input("which Configuration would you like to use: "))
-                self.device.set_configuration(self.precfg)
-                self.devcfg = self.device.get_active_configuration()
-                self.interfacenumber = int(input("which Interface would you like to use: "))
-                self.Alternate = int(input("which Alternate setting would you like to use: "))
-                self.epin = int(input("which Endpoint IN would you like to use: "), 16)
-                self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
-                self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
-                self.killthread = 0
-                print("Checking if device supports DFU mode based on USB DFU R1.1")
-                '''based on USB Device Firmware Upgrade Specification, Revision 1.1'''
-                dfu = 0
-                for i,configurations in enumerate(self.device):
-                    for j,interface in enumerate(configurations.interfaces()):
-                        if interface.bInterfaceClass == 0xFF:
-                            print(f"Configuration #{i+1} on interface #{j} needs vendor specific Drivers")
-                        if interface.bInterfaceClass == 0xFE and interface.bInterfaceSubClass == 0x01:
-                            print(f"This Device supports DFU mode on configuration {i+1}, interface {j}")
-                            dfu += 1
-                if dfu == 0:
-                    self.showMessage("This Device doesnt support DFU mode",color="green")
-            except Exception as e:
-                print(e)
-                self.showMessage("Couldn't get device configuration!",color="red",blink='y')
+        self.deviceInterfaces()
+        if input("Do you want to reset the device? [y/n]: ").lower() == 'y':
+            self.device.reset()
+        try:
+            self.precfg = int(input("which Configuration would you like to use: "))
 
-            claim = str(input("Do you want to claim the device interface: [y/n] "))
-            if claim.lower() == 'y':
-                    usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
-                    print("Checking HID report retrieval\n")
-                    try:
-                        self.device_hidrep = []
-                        """Thanks https://wuffs.org/blog/mouse-adventures-part-5
-                        https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
-                        """
-                        for i in range(0,self.leninterfaces+1):
-                            try:
-                                #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
-                                response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
-                                self.device_hidrep.append(response)
-                            except usb.core.USBError:
-                                pass
-                        if self.device_hidrep:
-                            print(self.device_hidrep[0])
-                            print(self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0])))
-                            if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
-                                self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
+            self.device.set_configuration(self.precfg)
+            self.devcfg = self.device.get_active_configuration()
+            self.interfacenumber = int(input("which Interface would you like to use: "))
+            self.Alternate = int(input("which Alternate setting would you like to use: "))
+            self.epin = int(input("which Endpoint IN would you like to use: "), 16)
+            self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
+            self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
+            self.killthread = 0
+            print("Checking if device supports DFU mode based on USB DFU R1.1")
+            '''based on USB Device Firmware Upgrade Specification, Revision 1.1'''
+            dfu = 0
+            for i,configurations in enumerate(self.device):
+                for j,interface in enumerate(configurations.interfaces()):
+                    if interface.bInterfaceClass == 0xFF:
+                        print(f"Configuration #{i+1} on interface #{j} needs vendor specific Drivers")
+                    if interface.bInterfaceClass == 0xFE and interface.bInterfaceSubClass == 0x01:
+                        print(f"This Device supports DFU mode on configuration {i+1}, interface {j}")
+                        dfu += 1
+            if dfu == 0:
+                self.showMessage("This Device doesnt support DFU mode",color="green")
+        except Exception as e:
+            print(e)
+            self.showMessage("Couldn't get device configuration!",color="red",blink='y')
 
-                        else:
-                            self.device_hidrep = []
-                    except Exception as e:
-                        print (e)
+        claim = str(input("Do you want to claim the device interface: [y/n] "))
+        if claim.lower() == 'y':
+                usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
+                print("Checking HID report retrieval\n")
+                try:
+                    self.device_hidrep = []
+                    """Thanks https://wuffs.org/blog/mouse-adventures-part-5
+                    https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
+                    """
+                    for i in range(0,self.leninterfaces+1):
+                        try:
+                            #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
+                            response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
+                            self.device_hidrep.append(response)
+                        except usb.core.USBError:
+                            pass
+                    if self.device_hidrep:
+                        print(self.device_hidrep[0])
+                        print(self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0])))
+                        if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
+                            self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
+
+                    else:
                         self.device_hidrep = []
-                        self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
+                except Exception as e:
+                    print (e)
+                    self.device_hidrep = []
+                    self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
         if type(self.device.manufacturer) is type(None):
             self.manufacturer = "UnkManufacturer"
         else:
@@ -303,8 +304,17 @@ class agfs():
         """Kills the sniffing thread"""
         self.killthread = 1
         self.readerThread.join()
-        self.qchannel3.stop_consuming()
-        self.qconnect3.close()
+        try:
+            if self.savefile:
+                self.bintransfered.close()
+        except:
+            pass
+        if self.frompts == 0:
+            try:
+                self.qchannel3.stop_consuming()
+            except:
+                pass
+            self.qconnect3.close()
         self.showMessage("Sniffing has stopped successfully!",color='green')
         self.killthread = 0
 
@@ -319,12 +329,14 @@ class agfs():
        :return: None
        """
         if queue is not None:
+            self.frompts = 0
             self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/',  self.qcreds3,heartbeat=60)
             self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
             self.qchannel3 = self.qconnect3.channel()
         mypts = None
         if pts is not None:
+            self.frompts = 1
             mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
             input("Press Enter when ready..on %s" % mypts)
         self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue, timeout,genpkts))
@@ -383,8 +395,9 @@ class agfs():
                             ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
                             ptsx.flush()
                     except usb.core.USBError as e:
-                        ##if e.args == ('Operation timed out! Cannot read from device\n',):
-                         #   pass
+                        if e.args == ('Operation timed out! Cannot read from device\n',):
+                            ptsx.write("Operation timed out! Cannot read from device\n")
+                            ptsx.flush()
                         pass
         else:
             self.showMessage("either pass to a queue or to a tty",color='red',blink='y')
@@ -406,11 +419,6 @@ class agfs():
     def stopMITMusbWifi(self):
         ''' Stops the man in the middle between the host and the device'''
         self.stopSniffing()
-        try:
-            if self.savefile:
-                self.bintransfered.close()
-        except:
-            pass
         self.savefile = None
         self.killthread = 1
         self.qchannel.stop_consuming()
@@ -447,7 +455,7 @@ class agfs():
         try:
             if savetofile:
                 self.savefile = 1
-                self.bintransfered = open("testbintransfered.bin",'wb')
+                self.bintransfered = open(f"{self.SelectedDevice}.bin",'wb')
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
@@ -516,11 +524,8 @@ class agfs():
 
     def stopQueuewrite(self):
         """ stop the thread incharge of communicating with the host machine"""
-        self.hbkill = 1
-        #self.hbThread.join()
-        self.qchannel3.stop_consuming()
+        #self.qchannel3.stop_consuming()
         self.qconnect3.close()
-        self.hbkill = 0
 
 
     def hstrandfuzz(self, howmany=1, size=None, min=None, max = None, timeout=0.5):
@@ -576,7 +581,7 @@ class agfs():
         pass
 
 
-    def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
+    def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5,maxPaktSz=513):
         """
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
@@ -593,7 +598,7 @@ class agfs():
                         self.device.write(self.epout, s)
                         print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tobytes()))
                     else:
-                        s = urandom(random.randint(0, 64))
+                        s = urandom(random.randint(0, maxPaktSz))
                         print("sent-->\n",binascii.hexlify(s))
                         self.device.write(self.epout, s)
                         print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tobytes()))
@@ -621,7 +626,8 @@ class agfs():
                 print("received -->\n",
                       binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tobytes()))
                 sleep(timeout)
-            except usb.core.USBError:
+            except usb.core.USBError as e:
+                print(e)
                 print("received --> Timed Out\n")
                 pass
 
@@ -778,7 +784,7 @@ class agfs():
         :param samples: number of samples to be generated
         :param direction: 'hst' or 'dev'
         :param filename: 'filename to learn from'
-        :return: none
+        :return: self.edap.packets: packets generated
         """
         if filename is not None:
             self.edap.readwords =list(set([i.decode('utf-8') for i in open(filename, 'rb')]))
@@ -820,7 +826,10 @@ class agfs():
         if engine == "random":
             self.edap.randomgenerator()
         self.showMessage(f"generated:{len(self.edap.packets)} Packets",color='green')
-        
+        return self.edap.packets
+
+    def stopNNGenPktsQueue(self):
+        pass
 
     def sendGogogadgetToHost(self):
         """ This method sends the selected sysreq key to the host over Queues"""

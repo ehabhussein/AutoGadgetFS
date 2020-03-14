@@ -54,6 +54,7 @@ class agfs():
         self.ingui = 0
         self.edap = EDAP.Probability()
         self.SelectedDevice = None
+        self.rabbitmqserver = input("Enter IP address of the rabbitmq server: ")
 
     def createctrltrsnfDB(self):
         """"""
@@ -318,7 +319,7 @@ class agfs():
         self.showMessage("Sniffing has stopped successfully!",color='green')
         self.killthread = 0
 
-    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0,genpkts=0,savetofile=0):
+    def startSniffReadThread(self,endpoint=None, pts=None, queue=None,timeout=0,genpkts=0):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
@@ -329,9 +330,10 @@ class agfs():
        :return: None
        """
         if queue is not None:
+            self.killthread = 0
             self.frompts = 0
             self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/',  self.qcreds3,heartbeat=60)
+            self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',  self.qcreds3,heartbeat=60)
             self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
             self.qchannel3 = self.qconnect3.channel()
         mypts = None
@@ -352,6 +354,7 @@ class agfs():
        :return: None
         """
         if queue and pts is None:
+            self.showMessage("Sniffing the device started, messages sent to host queue!",color="green")
             while True:
                 if self.killthread == 1:
                     queue = None
@@ -366,8 +369,6 @@ class agfs():
                             packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
                     except:
                         pass
-                    if self.savefile:
-                        self.bintransfered.write(packet)
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     if genpkts == 1:
@@ -418,11 +419,16 @@ class agfs():
 
     def stopMITMusbWifi(self):
         ''' Stops the man in the middle between the host and the device'''
+        if self.savefile:
+            self.bintransfered.close()
         self.stopSniffing()
         self.savefile = None
         self.killthread = 1
-        self.qchannel.stop_consuming()
-        self.qconnect.close()
+        try:
+            self.qchannel.stop_consuming()
+            self.qconnect.close()
+        except:
+            pass
         self.startMITMProxyThread.join()
         self.showMessage("MITM Proxy has now been terminated!",color='green')
 
@@ -443,6 +449,8 @@ class agfs():
             #print("payload shuffled->", packet)
             print("+++++++++++++++^^ manipulated payload^^++++++++++++++++++++++++++++++")
         self.device.write(self.epout, binascii.unhexlify(body))
+        if self.savefile:
+            self.bintransfered.write(body)
         #sleep(0.5)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -457,7 +465,7 @@ class agfs():
                 self.savefile = 1
                 self.bintransfered = open(f"{self.SelectedDevice}.bin",'wb')
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams = pika.ConnectionParameters('localhost', 5672, '/', self.qcreds)
+            self.qpikaparams = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
             self.qchannel = self.qconnect.channel()
             #self.qchannel.basic_qos(prefetch_count=1)
@@ -503,7 +511,7 @@ class agfs():
         """initiates a connection to the queue to comminicate with the host"""
         self.hbkill = 0
         self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
-        self.qpikaparams3 = pika.ConnectionParameters('localhost', 5672, '/',  self.qcreds3,heartbeat=60)
+        self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',  self.qcreds3,heartbeat=60)
         self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
         self.qchannel3 = self.qconnect3.channel()
        # self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
@@ -563,7 +571,7 @@ class agfs():
     def clearqueues(self):
         """this method clears all the queues on the rabbitMQ queues that are set up"""
         self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
-        self.qpikaparams4 = pika.ConnectionParameters('localhost', 5672, '/',self.qcreds4,heartbeat=60)
+        self.qpikaparams4 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',self.qcreds4,heartbeat=60)
         self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
         self.qchannel4 = self.qconnect4.channel()
         self.qchannel4.queue_purge('todevice')

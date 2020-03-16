@@ -52,6 +52,7 @@ class agfs():
         self.fuzzdevice = 0
         self.fuzzhost = 0
         self.ingui = 0
+        self.itshid = 0
         self.edap = EDAP.Probability()
         self.SelectedDevice = None
         self.rabbitmqserver = input("Enter IP address of the rabbitmq server: ")
@@ -143,6 +144,8 @@ class agfs():
         for cfg in self.device:
             print("Configuration Value: "+str(int(cfg.bConfigurationValue)) + '\n')
             for intf in cfg:
+                if intf.bInterfaceClass == 3:
+                    self.itshid = 1
                 self.leninterfaces += 1
                 print('\tInterface number: ' + \
                                  str(int(intf.bInterfaceNumber)) + \
@@ -231,31 +234,33 @@ class agfs():
         claim = str(input("Do you want to claim the device interface: [y/n] "))
         if claim.lower() == 'y':
                 usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
-                print("Checking HID report retrieval\n")
-                try:
-                    self.device_hidrep = []
-                    """Thanks https://wuffs.org/blog/mouse-adventures-part-5
-                    https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
-                    """
-                    for i in range(0,self.leninterfaces+1):
-                        try:
-                            #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
-                            response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
-                            self.device_hidrep.append(response)
-                        except usb.core.USBError:
-                            pass
-                    if self.device_hidrep:
-                        print(self.device_hidrep[0])
-                        print(self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0])))
-                        if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
-                            self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
-
-                    else:
+                if self.itshid == 1:
+                    print("Checking HID report retrieval\n")
+                    try:
                         self.device_hidrep = []
-                except Exception as e:
-                    print (e)
-                    self.device_hidrep = []
-                    self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
+                        """Thanks https://wuffs.org/blog/mouse-adventures-part-5
+                        https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
+                        """
+                        for i in range(0,self.leninterfaces+1):
+                            try:
+                                #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
+                                response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
+                                self.device_hidrep.append(response)
+                            except usb.core.USBError:
+                                pass
+                        if self.device_hidrep:
+                            print(self.device_hidrep[0])
+                            print(self.decodePacketAscii(binascii.unhexlify(self.device_hidrep[0])))
+                            if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
+                                self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
+
+                        else:
+                            self.device_hidrep = []
+                    except Exception as e:
+                        print (e)
+                        self.device_hidrep = []
+                        self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
+                self.itshid = 0
         if type(self.device.manufacturer) is type(None):
             self.manufacturer = "UnkManufacturer"
         else:
@@ -476,7 +481,7 @@ class agfs():
             self.qchannel.start_consuming()
             self.showMessage("MITM Proxy stopped!",color="green")
         except Exception as e:
-            self.showMessage("Problem stopping",color="red",blink='y')
+            pass
 
 
 
@@ -500,13 +505,6 @@ class agfs():
         """
         print(binascii.hexlify(self.device.ctrl_transfer(bmRequestType,bRequest,wValue,wIndex,wLength)))
 
-    def rabbitmqfakeheartbeat(self, channel):
-        while True:
-            if self.hbkill == 1:
-                break
-            channel.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeat")
-            sleep(10)
-
     def startQueuewrite(self):
         """initiates a connection to the queue to comminicate with the host"""
         self.hbkill = 0
@@ -514,8 +512,6 @@ class agfs():
         self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',  self.qcreds3,heartbeat=60)
         self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
         self.qchannel3 = self.qconnect3.channel()
-       # self.hbThread = threading.Thread(target=self.rabbitmqfakeheartbeat, args=(self.qchannel3,))
-        #self.hbThread.start()
         self.showMessage("Queues to host are yours!",color='blue')
 
 
@@ -565,8 +561,6 @@ class agfs():
                 self.showMessage("Error -->sending packet\n",color='red',blink='y')
                 pass
         self.stopQueuewrite()
-
-
 
     def clearqueues(self):
         """this method clears all the queues on the rabbitMQ queues that are set up"""
@@ -636,7 +630,7 @@ class agfs():
                 sleep(timeout)
             except usb.core.USBError as e:
                 print(e)
-                print("received --> Timed Out\n")
+                self.showMessage("received --> Timed Out\n",color='red',blink='y')
                 pass
 
     def devEnumCtrltrnsf(self,fuzz="fast"):
@@ -650,50 +644,57 @@ class agfs():
         self.CTconnection = self.devECTdbObj.connect()
         self.CTtransaction = self.CTconnection.begin()
         self.showMessage("started",color='green')
+        nextwInd = 0
         bRequest = 0xff
         if fuzz == "full":
             bm_request = [0x2,0x21,0xA1,0x80,0xC0,0x00,0x81,0x1,0x82]
-            wValue = 0xff
-            wIndex = 0x1
+            wValue = 0xffff
+            wIndex = 0xffff
         else:
             bm_request = [0x81, 0xC0]
             wValue = 0xff
             wIndex = 0xff
+        dlen = 10
         for i in bm_request:
             self.showMessage(f"Now at bmRequest {hex(i)}",color="blue",blink='y')
             for j in range(bRequest+1):
                 for q in range(wValue+1):
                     for w in range(wIndex+1):
-                        try:
-                            responder = self.device.ctrl_transfer(i,j,q,w,0xfff)
-                            stdout.write("*******************************\nFound Valid Control Transfer request on device: %s" %self.SelectedDevice)
-                            stdout.write("\n")
-                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=0xfff".format(i,j,q,w))
-                            stdout.write("\n")
-                            stdout.write(f"received: {binascii.unhexlify(binascii.hexlify(responder.tobytes()))[:10]}...[SNIP]")
-                            stdout.write("\n")
-                            stdout.flush()
+                        if nextwInd == 1:
+                            nextwInd = 0
+                            break
+                        for l in range(dlen):
                             try:
-                                _insert = _table.insert().values(
-                                    bmRequest=i,
-                                    bRequest=j,
-                                    wValue=q,
-                                    wIndex=w,
-                                    Data_length=len(binascii.unhexlify(binascii.hexlify(responder.tobytes()))),
-                                    Data_returned=binascii.unhexlify(binascii.hexlify(responder.tobytes())),
-                                    Data_returned_Ascii=self.decodePacketAscii(payload=binascii.unhexlify(binascii.hexlify(responder.tobytes()))))
-                                self.CTconnection.execute(_insert)
+                                try:
+                                    responder = self.device.ctrl_transfer(i,j,q,w,l)
+                                except:
+                                    responder = self.device.ctrl_transfer(i, j, q, w)
+                                stdout.write("*******************************\nFound Valid Control Transfer request on device: %s" %self.SelectedDevice)
+                                stdout.write("\n")
+                                stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:04X} , wIndex=0x{3:02X}, data_length=0x{4:02X}".format(i,j,q,w,l))
+                                stdout.write("\n")
+                                stdout.write(f"received: {binascii.unhexlify(binascii.hexlify(responder.tobytes()))[:10]}...[SNIP]")
+                                stdout.write("\n")
+                                stdout.flush()
+                                try:
+                                    _insert = _table.insert().values(
+                                        bmRequest=i,
+                                        bRequest=j,
+                                        wValue=q,
+                                        wIndex=w,
+                                        Data_length=len(binascii.unhexlify(binascii.hexlify(responder.tobytes()))),
+                                        Data_returned=binascii.unhexlify(binascii.hexlify(responder.tobytes())),
+                                        Data_returned_Ascii=self.decodePacketAscii(payload=binascii.unhexlify(binascii.hexlify(responder.tobytes()))))
+                                    self.CTconnection.execute(_insert)
+                                except Exception as e:
+                                    self.showMessage("unable to insert data into database!",color='red',blink='y')
+                                self.nextwInd = 1
                                 break
+                            except KeyboardInterrupt:
+                                print("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:04X} , wIndex=0x{3:02X}, data_length=0x{4:02X} *******************************\n".format(i,j,q,w,l))
                             except Exception as e:
-                                self.showMessage("unable to insert data into database!",color='red',blink='y')
-                                break
-                        except KeyboardInterrupt:
-                            stdout.write("bmRequest=0x{0:02X}, bRequest=0x{1:02X},wValue=0x{2:02X} , wIndex=0x{3:02X}, data_length=0xff *******************************\n".format(i,j,q,w))
-                            stdout.write("\n")
-                            stdout.flush()
-                        except Exception as e:
-                            #print(e)
-                            pass
+                                #print(e)
+                                pass
         try:
             self.CTtransaction.commit()
             self.CTconnection.close()

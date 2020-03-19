@@ -311,8 +311,11 @@ class agfs():
         self.killthread = 1
         self.readerThread.join()
         try:
-            if self.savefile:
-                self.bintransfered.close()
+            self.bintransfered.close()
+        except:
+            pass
+        try:
+            self.genpktsF.close()
         except:
             pass
         if self.frompts == 0:
@@ -334,8 +337,8 @@ class agfs():
        :param genpkts: fill in ********************
        :return: None
        """
+        self.killthread = 0
         if queue is not None:
-            self.killthread = 0
             self.frompts = 0
             self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',  self.qcreds3,heartbeat=60)
@@ -356,8 +359,11 @@ class agfs():
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: is you will use the queues for a full proxy between target and host
        :param channel: rabbitmq channel
+       :param genpkts: write sniffed packets to a file
        :return: None
         """
+        if genpkts == 1:
+            self.genpktsF = open(f'{self.SelectedDevice}-device.bin','wb')
         if queue and pts is None:
             self.showMessage("Sniffing the device started, messages sent to host queue!",color="green")
             while True:
@@ -372,14 +378,16 @@ class agfs():
                             s = memoryview(binascii.unhexlify(binascii.hexlify(packet))).tolist()
                             random.shuffle(s)
                             packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
-                    except:
+                        if genpkts == 1:
+                            self.genpktsF.write(binascii.hexlify(packet))
+                            self.genpktsF.write(b'\r\n')
+
+                    except Exception as e:
+                        print(e)
                         pass
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
-                    if genpkts == 1:
-                        self.qchannel3.basic_publish(exchange='agfs', routing_key='edapdev',
-                                                 body=packet)
-                    #sleep(timeout)
+
                 except usb.core.USBError as e:
                     if e.args == ('Operation timed out\r\n',):
                         self.showMessage("Operation timed out cannot read from device",color='red',blink='y')
@@ -397,9 +405,12 @@ class agfs():
                         ptsx.write("Thread Terminated Successfully")
                         break
                     try:
-                            ptsx.write(binascii.hexlify(bytearray(self.device.read(endpoint, self.device.bMaxPacketSize0))).decode('utf-8')+"\r\n")
-                            ptsx.write("-----------------^^^FROM DEVICE^^^----------------\r\n")
+                            packet = binascii.hexlify(self.device.read(endpoint, self.device.bMaxPacketSize0))
+                            ptsx.write(f"{binascii.unhexlify(packet)}\r\n-----------------^^^FROM DEVICE^^^----------------\r\n")
                             ptsx.flush()
+                            if genpkts == 1:
+                                self.genpktsF.write(packet)
+                                self.genpktsF.write(b'\r\n')
                     except usb.core.USBError as e:
                         if e.args == ('Operation timed out! Cannot read from device\n',):
                             ptsx.write("Operation timed out! Cannot read from device\n")
@@ -408,18 +419,17 @@ class agfs():
         else:
             self.showMessage("either pass to a queue or to a tty",color='red',blink='y')
 
-    def startMITMusbWifi(self,endpoint=None,savefile=None):
+    def startMITMusbWifi(self,endpoint=None,savefile=None,genpkts=0):
         """
-        :param endpoint: the OUT endpoint of the device most probably self.epin which is from the device to the PC
+        :param endpoint: the OUT endpoint of the device most probably self.epout which is from the device to the PC
         :param savefile: if you would like the packets from the host to be saved to a binary file
+        :param: genpkts: save packets from device to file
         :return: None
         """
         if savefile:
             self.savefile = 1
-        else:
-            self.savefile = None
         self.killthread = 0
-        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,))
+        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,savefile,genpkts))
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
@@ -454,13 +464,17 @@ class agfs():
             #print("payload shuffled->", packet)
             print("+++++++++++++++^^ manipulated payload^^++++++++++++++++++++++++++++++")
         self.device.write(self.epout, binascii.unhexlify(body))
-        if self.savefile:
-            self.bintransfered.write(body)
-        #sleep(0.5)
+        try:
+            if self.savefile:
+                self.bintransfered.write(body)
+                self.bintransfered.write(b'\r\n')
+            #sleep(0.5)
+        except Exception as e:
+            print(e)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
-    def MITMproxy(self,endpoint,savetofile=None):
+    def MITMproxy(self,endpoint,savetofile,genpkts):
         """
         :param endpoint: the IN endpoint
         :return: None
@@ -468,20 +482,20 @@ class agfs():
         try:
             if savetofile:
                 self.savefile = 1
-                self.bintransfered = open(f"{self.SelectedDevice}.bin",'wb')
+                self.bintransfered = open(f"{self.SelectedDevice}-Host.bin",'wb')
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
             self.qchannel = self.qconnect.channel()
             #self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
-            self.startSniffReadThread(endpoint=self.epin, queue=1)
+            self.startSniffReadThread(endpoint=self.epin, queue=1,genpkts=genpkts)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
             self.showMessage("MITM Proxy stopped!",color="green")
         except Exception as e:
-            pass
+            print(e)
 
 
 
@@ -735,31 +749,24 @@ class agfs():
                     print(pkt)
                 if pkt[0]:
                     stdout.write(f"{keyser.mapf[pkt[0]]}")
-                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
                     self.gogopackets.append(bytearray(pkt))
                 if pkt[2]:
                     stdout.write(f"{keyser.mapk[pkt[2]]}")
-                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
                     self.gogopackets.append(bytearray(pkt))
                 if pkt[3]:
                     stdout.write(f"{keyser.mapk[pkt[3]]}")
-                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
                     self.gogopackets.append(bytearray(pkt))
                 if pkt[4]:
                     stdout.write(f"{keyser.mapk[pkt[4]]}")
-                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
                     self.gogopackets.append(bytearray(pkt))
                 if pkt[5]:
                     stdout.write(f"{keyser.mapk[pkt[5]]}")
-                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
                     self.gogopackets.append(bytearray(pkt))
                 if pkt[6]:
                     stdout.write(f"{keyser.mapk[pkt[6]]}")
-                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
                     self.gogopackets.append(bytearray(pkt))
                 if pkt[7]:
                     stdout.write(f"{keyser.mapk[pkt[7]]}")
-                    pkt = self.device.read(endpoint, self.device.bMaxPacketSize0, timeout=0).tolist()
                     self.gogopackets.append(bytearray(pkt))
                 stdout.flush()
             except KeyboardInterrupt:
@@ -785,7 +792,7 @@ class agfs():
 
     def NNGenPackets(self,engine=None,samples=100,direction=None,filename=None,fromQueue=None):
         """
-        This method is still incomplete i need to send the generated packets to a queue
+        This method is generates packets based on what it has learned from a sniff from either the host or the device
         :param engine: choice between smart, random , patterns
             random: [truly random based on charset , length , chars found]
             smart: [based on input , weight & positions]
@@ -796,7 +803,7 @@ class agfs():
         :return: self.edap.packets: packets generated
         """
         if filename is not None:
-            self.edap.readwords =list(set([i.decode('utf-8') for i in open(filename, 'rb')]))
+            self.edap.readwords =list(set([i.decode('utf-8').strip() for i in open(filename, 'rb')]))
         elif fromQueue is not None:
             self.edap.readwords = fromQueue
         else:
@@ -815,7 +822,7 @@ class agfs():
         self.edap.countDigits = 0
         self.edap.countOther = 0
         self.edap.pppc = 1
-        self.word_dct = dict()
+        self.edap.word_dct = dict()
         self.edap.packets = []
         self.edap.howmany = samples
         self.edap.unusedindexes = list(range(len(max(self.edap.readwords, key=len).strip())))
@@ -1142,13 +1149,13 @@ class agfs():
             push2pi = input("Do you want to push the gadget to the Pi zero ?[y/n] ").lower()
             if push2pi == 'y':
                 '''https://stackoverflow.com/questions/3635131/paramikos-sshclient-with-sftps'''
-                pihost = input("Enter the ip address of the Pi zero: ")
-                piport = int(input("Enter the port of the Pi zero: "))
-                piuser = input("Enter the username: ")
-                pipass = getpass.getpass()
+                self.pihost = input("Enter the ip address of the Pi zero: ")
+                self.piport = int(input("Enter the port of the Pi zero: "))
+                self.piuser = input("Enter the username: ")
+                self.pipass = getpass.getpass()
                 print("Connecting...")
-                pusher = paramiko.Transport((pihost,piport))
-                pusher.connect(None, piuser, pipass)
+                pusher = paramiko.Transport((self.pihost,self.piport))
+                pusher.connect(None, self.piuser, self.pipass)
                 sftp = paramiko.SFTPClient.from_transport(pusher)
                 print("Sending...")
                 sftp.put("gadgetscripts/"+self.SelectedDevice+".sh", self.SelectedDevice+".sh")
@@ -1161,9 +1168,24 @@ class agfs():
                 if rungadget == 'y':
                     gogadget = paramiko.SSHClient()
                     gogadget.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                    gogadget.connect(pihost, port=piport, username=piuser, password=pipass)
+                    gogadget.connect(self.pihost, port=self.piport, username=self.piuser, password=self.pipass)
                     stdin, stdout, stderr = gogadget.exec_command('chmod a+x %s;sudo ./%s' %(self.SelectedDevice+".sh", self.SelectedDevice+".sh"))
                     self.showMessage("Gadget should now be running",color='blue')
 
         except Exception as e:
             self.showMessage("You need to call FindSelect() then clonedev() method method prior to setting up GadgetFS", color='red',blink='y')
+
+    def removeGadget(self):
+        """
+        This method removes the gadget from the raspberryPI
+        :return: None
+        """
+        try:
+            remgadget = paramiko.SSHClient()
+            remgadget.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            remgadget.connect(self.pihost, port=self.piport, username=self.piuser, password=self.pipass)
+            stdin, stdout, stderr = remgadget.exec_command('sudo ./removegadget.sh')
+            self.showMessage("Gadgets are removed", color='blue', blink='y')
+        except:
+            self.showMessage("No gadgets are setup! Nothing to do.",color='red',blink='y')
+

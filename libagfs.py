@@ -21,6 +21,7 @@ import random
 import keymap
 import EDAP
 from termcolor import colored, cprint
+import inspect
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -159,7 +160,7 @@ class agfs():
 
     def showMessage(self,string,color='green',blink=None):
         """shows messages if error or warn or info"""
-        cprint(f"{'*'*(len(string)+4)}\n* {string} *\n{'*'*(len(string)+4)}",color, attrs=[] if blink is None else ['blink'])
+        cprint(f"{'*'*(len(string)+4)}\n{string}\n{'*'*(len(string)+4)}",color, attrs=[] if blink is None else ['blink'])
 
     def newProject(self):
         """ creates a new project name if you were testing something else"""
@@ -434,8 +435,11 @@ class agfs():
 
     def stopMITMusbWifi(self):
         ''' Stops the man in the middle between the host and the device'''
-        if self.savefile:
-            self.bintransfered.close()
+        try:
+            if self.savefile:
+                self.bintransfered.close()
+        except:
+            pass
         self.stopSniffing()
         self.savefile = None
         self.killthread = 1
@@ -470,7 +474,7 @@ class agfs():
                 self.bintransfered.write(b'\r\n')
             #sleep(0.5)
         except Exception as e:
-            print(e)
+            pass
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
@@ -480,9 +484,12 @@ class agfs():
         :return: None
         """
         try:
-            if savetofile:
-                self.savefile = 1
-                self.bintransfered = open(f"{self.SelectedDevice}-Host.bin",'wb')
+            try:
+                if savetofile:
+                    self.savefile = 1
+                    self.bintransfered = open(f"{self.SelectedDevice}-Host.bin",'wb')
+            except:
+                self.savefile = None
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
@@ -593,9 +600,16 @@ class agfs():
         print("cleared edap queues")
         self.qconnect4.close()
 
-    def blacklistdevice(self):
-        pass
-
+    def help(self, method):
+        try:
+            cprint(f"****\n[+]Help for {method.__name__} Method:", color="white")
+            cprint(f"[-]Signature: {method.__name__}{inspect.signature(method)}\n", color="blue")
+            cprint(f"\n[+]{method.__name__} Help:", color="white")
+            cprint(f"{inspect.getdoc(method)}", color="blue")
+            cprint("****", color="white")
+        except:
+            method_list = [func for func in dir(agfs) if callable(getattr(agfs, func)) and not func.startswith("__")]
+            self.showMessage(f"Error you typed something wrong\nTry something like:\n\tx.help(x.devrandfuzz)\nCurrent method list:\n{method_list}",color="red")
 
     def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5,maxPaktSz=513):
         """
@@ -786,9 +800,6 @@ class agfs():
             sleep(0.5)
         self.stopQueuewrite()
 
-    def startNNGenPktsQueue(self,direction=None ,wait_for_N_packets=10):
-        pass
-
 
     def NNGenPackets(self,engine=None,samples=100,direction=None,filename=None,fromQueue=None):
         """
@@ -844,8 +855,7 @@ class agfs():
         self.showMessage(f"generated:{len(self.edap.packets)} Packets",color='green')
         return self.edap.packets
 
-    def stopNNGenPktsQueue(self):
-        pass
+
 
     def sendGogogadgetToHost(self):
         """ This method sends the selected sysreq key to the host over Queues"""
@@ -867,7 +877,7 @@ class agfs():
         :param timeout: how long to wait between messages
         """
         count = 0
-        if direction is 'in':
+        if direction == 'in':
             self.startQueuewrite()
         try:
             if self.device:
@@ -876,7 +886,7 @@ class agfs():
                     for i in self.searchResults:
                                 count += 1
                                 try:
-                                    if direction is 'out':
+                                    if direction == 'out':
                                         if self.fuzzdevice ==1:
                                             packet = memoryview(i[0]).tolist()
                                             random.shuffle(packet)
@@ -888,7 +898,7 @@ class agfs():
                                             print(i[0])
                                         print("[%d]++++++++++^ TO DEVICE ^+++++++++++++"%count)
                                         sleep(timeout)
-                                    if direction is 'in':
+                                    if direction == 'in':
                                         if self.fuzzhost == 1:
                                             packet = memoryview(i[0]).tolist()
                                             random.shuffle(packet)
@@ -1114,7 +1124,6 @@ class agfs():
             MaxPower = '0x{:02X}'.format(self.devcfg.bMaxPower)
             product = self.device.product
             basedir = "/sys/kernel/config/usb_gadget"
-            print("- Creating Bash script!\n")
             agfsscr.write("#!/bin/bash\n")
             agfsscr.write("rmmod g_serial\n")
             agfsscr.write("modprobe libcomposite\n")
@@ -1145,7 +1154,6 @@ class agfs():
             agfsscr.write("udevadm settle -t 5 || :\n")
             agfsscr.write("ls /sys/class/udc/ > %s/g/UDC\n"%(basedir))
             agfsscr.close()
-            print("- Done wrote bash script. Try testing your gadget\n")
             push2pi = input("Do you want to push the gadget to the Pi zero ?[y/n] ").lower()
             if push2pi == 'y':
                 '''https://stackoverflow.com/questions/3635131/paramikos-sshclient-with-sftps'''
@@ -1158,7 +1166,7 @@ class agfs():
                 pusher.connect(None, self.piuser, self.pipass)
                 sftp = paramiko.SFTPClient.from_transport(pusher)
                 print("Sending...")
-                sftp.put("gadgetscripts/"+self.SelectedDevice+".sh", self.SelectedDevice+".sh")
+                sftp.put(f"gadgetscripts/{self.SelectedDevice}.sh",f"gadgets/{self.SelectedDevice}.sh")
                 print("Done!")
                 if sftp:
                     sftp.close()
@@ -1169,7 +1177,7 @@ class agfs():
                     gogadget = paramiko.SSHClient()
                     gogadget.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                     gogadget.connect(self.pihost, port=self.piport, username=self.piuser, password=self.pipass)
-                    stdin, stdout, stderr = gogadget.exec_command('chmod a+x %s;sudo ./%s' %(self.SelectedDevice+".sh", self.SelectedDevice+".sh"))
+                    stdin, stdout, stderr = gogadget.exec_command(f"chmod a+x gadgets/{self.SelectedDevice}.sh;sudo gadgets/{self.SelectedDevice}.sh")
                     self.showMessage("Gadget should now be running",color='blue')
 
         except Exception as e:
@@ -1188,4 +1196,5 @@ class agfs():
             self.showMessage("Gadgets are removed", color='blue', blink='y')
         except:
             self.showMessage("No gadgets are setup! Nothing to do.",color='red',blink='y')
+
 

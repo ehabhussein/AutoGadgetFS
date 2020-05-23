@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 __author__ = "Ehab Hussein"
 __credits__ = ['Josep Pi Rodriguez',    'Dani Martinez']
-__version__ = "2.0"
+__version__ = "2.1"
 __status__ = "Beta"
 __twitter__ = "@0xRaindrop"
 ##################### Imports
@@ -9,7 +9,7 @@ import xmltodict
 import platform
 import binascii
 from sys import exit,stdout
-from os import geteuid,urandom,listdir
+from os import geteuid,urandom
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
 from time import time,sleep
@@ -18,9 +18,8 @@ import threading
 import getpass
 import paramiko
 import random
-import keymap
 import EDAP
-from termcolor import colored, cprint
+from termcolor import cprint
 import inspect
 ###################### Pre-Checks
 
@@ -59,7 +58,11 @@ class agfs():
         self.rabbitmqserver = input("Enter IP address of the rabbitmq server: ")
 
     def createctrltrsnfDB(self):
-        """"""
+        """
+        creates a SQLite database containing values that were enumerated from control transfer enumeration
+        devEnumCtrltrnsf(self,fuzz="fast")
+        :return: db and table
+        """
         try:
             meta = MetaData()
             db = create_engine('sqlite:///devEnumCT/%s.db' %(self.SelectedDevice))
@@ -82,10 +85,9 @@ class agfs():
 
     def createdb(self, name):
         """
-        create the sqlite table and columns for usblyzer dumps
+        create the sqlite table and columns from usblyzer captures
         :param name: this receives a name for the database name to be created
         """
-
         try:
             meta = MetaData()
             db = create_engine('sqlite:///%s.db' %(name.strip()))
@@ -138,8 +140,7 @@ class agfs():
 
 
     def deviceInterfaces(self):
-        """get all interfaces and endpoints on the device
-        Thanks to the pyusb tutorial"""
+        """get all interfaces and endpoints on the device"""
         self.device = usb.core.find(idVendor=self.device.idVendor, idProduct=self.device.idProduct)
         self.leninterfaces = 0
         for cfg in self.device:
@@ -158,21 +159,17 @@ class agfs():
                                      hex(ep.bEndpointAddress) + \
                                      '\n')
 
-    def showMessage(self,string,color='green',blink=None):
-        """shows messages if error or warn or info"""
-        cprint(f"{'*'*(len(string)+4)}\n{string}\n{'*'*(len(string)+4)}",color, attrs=[] if blink is None else ['blink'])
-
     def newProject(self):
         """ creates a new project name if you were testing something else"""
-        self.SelectedDevice = None
         try:
             self.releasedev()
         except:
             pass
+        self.SelectedDevice = None
         self.findSelect()
 
     def findSelect(self):
-        """find your device and select it"""
+        """This method enumerates USB devices connected and allows you to select it as a target device"""
         projname = self.SelectedDevice if self.SelectedDevice else input("Give your project a name?!: ")
         self.getusbs = usb.core.find(find_all=True)
         self.devices = dict(enumerate(str(dev.manufacturer)+":"+str(dev.idProduct)+":"+str(dev.idVendor) for dev in self.getusbs))
@@ -273,7 +270,8 @@ class agfs():
             self.clonedev()
 
     def monInterfaceChng(self,ven,prod):
-        """thread in charge of monitoring interfaces for changes
+        """Method in charge of monitoring interfaces for changes this is called from def startMonInterfaceChng(self)
+        don't call this method directly use startMonInterfaceChng(self) instead
         :param ven: receives the vendorID of the device
         :param prod: receives the productID of the device
         :return: None
@@ -286,15 +284,15 @@ class agfs():
                     device = usb.core.find(idVendor=ven, idProduct=prod)
                     if temp != str(device):
                         temp = str(device)
-                        self.showMessage("Device Interfaces have changed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",color='blue',blink='y')
+                        self.showMessage("Device Interfaces have changed!",color='blue',blink='y')
                     sleep(10)
                 except Exception as e:
                     print(e)
 
     def startMonInterfaceChng(self):
-        """This method Allows you to monitor a device ever 10 second incase it suddenly changes its configuration.
+        """This method Allows you to monitor a device every 10 seconds in case it suddenly changes its interface configuration.
         Like when switching and Android phone from MTP to PTP . you'll get a notification so you can check
-        your inferfaces and adapt to that change using changeintf() method
+        your interfaces and adapt to that change using changeintf() method
         """
         self.showMessage("Interface monitoring thread has started.",color='green')
         self.monIntKill = 0
@@ -308,7 +306,7 @@ class agfs():
         self.showMessage("Monitoring of interface changes has stopped",color='green')
 
     def stopSniffing(self):
-        """Kills the sniffing thread"""
+        """Kills the sniffing thread strted by startSniffReadThread()"""
         self.killthread = 1
         self.readerThread.join()
         try:
@@ -364,7 +362,7 @@ class agfs():
        :return: None
         """
         if genpkts == 1:
-            self.genpktsF = open(f'{self.SelectedDevice}-device.bin','wb')
+            self.genpktsF = open(f'binariesdb/{self.SelectedDevice}-device.bin','wb')
         if queue and pts is None:
             self.showMessage("Sniffing the device started, messages sent to host queue!",color="green")
             while True:
@@ -421,7 +419,7 @@ class agfs():
             self.showMessage("either pass to a queue or to a tty",color='red',blink='y')
 
     def startMITMusbWifi(self,endpoint=None,savefile=None,genpkts=0):
-        """
+        """ Starts a thread to monitor the USB target Device
         :param endpoint: the OUT endpoint of the device most probably self.epout which is from the device to the PC
         :param savefile: if you would like the packets from the host to be saved to a binary file
         :param: genpkts: save packets from device to file
@@ -434,7 +432,7 @@ class agfs():
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
-        ''' Stops the man in the middle between the host and the device'''
+        ''' Stops the man in the middle thread between the host and the device'''
         try:
             if self.savefile:
                 self.bintransfered.close()
@@ -451,9 +449,9 @@ class agfs():
         self.startMITMProxyThread.join()
         self.showMessage("MITM Proxy has now been terminated!",color='green')
 
-
     def MITMproxyRQueues(self, ch, method, properties, body):
         """
+        This method reads from the queue todevice and send the request to the device its self.
         :param ch:  rabbitMQ channel
         :param method: methods
         :param properties: properties
@@ -477,7 +475,6 @@ class agfs():
             pass
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-
     def MITMproxy(self,endpoint,savetofile,genpkts):
         """
         :param endpoint: the IN endpoint
@@ -487,7 +484,7 @@ class agfs():
             try:
                 if savetofile:
                     self.savefile = 1
-                    self.bintransfered = open(f"{self.SelectedDevice}-Host.bin",'wb')
+                    self.bintransfered = open(f"binariesdb/{self.SelectedDevice}-Host.bin",'wb')
             except:
                 self.savefile = None
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
@@ -504,8 +501,6 @@ class agfs():
         except Exception as e:
             print(e)
 
-
-
     def devWrite(self,endpoint,payload):
         """To use this with a method you would write make sure to run the startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None)
          method first so you can monitor responses
@@ -516,7 +511,8 @@ class agfs():
         self.device.write(endpoint,payload)
 
     def devctrltrnsf(self,bmRequestType, bRequest, wValue, wIndex, wLength):
-        """Usually you'll find the parameters for this method in the vendor's data sheet.
+        """ This method allows you to send ctrl transfer requests to the target device
+        Usually you'll find the parameters for this method in the vendor's data sheet.
         https://www.beyondlogic.org/usbnutshell/usb6.shtml
         :param bmRequestType: direction of the request
         :param bmRequest: determines the request being made
@@ -527,7 +523,7 @@ class agfs():
         print(binascii.hexlify(self.device.ctrl_transfer(bmRequestType,bRequest,wValue,wIndex,wLength)))
 
     def startQueuewrite(self):
-        """initiates a connection to the queue to comminicate with the host"""
+        """initiates a connection to the queue to communicate with the host"""
         self.hbkill = 0
         self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
         self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',  self.qcreds3,heartbeat=60)
@@ -535,6 +531,27 @@ class agfs():
         self.qchannel3 = self.qconnect3.channel()
         self.showMessage("Queues to host are yours!",color='blue')
 
+    def stopQueuewrite(self):
+        """ stop the thread incharge of communicating with the host machine"""
+        #self.qchannel3.stop_consuming()
+        self.qconnect3.close()
+
+    def clearqueues(self):
+        """this method clears all the queues on the rabbitMQ queues that are set up"""
+        self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
+        self.qpikaparams4 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',self.qcreds4,heartbeat=60)
+        self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
+        self.qchannel4 = self.qconnect4.channel()
+        self.qchannel4.queue_purge('todevice')
+        print("cleared todevice queue")
+        self.qchannel4.queue_purge('tohost')
+        print("cleared tohost queue")
+        self.qchannel4.queue_purge('tonull')
+        print("cleared tonull queue")
+        self.qchannel4.queue_purge('edapdev')
+        self.qchannel4.queue_purge('edaphst')
+        print("cleared edap queues")
+        self.qconnect4.close()
 
     def hostwrite(self, payload, isfuzz=0):
         """ This method writes packets to the host either targeting a software or a driver in control of the device
@@ -547,15 +564,9 @@ class agfs():
         self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                      body=binascii.unhexlify(payload) if isfuzz == 0 else payload)
 
-    def stopQueuewrite(self):
-        """ stop the thread incharge of communicating with the host machine"""
-        #self.qchannel3.stop_consuming()
-        self.qconnect3.close()
-
-
     def hstrandfuzz(self, howmany=1, size=None, min=None, max = None, timeout=0.5):
         """
-        this method allows you to create fixed or random size packets created using urandom
+        this method allows you to create fixed or random size packets created using urandom and send them to the host queue
         :param howmany: how many packets to be sent to the device`
         :param size: fixed size packet length
         size = 10 to generate a length 10 packet
@@ -583,33 +594,6 @@ class agfs():
                 pass
         self.stopQueuewrite()
 
-    def clearqueues(self):
-        """this method clears all the queues on the rabbitMQ queues that are set up"""
-        self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
-        self.qpikaparams4 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',self.qcreds4,heartbeat=60)
-        self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
-        self.qchannel4 = self.qconnect4.channel()
-        self.qchannel4.queue_purge('todevice')
-        print("cleared todevice queue")
-        self.qchannel4.queue_purge('tohost')
-        print("cleared tohost queue")
-        self.qchannel4.queue_purge('tonull')
-        print("cleared tonull queue")
-        self.qchannel4.queue_purge('edapdev')
-        self.qchannel4.queue_purge('edaphst')
-        print("cleared edap queues")
-        self.qconnect4.close()
-
-    def help(self, method):
-        try:
-            cprint(f"****\n[+]Help for {method.__name__} Method:", color="white")
-            cprint(f"[-]Signature: {method.__name__}{inspect.signature(method)}\n", color="blue")
-            cprint(f"\n[+]{method.__name__} Help:", color="white")
-            cprint(f"{inspect.getdoc(method)}", color="blue")
-            cprint("****", color="white")
-        except:
-            method_list = [func for func in dir(agfs) if callable(getattr(agfs, func)) and not func.startswith("__")]
-            self.showMessage(f"Error you typed something wrong\nTry something like:\n\tx.help(x.devrandfuzz)\nCurrent method list:\n{method_list}",color="red")
 
     def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5,maxPaktSz=513):
         """
@@ -639,7 +623,7 @@ class agfs():
 
     def devbrutefuzz(self, starter=0x00,ranger=0xffffffffff+1,timeout=0):
         """
-        This method allows you to create sequencial increment packets
+        This method allows you to create sequencial increment packets and send them to the device
         :param starter: start value to bruteforce from in hex notation
         :param ranger: end value where the bruteforce ends in hex notation
         :param timeout: timeout!
@@ -732,6 +716,7 @@ class agfs():
 
     def decodePacketAscii(self,payload=None):
         """
+        This method decodes packet bytes back to Ascii
         :param payload: bytes of payload to be converted to ascii
         :return: decoded payload
         """
@@ -743,63 +728,6 @@ class agfs():
             else:
                 retpayload += "."
         return retpayload
-
-    def gogogadgetKeyboard(self, endpoint=None, debug='off'):
-        """
-        capture keyboard keys and write scripts to be run on the host machine with pi zero emulating a US keyboard
-        :param endpoint: endpoint IN of keyboard to sniff from
-        :param debug: print the pkt in list format
-        :return: None
-        """
-        self.startQueuewrite()
-        keyser = keymap.kbdmap()
-        self.gogopackets= []
-        self.showMessage("[-]Press ctrl+c to end!",blink='y')
-        while True:
-            try:
-                pkt = self.device.read(endpoint,self.device.bMaxPacketSize0,timeout=0).tolist()
-                self.gogopackets.append(bytearray(pkt))
-                if debug == 'on':
-                    print(pkt)
-                if pkt[0]:
-                    stdout.write(f"{keyser.mapf[pkt[0]]}")
-                    self.gogopackets.append(bytearray(pkt))
-                if pkt[2]:
-                    stdout.write(f"{keyser.mapk[pkt[2]]}")
-                    self.gogopackets.append(bytearray(pkt))
-                if pkt[3]:
-                    stdout.write(f"{keyser.mapk[pkt[3]]}")
-                    self.gogopackets.append(bytearray(pkt))
-                if pkt[4]:
-                    stdout.write(f"{keyser.mapk[pkt[4]]}")
-                    self.gogopackets.append(bytearray(pkt))
-                if pkt[5]:
-                    stdout.write(f"{keyser.mapk[pkt[5]]}")
-                    self.gogopackets.append(bytearray(pkt))
-                if pkt[6]:
-                    stdout.write(f"{keyser.mapk[pkt[6]]}")
-                    self.gogopackets.append(bytearray(pkt))
-                if pkt[7]:
-                    stdout.write(f"{keyser.mapk[pkt[7]]}")
-                    self.gogopackets.append(bytearray(pkt))
-                stdout.flush()
-            except KeyboardInterrupt:
-                rep = input("Do you want to save this gogo gadget [y/n]").lower()
-                if rep == 'y':
-                    gogofile = input("Enter filename to save script: ")
-                    with open("gogogadgets/"+gogofile,'wb') as fpkts:
-                        for i in self.gogopackets:
-                            fpkts.write(binascii.hexlify(i))
-                            fpkts.write(b'\r\n')
-                        fpkts.close()
-                break
-            except Exception as e:
-                pass
-        for i in open('gogogadgets/' + gogofile).readlines():
-            self.hostwrite(i.strip())
-            sleep(0.5)
-        self.stopQueuewrite()
-
 
     def NNGenPackets(self,engine=None,samples=100,direction=None,filename=None,fromQueue=None):
         """
@@ -854,20 +782,6 @@ class agfs():
             self.edap.randomgenerator()
         self.showMessage(f"generated:{len(self.edap.packets)} Packets",color='green')
         return self.edap.packets
-
-
-
-    def sendGogogadgetToHost(self):
-        """ This method sends the selected sysreq key to the host over Queues"""
-        gogodir = listdir('gogogadgets/')
-        pprint.pprint({str(i):j for i,j in enumerate(gogodir)})
-        responser = int(input("select a file [0-9]:"))
-        #self.startQueuewrite()
-        for i in open('gogogadgets/' + gogodir[responser]).readlines():
-            print(f"Sent-->\n{i}\n-----------------")
-         #   self.hostwrite(i.strip())
-            sleep(0.5)
-       # self.stopQueuewrite()
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
@@ -928,7 +842,7 @@ class agfs():
 
     def searchmsgs(self):
         """
-        This method allows you to search and select all messages for a pattern
+        This method allows you to search and select all messages for a pattern which were saved from a USBlyzer database creation
 
         this method does not return anything
         """
@@ -1030,8 +944,6 @@ class agfs():
             self.transaction.commit()
         except Exception as e:
             self.showMessage("Unable to create or parse!\n",color='red',blink='y')
-
-
 
     def clonedev(self):
         """
@@ -1197,4 +1109,36 @@ class agfs():
         except:
             self.showMessage("No gadgets are setup! Nothing to do.",color='red',blink='y')
 
+    def showMessage(self,string,color='green',blink=None):
+        """shows messages if error or warn or info"""
+        cprint(f"{'*'*(len(string)+4)}\n{string}\n{'*'*(len(string)+4)}",color, attrs=[] if blink is None else ['blink'])
 
+    def help(self, method, source=None):
+        """
+        AutogadgetFS Help method
+        :param method: takes in a method name and gives you the method signature and its doc strings
+        :param source: option to view the source of the current method passed to help
+        :return: None
+        """
+        try:
+            target = f"agfs.{method}"
+            cprint(f"****\n[+]Help for {eval(target).__name__} Method:", color="white")
+            cprint(f"[-]Signature: {eval(target).__name__}{inspect.signature(eval(target))}\n", color="blue")
+            cprint(f"\n[+]{eval(target).__name__} Help:", color="white")
+            cprint(f"{inspect.getdoc(eval(target))}", color="blue")
+            if source != None:
+                cprint(f"\n[+]Source code of method {eval(target).__name__}:", color="white")
+                cprint(f"{inspect.getsource(eval(target))}", color="green")
+            cprint("****", color="white")
+        except:
+            method_list = [meth for meth in dir(agfs) if callable(getattr(agfs, meth)) and not meth.startswith("__")]
+            method_list.sort()
+            cprint("Currently supported methods:" ,color='white')
+            max_length = 28
+            alt = ['green','blue']
+            c = 0
+            for item in method_list:
+                cprint('{0:>{1}}'.format(item, max_length) ,color=alt[c]),
+                c += 1
+                if c > 1:
+                    c = 0

@@ -169,7 +169,7 @@ class agfs():
         self.findSelect()
 
     def findSelect(self):
-        """This method enumerates USB devices connected and allows you to select it as a target device"""
+        """This method enumerates all USB devices connected and allows you to select it as a target device as well as its endpoints"""
         projname = self.SelectedDevice if self.SelectedDevice else input("Give your project a name?!: ")
         self.getusbs = usb.core.find(find_all=True)
         self.devices = dict(enumerate(str(dev.manufacturer)+":"+str(dev.idProduct)+":"+str(dev.idVendor) for dev in self.getusbs))
@@ -179,7 +179,7 @@ class agfs():
         self.idProd,self.idVen = self.devices[int(self.hook)].split(':')[1:]
         self.device = usb.core.find(idVendor=int(self.idVen),idProduct=int(self.idProd))
         print(str(self.device))
-        detachKernel = str(input("do you want to detach the device from it's kernel driver: [y/n] "))
+        detachKernel = str(input("do you want to detach the device from it's current system driver: [y/n] "))
         if detachKernel.lower() == 'y':
             self.device.reset()
             try:
@@ -336,6 +336,7 @@ class agfs():
        :param genpkts: fill in ********************
        :return: None
        """
+        mypts = None
         self.killthread = 0
         if queue is not None:
             self.frompts = 0
@@ -343,7 +344,6 @@ class agfs():
             self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',  self.qcreds3,heartbeat=60)
             self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
             self.qchannel3 = self.qconnect3.channel()
-        mypts = None
         if pts is not None:
             self.frompts = 1
             mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
@@ -594,8 +594,7 @@ class agfs():
                 pass
         self.stopQueuewrite()
 
-
-    def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5,maxPaktSz=513):
+    def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
         """
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
@@ -605,21 +604,82 @@ class agfs():
         """
         for i in range(howmany):
                 try:
-                    print("****************VVV Packet #%d  VVV**********************"%i)
                     if size == 'fixed':
                         s = urandom(self.device.bMaxPacketSize0)
-                        print("sent-->\n",binascii.hexlify(s))
-                        self.device.write(self.epout, s)
-                        print("received -->\n", binascii.hexlify(self.device.read(self.epin,self.device.bMaxPacketSize0).tobytes()))
                     else:
-                        s = urandom(random.randint(0, maxPaktSz))
-                        print("sent-->\n",binascii.hexlify(s))
-                        self.device.write(self.epout, s)
-                        print("received -->\n", binascii.hexlify(self.device.read(self.epin, self.device.bMaxPacketSize0).tobytes()))
+                        s = urandom(random.randint(0, self.device.bMaxPacketSize0))
+                    self.device.write(self.epout, s)
+                    r = self.device.read(self.epin, self.device.bMaxPacketSize0)
+                    sdec = self.decodePacketAscii(s)
+                    rdec = self.decodePacketAscii(r)
+                    cprint(f"|-Packet[{i}]{'-'*80}", color="green")
+                    cprint(f"|\t  Bytes:", color="blue")
+                    cprint(f"|\t\tSent: {binascii.hexlify(s)}\n|\t\t    |____Received: {binascii.hexlify(r)}", color="white")
+                    cprint(f"|\t  Decoded:", color="blue")
+                    cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="white")
+                    cprint(f"|{'_'*90}[{i}]", color="green")
                     sleep(timeout)
-                except usb.core.USBError:
-                    print("received -->Timed Out\n")
+                except usb.core.USBError as e:
+                    cprint(f"|-Packet[{i}]{'-'*80}", color="red", attrs=['blink'])
+                    cprint(f"|\t  Error:", color="red") #not blinking to grab attention
+                    cprint(f"|\t\tSent: {binascii.hexlify(s)}",color='red', attrs=['blink'])
+                    cprint(f"|\t\t|____{e}", color='red', attrs=['blink'])
+                    cprint(f"|{'_'*90}[{i}]", color="red", attrs=['blink'])
                     pass
+
+    def devSmartFuzz(self,engine=None,samples=100,direction=None,filename=None,fromQueue=None):
+        """
+        This method is generates packets based on what it has learned from a sniff from either the host or the device
+        :param engine: choice between smart, random , patterns
+            random: [truly random based on charset , length , chars found]
+            smart: [based on input , weight & positions]
+            patterns: [based on smart + char cases]
+        :param samples: number of samples to be generated
+        :param direction: 'hst' or 'dev'
+        :param filename: 'filename to learn from'
+        :return: self.edap.packets: packets generated
+        """
+        if filename is not None:
+            self.edap.readwords =list(set([i.decode('utf-8').strip() for i in open(filename, 'rb')]))
+        elif fromQueue is not None:
+            self.edap.readwords = fromQueue
+        else:
+            return "nothing to do"
+        self.edap.charset = list()
+        self.edap.alphaupperindexes = list()
+        self.edap.alphalowerindexes = list()
+        self.edap.integerindexes = list()
+        self.edap.nonalphanumindexes = list()
+        self.edap.frequencies = dict()
+        self.edap.fullkeyboard = list("`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?")
+        self.edap.discardedcharset = list()
+        self.edap.finalcharset = list()
+        self.edap.countUpper = 0
+        self.edap.countLower = 0
+        self.edap.countDigits = 0
+        self.edap.countOther = 0
+        self.edap.pppc = 1
+        self.edap.word_dct = dict()
+        self.edap.packets = []
+        self.edap.howmany = samples
+        self.edap.unusedindexes = list(range(len(max(self.edap.readwords, key=len).strip())))
+        self.edap.getcharset()
+        self.edap.getindexes()
+        self.edap.printgeneralstats()
+        self.edap.frequency_index_vertical()
+        self.edap.frequency_index_horizontal()
+        self.edap.charswithfriendswithwords()
+        self.edap.PrefinalAnalysis()
+        if engine == "smart":
+            for i in range(samples):
+                self.edap.smartGenerator()
+        elif engine == "patterns":
+            for i in range(samples):
+                self.edap.patterngenerator()
+        if engine == "random":
+            self.edap.randomgenerator()
+        self.showMessage(f"generated:{len(self.edap.packets)} Packets",color='green')
+        return self.edap.packets
 
     def devbrutefuzz(self, starter=0x00,ranger=0xffffffffff+1,timeout=0):
         """
@@ -728,60 +788,6 @@ class agfs():
             else:
                 retpayload += "."
         return retpayload
-
-    def NNGenPackets(self,engine=None,samples=100,direction=None,filename=None,fromQueue=None):
-        """
-        This method is generates packets based on what it has learned from a sniff from either the host or the device
-        :param engine: choice between smart, random , patterns
-            random: [truly random based on charset , length , chars found]
-            smart: [based on input , weight & positions]
-            patterns: [based on smart + char cases]
-        :param samples: number of samples to be generated
-        :param direction: 'hst' or 'dev'
-        :param filename: 'filename to learn from'
-        :return: self.edap.packets: packets generated
-        """
-        if filename is not None:
-            self.edap.readwords =list(set([i.decode('utf-8').strip() for i in open(filename, 'rb')]))
-        elif fromQueue is not None:
-            self.edap.readwords = fromQueue
-        else:
-            return "nothing to do"
-        self.edap.charset = list()
-        self.edap.alphaupperindexes = list()
-        self.edap.alphalowerindexes = list()
-        self.edap.integerindexes = list()
-        self.edap.nonalphanumindexes = list()
-        self.edap.frequencies = dict()
-        self.edap.fullkeyboard = list("`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?")
-        self.edap.discardedcharset = list()
-        self.edap.finalcharset = list()
-        self.edap.countUpper = 0
-        self.edap.countLower = 0
-        self.edap.countDigits = 0
-        self.edap.countOther = 0
-        self.edap.pppc = 1
-        self.edap.word_dct = dict()
-        self.edap.packets = []
-        self.edap.howmany = samples
-        self.edap.unusedindexes = list(range(len(max(self.edap.readwords, key=len).strip())))
-        self.edap.getcharset()
-        self.edap.getindexes()
-        self.edap.printgeneralstats()
-        self.edap.frequency_index_vertical()
-        self.edap.frequency_index_horizontal()
-        self.edap.charswithfriendswithwords()
-        self.edap.PrefinalAnalysis()
-        if engine == "smart":
-            for i in range(samples):
-                self.edap.smartGenerator()
-        elif engine == "patterns":
-            for i in range(samples):
-                self.edap.patterngenerator()
-        if engine == "random":
-            self.edap.randomgenerator()
-        self.showMessage(f"generated:{len(self.edap.packets)} Packets",color='green')
-        return self.edap.packets
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device

@@ -1142,9 +1142,6 @@ class agfs():
             cprint("Currently supported methods:" ,color='white')
             max_length = 28
             alt = ['green','blue']
-            c = 0
             for item in method_list:
-                cprint('{0:>{1}}'.format(item, max_length) ,color=alt[c]),
-                c += 1
-                if c > 1:
-                    c = 0
+                cprint('{0:>{1}}'.format(item, max_length) ,color=alt[0])
+                alt.reverse()

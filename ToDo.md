@@ -30,11 +30,8 @@ Done:
 -control transfers are now fuzzed or custom
 
 TODO:
-- add parse args to pizerorouter so you can input the max packet size
 -add support in MITMwifi() to select between bulk or control transfer
 -when we present the endpoints and its interfaces it will be more user friendly to show if the endpoint is in or out
--for the queues make a method to return just a channel.
--Make sense of the data returned !
 
 
    </pre>

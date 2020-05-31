@@ -1,9 +1,6 @@
 # AutogadgetFS
-
 # USB testing made easy
-
 ## Installation
-
 #### Linux machine
 
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
@@ -54,8 +51,52 @@
         * [Buster lite latest](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
     * Burn the Image to the SD card using BalenaEtcher
         * [BalenaEtcher](https://www.balena.io/etcher/)
-        
-<pre>
-<h1>Supported by</h1>
-<img src="https://github.com/ehabhussein/AutoGadgetFS/blob/master/JetBrains.png">
-</pre>
+* Mount the SD card on your machine and make the following changes:
+    * In the */path/to/sdcard/boot/config.txt* file add to the very end of the file:
+        ```
+        enable_uart=1
+        dtoverlay=dwc2
+        ```
+    * In the */path/to/sdcard/boot/cmdline.txt* add right after *rootwait* 
+        ```
+        modules-load=dwc2
+        ```
+        * it should look like this make sure its on the same line:
+        ```
+      console=serial0,115200 console=tty1 root=PARTUUID=6c586e13-02 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait modules-load=dwc2
+      ```
+* Enable ssh:
+    * in the */path/to/sdcard/boot* directory create an empty file name ssh:
+        ```
+        $ sudo touch /path/to/sdcard/boot/ssh
+       ```
+* Enable Wifi:
+    * in the */path/to/sdcard/boot* directory create an file named *wpa_supplicant.conf*:
+        ```
+        $ sudo vim /path/to/sdcard/boot/wpa_supplicant.conf
+        ```
+        * Add the following contents:
+            ```ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+                update_config=1
+                country=US
+                network={
+                    ssid="<your wifi SSID>"
+                    psk="<your wifi password>"
+                    key_mgmt=WPA-PSK
+                }
+          ``` 
+* Unmount the SD card and place it back into the Raspberry Pi Zero and power it on.
+* Copy the content of *AutogadgetFS/Pizero/* to the Pi zero: *username: pi / password: raspberry*
+    ```
+    $ cd AutogadgetFS/Pizero/
+    $ scp gadgetfuzzer.py removegadget.sh requirements.txt router.py pi@<pi-ipaddress>:/home/pi
+    ``` 
+* SSH into the PI Zero and setup requirements for AutoGadgetFS:
+    ```
+    $ ssh pi@<pi-ip-address>
+    $ chmod +x removegadget.sh
+    $ sudo apt update
+    $ sudo apt install python3.7 python3-pip
+    $ sudo -H pip3 install -r requirements.txt
+    ```
+# And you're done!

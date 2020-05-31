@@ -1,10 +1,10 @@
-#AutogadgetFS
+# AutogadgetFS
 
-#USB testing made easy
+# USB testing made easy
 
-##Installation
+## Installation
 
-####Linux machine
+#### Linux machine
 
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
     * ```$ sudo apt install python3.7 ipython3 git python3-pip rabbitmq-server```
@@ -48,7 +48,7 @@
     Give your project a name?!: 
    ```
 
-####PI zero
+#### PI zero
 * Obtain a copy of [Raspian](https://www.raspberrypi.org/downloads/raspbian/)
     * Lite edition is recommended 
         * [Buster lite latest](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)

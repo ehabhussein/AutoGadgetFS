@@ -57,7 +57,7 @@
             return "Error Reading langID"
             #raise ValueError("The device does not support the specified langid")
         ```
-    * If you prefer to use *patch* or diff apply the following patch to the file:
+    * If you prefer to use *patch* apply the following patch to the file:
         * AutoGadgetFS/pyusb_patches/pyusb_langid.patch
 
 #### PI zero

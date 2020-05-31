@@ -11,7 +11,7 @@ if __name__ == '__main__':
     argparse.add_argument('-p',dest='product',help='Product ID', required=False,default=None)
     argparse.add_argument('-c',dest='dclass',help='device class', required=False,default=None)
     argparse.add_argument('-t',dest='timeout',help='Timeout', required=False,default=1)
-    argparse.add_argument('-s',dest='samples',help='Samples to generate', type=int, required=True,default=100)
+    argparse.add_argument('-s',dest='samples',help='Samples to generate', type=int, required=True,default=99)
     args = argparse.parse_args()
     chmodgadget = "chmod a+x tempgadget.sh"
     removegadget = "./removegadget.sh"

@@ -1,1 +1,0 @@
-git clone https://github.com/dan1t0/ap_creator

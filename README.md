@@ -115,3 +115,8 @@
     $ sudo -H pip3 install -r requirements.txt
     ```
 # And you're done!
+
+<pre>	
+<h1>Supported by</h1>	
+<img src="https://github.com/ehabhussein/AutoGadgetFS/blob/master/JetBrains.png">	
+</pre>

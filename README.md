@@ -164,7 +164,3 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 #### Supported by
 
 ![JetBrains](https://github.com/ehabhussein/AutoGadgetFS/raw/master/JetBrains.png)
-<pre>	
-<h1>Supported by</h1>	
-<img src="https://github.com/ehabhussein/AutoGadgetFS/blob/master/JetBrains.png">	
-</pre>

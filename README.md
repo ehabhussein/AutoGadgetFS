@@ -6,10 +6,6 @@
 [Requirments](#Requirments)
 
 [Installation:](#Installation)
-    
-    [|->Linux](#Linux)
-    
-    [|->Raspberry pi zero](#Rasp)
 
 [Youtube Playlist](#Youtube)
 
@@ -21,7 +17,7 @@
 
 ---
 
-<a name="Requirments"/></a>
+<a name="Requirments"/>
 
 ### Requirments:
 
@@ -31,11 +27,9 @@
 
 ---
 
-<a name="Installation"/></a>
+<a name="Installation"/>
 
 ### Installation
-
-<a name="Linux"/></a>
 
 ### Linux Machine
 
@@ -122,8 +116,6 @@
 
 ---
 
-<a name="Rasp"/></a>
-
 ### Raspberry Pi Zero W
 
 * Obtain a copy of [Raspian Lite Edition](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
@@ -198,19 +190,19 @@
 
 ---
 
-<a name="Youtube"/></a>
+<a name="Youtube"/>
 
 [Youtube Playlist](https://www.youtube.com/playlist?list=PLKozlVgM6RQjNHmpWR2RBiFCtufV03o6Z)
 
 ---
 
-<a name="Slack"/></a>
+<a name="Slack"/>
 
 Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_invite/zt-emgcv3ol-unG_axHmSQlk~5GcBddhlQ)
 
 ---
 
-<a name="Support"/></a>
+<a name="Support"/>
 
 #### Supported by
 
@@ -220,6 +212,6 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ---
 
-<a name="Donate"/></a>
+<a name="Donate"/>
 
 [![Paypal Donations](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/autogadgetfs)

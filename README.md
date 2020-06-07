@@ -4,7 +4,7 @@
 
 ### Installation
 
-#### Linux Machine
+### Linux Machine
 
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
 
@@ -87,7 +87,7 @@
 
     * If you prefer to use `patch` apply the following patch to the file: `AutoGadgetFS/pyusb_patches/pyusb_langid.patch`
 
-#### Raspberry Pi Zero W
+### Raspberry Pi Zero W
 
 * Obtain a copy of [Raspian Lite Edition](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
   * Burn the Image to the SD card using [BalenaEtcher](https://www.balena.io/etcher/)

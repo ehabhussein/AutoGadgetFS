@@ -1,9 +1,11 @@
 # AutogadgetFS
 ## USB Testing Made Easy
 
-##### Table of Contents  
-[Installation](#Installation)  
+## Table of Contents  
+[Installation](#Installation)
+[Slack](#Slack)
 
+---
 <a name="Installation"/>
 ### Installation
 
@@ -163,7 +165,8 @@
     ```
 
 #### And you're done!
-
+---
+<a name="Slack"/>
 Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_invite/zt-emgcv3ol-unG_axHmSQlk~5GcBddhlQ)
 
 #### Supported by

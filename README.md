@@ -5,7 +5,7 @@
 
 [Supported by](#Support)
 
-[Buy me a coffee to dev](#Donate)
+[Support the development by buy me a coffee](#Donate)
 
 ---
 

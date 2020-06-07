@@ -9,28 +9,28 @@
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
 
     ```powershell
-    sudo apt install python3.7 ipython3 git python3-pip rabbitmq-server
-    sudo service rabbitmq-server start
+    $ sudo apt install python3.7 ipython3 git python3-pip rabbitmq-server
+    $ sudo service rabbitmq-server start
     ```
 
 * Clone the repository
 
     ```powershell
-    git clone https://github.com/ehabhussein/AutoGadgetFS
-    cd AutoGadgetFS
+    $ git clone https://github.com/ehabhussein/AutoGadgetFS
+    $ cd AutoGadgetFS
     ```
 
 * Install the requirements
 
     ```powershell
-    sudo -H pip3 install -r requirements.txt
-    sudo -H pip3 install cmd
+    $ sudo -H pip3 install -r requirements.txt
+    $ sudo -H pip3 install cmd
     ```
 
 * Enable the web interface for rabbitMQ
 
     ```powershell
-    sudo rabbitmq-plugins enable rabbitmq_management
+    $ sudo rabbitmq-plugins enable rabbitmq_management
     http://localhost:15672/ to reach the web interface
     ```
 
@@ -40,13 +40,13 @@
     * Upload the file found in: *rabbitMQbrokerconfig/rabbitmq-Config.json*
 
     ```powershell
-    sudo service rabbitmq-server restart
+    $ sudo service rabbitmq-server restart
     ```
 
 * Test the installation
 
-    ```powershell
-    sudo ipython3
+    ```python
+    $ sudo ipython3
     Python 3.7.7 (default, Apr  1 2020, 13:48:52)
     Type 'copyright', 'credits' or 'license' for more information
     IPython 7.9.0 -- An enhanced Interactive Python. Type '?' for help.
@@ -74,7 +74,7 @@
   * Edit the file `/usr/local/lib/python3.7/dist-packages/usb/util.py`
     * make changes to the `def get_string` method to look like below:
 
-        ```powershell
+        ```python
         if 0 == len(langids):
             return "Error Reading langID"
             #raise ValueError("The device has no langid")
@@ -108,27 +108,27 @@
 
   * it should look like this make sure its on the same line:
 
-    ```powershell
+    ```bash
     console=serial0,115200 console=tty1 root=PARTUUID=6c586e13-02 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait modules-load=dwc2
     ```
 
 * Enable ssh:
   * in the `/path/to/sdcard/boot` directory create an empty file name ssh:
 
-    ```powershell
-    sudo touch /path/to/sdcard/boot/ssh
+    ```bash
+    $ sudo touch /path/to/sdcard/boot/ssh
     ```
 
 * Enable Wifi:
   * in the `/path/to/sdcard/boot` directory create an file named `wpa_supplicant.conf`:
 
-    ```powershell
-    sudo vim /path/to/sdcard/boot/wpa_supplicant.conf
+    ```bash
+    $ sudo vim /path/to/sdcard/boot/wpa_supplicant.conf
     ```
 
   * Add the following contents:
 
-    ```powershell
+    ```bash
     ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
     update_config=1
     country=US
@@ -142,19 +142,19 @@
 * Unmount the SD card and place it back into the Raspberry Pi Zero and power it on.
 * Copy the content of `AutogadgetFS/Pizero/` to the Pi zero: `username: pi` & `password: raspberry`
 
-    ```powershell
-    cd AutogadgetFS/Pizero/
-    scp gadgetfuzzer.py removegadget.sh requirements.txt router.py pi@<pi-ipaddress>:/home/pi
+    ```bash
+    $ cd AutogadgetFS/Pizero/
+    $ scp gadgetfuzzer.py removegadget.sh requirements.txt router.py pi@<pi-ipaddress>:/home/pi
     ```
 
 * SSH into the PI Zero and setup requirements for AutoGadgetFS:
 
-    ```powershell
-    ssh pi@<pi-ip-address>
-    chmod +x removegadget.sh
-    sudo apt update
-    sudo apt install python3.7 python3-pip
-    sudo -H pip3 install -r requirements.txt
+    ```bash
+    $ ssh pi@<pi-ip-address>
+    $ chmod +x removegadget.sh
+    $ sudo apt update
+    $ sudo apt install python3.7 python3-pip
+    $ sudo -H pip3 install -r requirements.txt
     ```
 
 #### And you're done!

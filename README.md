@@ -87,6 +87,8 @@
 
     * If you prefer to use `patch` apply the following patch to the file: `AutoGadgetFS/pyusb_patches/pyusb_langid.patch`
 
+---
+
 ### Raspberry Pi Zero W
 
 * Obtain a copy of [Raspian Lite Edition](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)

@@ -223,4 +223,6 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 <a name="Donate"/>
 
+### Buy me a coffee to support the development of this project
+
 [![Paypal Donations](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/autogadgetfs)

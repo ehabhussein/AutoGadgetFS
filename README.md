@@ -1,7 +1,10 @@
 
 [![Paypal Donations](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/autogadgetfs)
 
-## Table of Contents  
+## Table of Contents
+
+[Requirments](#Requirments)
+
 [Installation](#Installation)
 
 [Youtube Playlist](#Youtube)
@@ -11,6 +14,13 @@
 [Supported by](#Support)
 
 [Buy me a coffee](#Donate)
+
+---
+
+<a name="Requirments"/>
+
+[x] Host machine running Linux
+[x] Raspberry Pi Zero with WIFI support
 
 ---
 

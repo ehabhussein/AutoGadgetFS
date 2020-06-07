@@ -124,14 +124,14 @@
 * Mount the SD card on your machine and make the following changes:
   * In the `/path/to/sdcard/boot/config.txt` file add to the very end of the file:
 
-    ```powershell
+    ```bash
     enable_uart=1
     dtoverlay=dwc2
     ```
 
   * In the `/path/to/sdcard/boot/cmdline.txt` add right after `rootwait`
 
-    ```powershell
+    ```bash
     modules-load=dwc2
     ```
 

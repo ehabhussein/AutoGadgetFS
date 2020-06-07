@@ -3,6 +3,10 @@
 
 [Slack](#Slack)
 
+[Supported by](#Support)
+
+[Buy me a coffee to dev](#Donate)
+
 ---
 
 <a name="Installation"/>
@@ -164,11 +168,19 @@
     ```
 
 #### And you're done!
+
 ---
+
 <a name="Slack"/>
 Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_invite/zt-emgcv3ol-unG_axHmSQlk~5GcBddhlQ)
 
 ---
+
+<a name="Support"/>
 #### Supported by
 
 ![JetBrains](https://github.com/ehabhussein/AutoGadgetFS/raw/master/JetBrains.png)
+
+---
+<a name="Donate"/>
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/autogadgetfs)

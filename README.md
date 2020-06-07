@@ -3,9 +3,11 @@
 
 ## Table of Contents  
 [Installation](#Installation)
+
 [Slack](#Slack)
 
 ---
+
 <a name="Installation"/>
 ### Installation
 
@@ -169,6 +171,7 @@
 <a name="Slack"/>
 Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_invite/zt-emgcv3ol-unG_axHmSQlk~5GcBddhlQ)
 
+---
 #### Supported by
 
 ![JetBrains](https://github.com/ehabhussein/AutoGadgetFS/raw/master/JetBrains.png)

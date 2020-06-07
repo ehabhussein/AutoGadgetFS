@@ -6,6 +6,8 @@
 [Requirments](#Requirments)
 
 [Installation](#Installation)
+    [Linux](#Linux)
+    [Raspberry pi zero](#Rasp)
 
 [Youtube Playlist](#Youtube)
 
@@ -30,6 +32,8 @@
 <a name="Installation"/>
 
 ### Installation
+
+<a name="Linux"/>
 
 ### Linux Machine
 
@@ -115,6 +119,8 @@
     * If you prefer to use `patch` apply the following patch to the file: `AutoGadgetFS/pyusb_patches/pyusb_langid.patch`
 
 ---
+
+<a name="Rasp"/>
 
 ### Raspberry Pi Zero W
 

@@ -1,7 +1,3 @@
-# AutogadgetFS: 
-### USB Testing Made Easy
----
-
 ## Table of Contents  
 [Installation](#Installation)
 

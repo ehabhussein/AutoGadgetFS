@@ -5,9 +5,9 @@
 
 [Requirments](#Requirments)
 
-[Installation](#Installation)
-    [Linux](#Linux)
-    [Raspberry pi zero](#Rasp)
+[Installation:](#Installation)
+    [|->Linux](#Linux)
+    [|->Raspberry pi zero](#Rasp)
 
 [Youtube Playlist](#Youtube)
 
@@ -19,7 +19,7 @@
 
 ---
 
-<a name="Requirments"/>
+<a name="Requirments"/></a>
 
 ### Requirments:
 
@@ -29,11 +29,11 @@
 
 ---
 
-<a name="Installation"/>
+<a name="Installation"/></a>
 
 ### Installation
 
-<a name="Linux"/>
+<a name="Linux"/></a>
 
 ### Linux Machine
 
@@ -120,7 +120,7 @@
 
 ---
 
-<a name="Rasp"/>
+<a name="Rasp"/></a>
 
 ### Raspberry Pi Zero W
 
@@ -196,19 +196,19 @@
 
 ---
 
-<a name="Youtube"/>
+<a name="Youtube"/></a>
 
 [Youtube Playlist](https://www.youtube.com/playlist?list=PLKozlVgM6RQjNHmpWR2RBiFCtufV03o6Z)
 
 ---
 
-<a name="Slack"/>
+<a name="Slack"/></a>
 
 Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_invite/zt-emgcv3ol-unG_axHmSQlk~5GcBddhlQ)
 
 ---
 
-<a name="Support"/>
+<a name="Support"/></a>
 
 #### Supported by
 
@@ -218,6 +218,6 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ---
 
-<a name="Donate"/>
+<a name="Donate"/></a>
 
 [![Paypal Donations](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/autogadgetfs)

@@ -20,6 +20,7 @@
 <a name="Requirments"/>
 
 [x] Host machine running Linux
+
 [x] Raspberry Pi Zero with WIFI support
 
 ---
@@ -32,28 +33,28 @@
 
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
 
-    ```powershell
+    ```bash
     $ sudo apt install python3.7 ipython3 git python3-pip rabbitmq-server
     $ sudo service rabbitmq-server start
     ```
 
 * Clone the repository
 
-    ```powershell
+    ```bash
     $ git clone https://github.com/ehabhussein/AutoGadgetFS
     $ cd AutoGadgetFS
     ```
 
 * Install the requirements
 
-    ```powershell
+    ```bash
     $ sudo -H pip3 install -r requirements.txt
     $ sudo -H pip3 install cmd
     ```
 
 * Enable the web interface for rabbitMQ
 
-    ```powershell
+    ```bash
     $ sudo rabbitmq-plugins enable rabbitmq_management
     http://localhost:15672/ to reach the web interface
     ```
@@ -63,7 +64,7 @@
     * In the overview tab scroll to the bottom to import definitions
     * Upload the file found in: *rabbitMQbrokerconfig/rabbitmq-Config.json*
 
-    ```powershell
+    ```bash
     $ sudo service rabbitmq-server restart
     ```
 
@@ -202,6 +203,8 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 <a name="Support"/>
 
 #### Supported by
+
+![IOActive](https://ioactive.com/wp-content/themes/ioactive-redesign/images/logo.png)
 
 ![JetBrains](https://github.com/ehabhussein/AutoGadgetFS/raw/master/JetBrains.png)
 

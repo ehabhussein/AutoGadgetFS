@@ -6,9 +6,7 @@
 [Requirments](#Requirments)
 
 [Installation](#Installation)
-
     [Linux](#Linux)
-
     [Raspberry pi zero](#Rasp)
 
 [Youtube Playlist](#Youtube)

@@ -13,7 +13,7 @@
 
 [Supported by](#Support)
 
-[Buy me a coffee](#Donate)
+[Buy me a coffee ☕️](#Donate)
 
 ---
 
@@ -21,9 +21,9 @@
 
 ### Requirments:
 
-[x] Host machine running Linux
+💻 Host machine running Linux (Debian/Ubuntu/Kali)
 
-[x] Raspberry Pi Zero with WIFI support
+🥧 Raspberry Pi Zero with WIFI support
 
 ---
 

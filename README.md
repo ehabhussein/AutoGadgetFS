@@ -1,6 +1,8 @@
 ## Table of Contents  
 [Installation](#Installation)
 
+[Youtube Playlist](#Youtube)
+
 [Slack](#Slack)
 
 [Supported by](#Support)
@@ -169,6 +171,12 @@
     ```
 
 #### And you're done!
+
+---
+
+<a name="Youtube"/>
+
+[Youtube Playlist](https://www.youtube.com/playlist?list=PLKozlVgM6RQjNHmpWR2RBiFCtufV03o6Z)
 
 ---
 

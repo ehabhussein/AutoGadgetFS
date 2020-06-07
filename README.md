@@ -35,6 +35,8 @@
 
 ### Installation
 
+<a name="Linux"/>
+
 #### Linux Machine
 
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
@@ -119,6 +121,8 @@
     * If you prefer to use `patch` apply the following patch to the file: `AutoGadgetFS/pyusb_patches/pyusb_langid.patch`
 
 ---
+
+<a name="Rasp"/>
 
 #### Raspberry Pi Zero W
 

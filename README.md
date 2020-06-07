@@ -38,7 +38,7 @@
 
 <a name="Linux"/>
 
-#### Linux Machine
+### Linux Machine
 
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
 
@@ -125,7 +125,7 @@
 
 <a name="Rasp"/>
 
-#### Raspberry Pi Zero W
+### Raspberry Pi Zero W
 
 * Obtain a copy of [Raspian Lite Edition](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
   * Burn the Image to the SD card using [BalenaEtcher](https://www.balena.io/etcher/)
@@ -201,11 +201,15 @@
 
 <a name="Youtube"/>
 
+### Youtube Playlist:
+
 [Youtube Playlist](https://www.youtube.com/playlist?list=PLKozlVgM6RQjNHmpWR2RBiFCtufV03o6Z)
 
 ---
 
 <a name="Slack"/>
+
+### Join Slack:
 
 Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_invite/zt-emgcv3ol-unG_axHmSQlk~5GcBddhlQ)
 
@@ -213,7 +217,7 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 <a name="Support"/>
 
-#### Supported by
+### Supported by:
 
 ![IOActive](https://ioactive.com/wp-content/themes/ioactive-redesign/images/logo.png)
 

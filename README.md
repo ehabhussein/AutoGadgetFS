@@ -19,6 +19,8 @@
 
 <a name="Requirments"/>
 
+### Requirments:
+
 [x] Host machine running Linux
 
 [x] Raspberry Pi Zero with WIFI support

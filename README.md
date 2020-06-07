@@ -5,7 +5,7 @@
 
 [Requirments](#Requirments)
 
-[Installation:](#Installation)
+[Installation](#Installation)
 
 [Youtube Playlist](#Youtube)
 

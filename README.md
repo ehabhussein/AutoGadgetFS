@@ -234,6 +234,62 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/selectivefuzz.png" /></div>
 
+#### Smart fuzzer based on learning traffic:
+
+```python
+In [44]: x.devSmartFuzz(engine="smart",samples=5,filename="/home/raindrop/PycharmProjects/AutoGadgetFs/binariesdb/Nud-Nuvoton-1046-20764-1590421333.5169587-Nuvoton-1046-20764-1590421600.8067
+    ...: 274-device.bin")                                                                                                                                                                     
+
+
+[+]General Statistics
+Full charset                : !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+Discarded charset           : !"#$%&'()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`ghijklmnopqrstuvwxyz{|}~
+Final charset               : 0123456789abcdef
+Word Length                 : 128
+Lower Case index usage      : 92%
+Lower Case index locations  : [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 121, 122, 124, 125, 127]
+Upper Case index usage      : 0%
+Upper Case index locations  : []
+Digit index usage           : 96%
+Digit index locations       : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 123, 126]
+NonAN index usage           : 0%
+NonAN index locations       : []
+Counter statistics          : Uppercase: 0 , Lowercase: 133071, Digits:212017 , NonAlphaNumeric:0
+All char Frequencies        : 
+character:5 found:5012 times
+character:2 found:22563 times
+character:3 found:12197 times
+character:8 found:15008 times
+character:4 found:13275 times
+character:0 found:98056 times
+character:1 found:17861 times
+character:f found:87823 times
+character:d found:7221 times
+character:7 found:9614 times
+character:a found:11148 times
+character:6 found:10472 times
+character:b found:8189 times
+character:9 found:7959 times
+character:c found:9172 times
+character:e found:9518 times
+***********************
+generated:5 Packets
+***********************
+Out[44]: 
+['5608305852bf2ffd61770e2c827542f20be0b0fcba09db916bd07e1734b04cb0352b1d278068064d19f033bfad6fa90e53d865693fd4fee0214f00000eb0aa2c',
+ '3b083595f276e2f1353a535c32f0f59516fc9328f7673bb80262c4da11c93683afe6dcff8a7a83018d78f41498a0da4d141ebd39c361b1724f2b00000eb0aa2c',
+ '0120961963495c4dab9470738b497eddde07b0d70b357795ad9554d7964761969a6d997205e17eada6fa84eb33dcfb11412f75e04c195001283900000eb0aa2c',
+ '091065d52127bbc6e840e02f8e1316f1c4d9c92a23931c00cdbb8c158368852ef8fabd461b98812b51ec84e1ccc5c04aaa366fbafabec623bd3500000eb0aa2c',
+ '7300cc61151b7af27a578e766f49bebb2de68c48b37a00df1030ae464f456928eedd035303e697208bf58217af728a2a346fda5c8aef0335b82e00000eb0aa2c'
+
+In [46]: x.edap.packets                                                                                                                                                                       
+Out[46]: 
+['5608305852bf2ffd61770e2c827542f20be0b0fcba09db916bd07e1734b04cb0352b1d278068064d19f033bfad6fa90e53d865693fd4fee0214f00000eb0aa2c',
+ '3b083595f276e2f1353a535c32f0f59516fc9328f7673bb80262c4da11c93683afe6dcff8a7a83018d78f41498a0da4d141ebd39c361b1724f2b00000eb0aa2c',
+ '0120961963495c4dab9470738b497eddde07b0d70b357795ad9554d7964761969a6d997205e17eada6fa84eb33dcfb11412f75e04c195001283900000eb0aa2c',
+ '091065d52127bbc6e840e02f8e1316f1c4d9c92a23931c00cdbb8c158368852ef8fabd461b98812b51ec84e1ccc5c04aaa366fbafabec623bd3500000eb0aa2c',
+ '7300cc61151b7af27a578e766f49bebb2de68c48b37a00df1030ae464f456928eedd035303e697208bf58217af728a2a346fda5c8aef0335b82e00000eb0aa2c']```
+
 ---
 
 <a name="Youtube"/>

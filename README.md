@@ -1,8 +1,6 @@
 
 <div style="text-align:left"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/agfslogof.jpeg" /></div>
 
-[![Paypal Donations](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/autogadgetfs)
-
 ## Table of Contents
 
 1. [What's AutoGadgetFS ?](#About)

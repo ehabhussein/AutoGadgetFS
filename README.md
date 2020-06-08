@@ -230,7 +230,7 @@ Scenario 2 setup (Ideal):
 
 [✔️] USB HID Devices
 
-[⏳] Upcoming release All USB devices
+[⏳] Upcoming release... All USB devices
 
 ---
 

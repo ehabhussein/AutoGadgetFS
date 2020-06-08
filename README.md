@@ -12,20 +12,22 @@
     a. [Linux](#Linux)
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
+    
+4. [USB Device class support](#Usbdev)
 
-4. [Jupyter notebook tutorial](#Tutorial)
+5. [Jupyter notebook tutorial](#Tutorial)
 
-5. [ScreenShots](#Screens)
+6. [ScreenShots](#Screens)
 
-6. [Youtube Playlist](#Youtube)
+7. [Youtube Playlist](#Youtube)
 
-7. [Slack](#Slack)
+8. [Slack](#Slack)
 
-8. [Supported by](#Support)
+9. [Supported by](#Support)
 
-9. [Buy me a coffee ☕️](#Donate)
+10. [Buy me a coffee ☕️](#Donate)
 
-10. [Contact me](#Contact)
+11. [Contact me](#Contact)
 
 ---
 
@@ -222,12 +224,21 @@ Scenario 2 setup (Ideal):
 
 ---
 
+<a name="Usbdev"/>
+
+### USB Device class support:
+
+[✔️] USB HID Devices
+
+[⏳] Upcoming release All USB devices
+
+---
+
 <a name="Tutorial"/>
 
 ### Jupyter notebook tutorial:
 
 In the works!
-
 
 ---
 

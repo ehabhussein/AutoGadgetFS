@@ -4,23 +4,31 @@
 
 ## Table of Contents
 
-1. [Requirments](#Requirments)
+1. [What's AutoGadgetFS ?](#About)
 
-2. [Installation](#Installation)
+2. [Requirments](#Requirments)
+
+3. [Installation](#Installation)
 
     1. [Linux](#Linux)
 
     2. [Raspberry Pi Zero with WIFI](#Rasp)
 
-3. [Screen Shots](#Screens)
+4. [Screen Shots](#Screens)
 
-4. [Youtube Playlist](#Youtube)
+5. [Youtube Playlist](#Youtube)
 
-5. [Slack](#Slack)
+6. [Slack](#Slack)
 
-6. [Supported by](#Support)
+7. [Supported by](#Support)
 
-7. [Buy me a coffee ☕️](#Donate)
+8. [Buy me a coffee ☕️](#Donate)
+
+---
+
+<a name="About"/>
+
+AutoGadgetFS is an open source framework that allows users to assess USB devices and their associated hosts/drivers/software without an in-depth knowledge of the USB protocol. The tool is written in Python 3 and uses RabbitMQ and WiFi access to enable researchers to conduct remote USB security assessments from anywhere around the globe. By leveraging ConfigFS, AutoGadgetFS allows users to clone and emulate devices quickly, eliminating the need to dig deep into the details of each implementation. The framework also allows users to create their own fuzzers on top of it. The total cost is around $10, the cost of a Raspberry Pi Zero with WiFi enabled.
 
 ---
 

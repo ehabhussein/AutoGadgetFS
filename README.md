@@ -15,9 +15,9 @@
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
 
-4. [Jupyter notebook Help](#Tutorial)
+4. [Jupyter notebook tutorial](#Tutorial)
 
-5. [ScreenShots & Help](#Screens)
+5. [ScreenShots](#Screens)
 
 6. [Youtube Playlist](#Youtube)
 
@@ -213,6 +213,15 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
     ```
 
 #### And you're done!
+
+---
+
+<a name="Tutorial"/>
+
+### Jupyter notebook tutorial:
+
+In the works!
+
 
 ---
 

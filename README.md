@@ -291,6 +291,108 @@ Out[46]:
  '7300cc61151b7af27a578e766f49bebb2de68c48b37a00df1030ae464f456928eedd035303e697208bf58217af728a2a346fda5c8aef0335b82e00000eb0aa2c']
 ```
 
+#### Help method:
+
+```python
+In [15]: x.help("")                                                                                                                                                                           
+Currently supported methods:
+______________________________________________________________________________________________________________________________________________________________________________________________
+Method               ||-->Description
+----------------------------------------------------------------------------------------------------------------------------
+MITMproxy            ||-->This method creates a connection to the RabbitMQ and listen on received messages on the todev queue
+____________________________________________________________________________________________________________________________
+MITMproxyRQueues     ||-->This method reads from the queue todev and sends the request to the device its self.
+____________________________________________________________________________________________________________________________
+SmartFuzz            ||-->This method is generates packets based on what it has learned from a sniff from either the host or the device
+____________________________________________________________________________________________________________________________
+chgIntrfs            ||-->This method allows you to change and select another interface
+____________________________________________________________________________________________________________________________
+clearqueues          ||-->this method clears all the queues on the rabbitMQ queues that are set up
+____________________________________________________________________________________________________________________________
+clonedev             ||-->This method does not need any parameters it only saves a backup of the device incase you need to share it or use it later.
+____________________________________________________________________________________________________________________________
+createctrltrsnfDB    ||-->creates a SQLite database containing values that were enumerated from control transfer enumeration
+____________________________________________________________________________________________________________________________
+createdb             ||-->create the sqlite table and columns from usblyzer captures
+____________________________________________________________________________________________________________________________
+decodePacketAscii    ||-->This method decodes packet bytes back to Ascii
+____________________________________________________________________________________________________________________________
+describeFuzz         ||-->This method allows you to describe a packet and select which bytes will be fuzzed
+____________________________________________________________________________________________________________________________
+devEnumCtrltrnsf     ||-->This method enumerates all possible combinations of a control transfer request
+____________________________________________________________________________________________________________________________
+devReset             ||-->This method Resets the device
+____________________________________________________________________________________________________________________________
+devWrite             ||-->To use this with a method you would write to a device make sure to run the startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None)
+____________________________________________________________________________________________________________________________
+devctrltrnsf         ||-->This method allows you to send ctrl transfer requests to the target device
+____________________________________________________________________________________________________________________________
+deviceInfo           ||-->gets the complete info only for any usb connected to the host
+____________________________________________________________________________________________________________________________
+deviceInterfaces     ||-->get all interfaces and endpoints on the device
+____________________________________________________________________________________________________________________________
+devrandfuzz          ||-->this method allows you to create fixed or random size packets created using urandom
+____________________________________________________________________________________________________________________________
+devseqfuzz           ||-->This method allows you to create sequential incremented packets and send them to the device
+____________________________________________________________________________________________________________________________
+findSelect           ||-->This method enumerates all USB devices connected and allows you to select it as a target device as well as its endpoints
+____________________________________________________________________________________________________________________________
+help                 ||-->AutogadgetFS Help method
+____________________________________________________________________________________________________________________________
+hostwrite            ||-->This method writes packets to the host either targeting a software or a driver in control of the device
+____________________________________________________________________________________________________________________________
+hstrandfuzz          ||-->this method allows you to create fixed or random size packets created using urandom and send them to the host queue
+____________________________________________________________________________________________________________________________
+monInterfaceChng     ||-->Method in charge of monitoring interfaces for changes this is called from def startMonInterfaceChng(self)
+____________________________________________________________________________________________________________________________
+newProject           ||-->creates a new project name if you were testing something else
+____________________________________________________________________________________________________________________________
+releasedev           ||-->releases the device and re-attaches the kernel driver
+____________________________________________________________________________________________________________________________
+removeGadget         ||-->This method removes the gadget from the raspberryPI
+____________________________________________________________________________________________________________________________
+replaymsgs           ||-->This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
+____________________________________________________________________________________________________________________________
+searchmsgs           ||-->This method allows you to search and select all messages for a pattern which were saved from a USBlyzer database creation
+____________________________________________________________________________________________________________________________
+setupGadgetFS        ||-->setup variables for gadgetFS : Linux Only, on Raspberry Pi Zero best option
+____________________________________________________________________________________________________________________________
+showMessage          ||-->shows messages if error or warn or info
+____________________________________________________________________________________________________________________________
+sniffdevice          ||-->read the communication between the device to hosts
+____________________________________________________________________________________________________________________________
+startMITMusbWifi     ||-->Starts a thread to monitor the USB target Device
+____________________________________________________________________________________________________________________________
+startMonInterfaceChng||-->This method Allows you to monitor a device every 10 seconds in case it suddenly changes its interface configuration.
+____________________________________________________________________________________________________________________________
+startQueuewrite      ||-->initiates a connection to the queue to communicate with the host
+____________________________________________________________________________________________________________________________
+startSniffReadThread ||-->This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
+____________________________________________________________________________________________________________________________
+stopMITMusbWifi      ||-->Stops the man in the middle thread between the host and the device
+____________________________________________________________________________________________________________________________
+stopMonInterfaceChang||-->Stops the interface monitor thread
+____________________________________________________________________________________________________________________________
+stopQueuewrite       ||-->stop the thread incharge of communicating with the host machine
+____________________________________________________________________________________________________________________________
+stopSniffing         ||-->Kills the sniffing thread strted by startSniffReadThread()
+____________________________________________________________________________________________________________________________
+usblyzerparse        ||-->This method will parse your xml exported from usblyzer and then import them into a database
+____________________________________________________________________________________________________________________________
+
+In [16]: x.help("findSelect")                                                                                                                                                                 
+****
+[+]Help for findSelect Method:
+[-]Signature: findSelect(self, chgint=None)
+
+
+[+]findSelect Help:
+This method enumerates all USB devices connected and allows you to select it as a target device as well as its endpoints
+****
+
+In [17]:                                                                                      
+```
+
 ---
 
 <a name="Youtube"/>

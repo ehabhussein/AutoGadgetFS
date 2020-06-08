@@ -218,20 +218,19 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
 
 ### Screenshots:
 
-#### Man in the Middle:
+##### Man in the Middle:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/mitm.png" /></div>
 
-### USB device fuzzing: 
+#### USB device fuzzing: 
 
-<div style="text-align:center"><img src="
-https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devfuzzer.png" /></div>
+<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devfuzzer.png" /></div>
 
-### Host side fuzzing with code covereage:
+#### Host side fuzzing with code covereage:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/codecov.png" /></div>
 
-### Fuzzer based on a selection of bytes:
+#### Fuzzer based on a selection of bytes:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/selectivefuzz.png" /></div>
 

@@ -233,8 +233,7 @@ https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devfuzzer.png
 
 ### Fuzzer based on a selection of bytes:
 
-<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/selectivefuzz.png
-" /></div>
+<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/selectivefuzz.png" /></div>
 
 ---
 

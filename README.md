@@ -15,7 +15,7 @@
 
     2. [Raspberry Pi Zero with WIFI](#Rasp)
 
-4. [Screen Shots](#Screens)
+4. [Screen Shots & Help](#Screens)
 
 5. [Youtube Playlist](#Youtube)
 

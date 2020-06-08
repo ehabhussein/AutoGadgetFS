@@ -404,6 +404,11 @@ This method enumerates all USB devices connected and allows you to select it as 
 In [17]:                                                                                      
 ```
 
+#### AutoGadgetFS console. A much simpler way to use AGFS
+
+<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/agfsconsole.png"/></div>
+
+
 ---
 
 <a name="Youtube"/>

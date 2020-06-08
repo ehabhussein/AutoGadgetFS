@@ -228,9 +228,11 @@ Scenario 2 setup (Ideal):
 
 ### USB Device class support:
 
-[✔️] USB HID Devices
+[✔️] USB HID Devices fully supported (Man in the middle)
 
-[⏳] Upcoming release... All USB devices
+[⚠️] Device only testing .. All USB devices (NO Man in the middle)
+
+[⏳] Upcoming release... All USB devices (Man in the middle)
 
 ---
 

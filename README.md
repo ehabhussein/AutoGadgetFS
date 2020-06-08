@@ -11,19 +11,21 @@
 
 3. [Installation](#Installation)
 
-    1. [Linux](#Linux)
+    a. [Linux](#Linux)
 
-    2. [Raspberry Pi Zero with WIFI](#Rasp)
+    b. [Raspberry Pi Zero with WIFI](#Rasp)
 
-4. [ScreenShots & Help](#Screens)
+4. [Jupyter notebook Help](#Tutorial)
 
-5. [Youtube Playlist](#Youtube)
+5. [ScreenShots & Help](#Screens)
 
-6. [Slack](#Slack)
+6. [Youtube Playlist](#Youtube)
 
-7. [Supported by](#Support)
+7. [Slack](#Slack)
 
-8. [Buy me a coffee ☕️](#Donate)
+8. [Supported by](#Support)
+
+9. [Buy me a coffee ☕️](#Donate)
 
 ---
 

@@ -72,6 +72,10 @@ Ideal setup:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario2.jpeg"/></div>
 
+```bash
+How AutoGadgetFS works:
+``` 
+
 ---
 
 <a name="Usbdev"/>

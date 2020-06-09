@@ -37,15 +37,16 @@
 
 AutoGadgetFS is an open source framework that allows users to assess USB devices and their associated hosts/drivers/software without an in-depth knowledge of the USB protocol. The tool is written in Python3 and utilizes RabbitMQ and WiFi access to enable researchers to conduct remote USB security assessments from anywhere around the globe. By leveraging ConfigFS, AutoGadgetFS allows users to clone and emulate devices quickly, eliminating the need to dig deep into the details of each implementation. The framework also allows users to create their own fuzzers on top of it.
 
-* Components
-    * Raspberry Pi zero with wifi support
-    * Laptop/PC running Debian/Ubuntu/Kali
-    * Target machine options
-        * Virtual Machine
-        * Standalone machine
-    * 2 x USB micro cables
-    * Target USB device
-    * Hardware debugger ( Optional )
+Components:
+
+    1. Raspberry Pi zero with wifi support
+    2. Laptop/PC running Debian/Ubuntu/Kali
+    3. Target machine options
+        3a. Virtual Machine
+        3b. Standalone machine
+    4. 2 x USB micro cables
+    5. Target USB device
+    6. Hardware debugger ( Optional )
 
 Minimal setup: 
 

@@ -55,10 +55,10 @@ Ideal setup:
 
 2. 🥧 Raspberry Pi Zero with WIFI support
 
-3. 🎯 Target machine options
+3. 🎯 Target machine options:
 
-        3a. Virtual Machine
-        3b. Standalone machine
+        * Virtual Machine
+        * Standalone machine
 
 4. 🔌 2 x USB micro cables
 

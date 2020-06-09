@@ -11,9 +11,9 @@
 
     a. [Device only testing](#Dot)
     
-    b. [Minimal Man in the middle setup]("#MMITM")
+    b. [Minimal Man in the middle setup](#MMITM)
     
-    c. [Complete man in the middle setup with debugging support]("#FMITM")
+    c. [Complete man in the middle setup with debugging support](#FMITM)
     
     d. [How AutoGadgetFS works](#HIW)
 

@@ -7,27 +7,29 @@
 
 2. [Requirments](#Requirments)
 
-3. [Installation](#Installation)
+3. [Setup scenarios](#Scenarios)
+
+4. [Installation](#Installation)
 
     a. [Linux](#Linux)
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
     
-4. [USB Device class support](#Usbdev)
+5. [USB Device class support](#Usbdev)
 
-5. [Jupyter notebook tutorial](#Tutorial)
+6. [Jupyter notebook tutorial](#Tutorial)
 
-6. [ScreenShots](#Screens)
+7. [ScreenShots](#Screens)
 
-7. [Youtube Playlist](#Youtube)
+8. [Youtube Playlist](#Youtube)
 
-8. [Slack](#Slack)
+9. [Slack](#Slack)
 
-9. [Supported by](#Support)
+10. [Supported by](#Support)
 
-10. [Buy me a coffee ☕️](#Donate)
+11. [Buy me a coffee ☕️](#Donate)
 
-11. [Contact me](#Contact)
+12. [Contact me](#Contact)
 
 ---
 
@@ -36,18 +38,6 @@
 ### What’s AutoGadgetFS ?
 
 AutoGadgetFS is an open source framework that allows users to assess USB devices and their associated hosts/drivers/software without an in-depth knowledge of the USB protocol. The tool is written in Python3 and utilizes RabbitMQ and WiFi access to enable researchers to conduct remote USB security assessments from anywhere around the globe. By leveraging ConfigFS, AutoGadgetFS allows users to clone and emulate devices quickly, eliminating the need to dig deep into the details of each implementation. The framework also allows users to create their own fuzzers on top of it.
-
-```bash
-Minimal setup:
-``` 
-
-<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario1.jpeg" width="550" height="187" /></div>
-
-```bash
-Ideal setup:
-```
-
-<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario2.jpeg"/></div>
 
 ---
 
@@ -63,6 +53,24 @@ Ideal setup:
 * 🔌 2 x USB micro cables
 * 🔱 Target USB device
 * 🐞 Hardware debugger ( Optional )
+
+---
+
+<a name="Scenarios"/>
+
+### Setup scenarios:
+
+```bash
+Minimal setup:
+``` 
+
+<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario1.jpeg" width="550" height="187" /></div>
+
+```bash
+Ideal setup:
+```
+
+<div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario2.jpeg"/></div>
 
 ---
 

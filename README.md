@@ -7,7 +7,7 @@
 
 2. [Requirments](#Requirments)
 
-3. [Setup scenarios](#Scenarios)
+3. [The Setup](#Scenarios)
 
 4. [USB Device class support](#Usbdev)
 
@@ -58,7 +58,7 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
 
 <a name="Scenarios"/>
 
-### Setup scenarios:
+### The Setup:
 
 ```bash
 Minimal setup:

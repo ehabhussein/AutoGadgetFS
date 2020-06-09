@@ -61,7 +61,7 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
 ### The Setup:
 
 ```bash
-Device only testing setup:
+Device only testing:
 ``` 
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devtest.jpeg" width="350" height="187" /></div>

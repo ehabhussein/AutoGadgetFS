@@ -9,6 +9,14 @@
 
 3. [The Setup](#Scenarios)
 
+    a. [Device only testing](#Dot)
+    
+    b. [Minimal Man in the middle setup]("#MMITM")
+    
+    c. [Complete man in the middle setup with debugging support]("#FMITM")
+    
+    d. [How AutoGadgetFS works](#HIW)
+
 4. [USB Device class support](#Usbdev)
 
 5. [Installation](#Installation)
@@ -60,11 +68,15 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
 
 ### The Setup:
 
+<a name="Dot"/>
+
 ```bash
 Device only testing:
 ``` 
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devtest.jpeg" width="350" height="187" /></div>
+
+<a name="MMITM"/>
 
 ```bash
 Minimal Man in the middle setup:
@@ -72,11 +84,15 @@ Minimal Man in the middle setup:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario1.jpeg" width="550" height="187" /></div>
 
+a name="FMITM"/>
+
 ```bash
 Complete man in the middle setup with debugging support:
 ```
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario2.jpeg"/></div>
+
+a name="HIW"/>
 
 ```bash
 How AutoGadgetFS works:

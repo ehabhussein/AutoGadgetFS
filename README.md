@@ -86,7 +86,7 @@ How AutoGadgetFS works:
 
 [⚠️] Device only testing .. All USB devices (NO Man in the middle)
 
-[⏳] Upcoming release... All USB devices (Man in the middle)
+[⏳] Future releases... All USB devices (Man in the middle)
 
 ---
 

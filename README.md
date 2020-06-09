@@ -9,14 +9,14 @@
 
 3. [Setup scenarios](#Scenarios)
 
-4. [Installation](#Installation)
+4. [USB Device class support](#Usbdev)
+
+5. [Installation](#Installation)
 
     a. [Linux](#Linux)
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
     
-5. [USB Device class support](#Usbdev)
-
 6. [Jupyter notebook tutorial](#Tutorial)
 
 7. [ScreenShots](#Screens)
@@ -71,6 +71,18 @@ Ideal setup:
 ```
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario2.jpeg"/></div>
+
+---
+
+<a name="Usbdev"/>
+
+### USB Device class support:
+
+[✔️] USB HID Devices fully supported (Man in the middle)
+
+[⚠️] Device only testing .. All USB devices (NO Man in the middle)
+
+[⏳] Upcoming release... All USB devices (Man in the middle)
 
 ---
 
@@ -238,18 +250,6 @@ Ideal setup:
     ```
 
 #### And you're done!
-
----
-
-<a name="Usbdev"/>
-
-### USB Device class support:
-
-[✔️] USB HID Devices fully supported (Man in the middle)
-
-[⚠️] Device only testing .. All USB devices (NO Man in the middle)
-
-[⏳] Upcoming release... All USB devices (Man in the middle)
 
 ---
 

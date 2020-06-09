@@ -55,20 +55,14 @@ Ideal setup:
 
 ### Requirments:
 
-1. 💻 Host machine running Linux (Debian/Ubuntu/Kali)
-
-2. 🥧 Raspberry Pi Zero with WIFI support
-
-3. 🎯 Target machine options:
-
-        * Virtual Machine
-        * Standalone machine
-
-4. 🔌 2 x USB micro cables
-
-5. 🔱 Target USB device
-
-6. 🐞 Hardware debugger ( Optional )
+* 💻 Host machine running Linux (Debian/Ubuntu/Kali)
+* 🥧 Raspberry Pi Zero with WIFI support
+* 🎯 Target machine options:
+    * Virtual Machine
+    * Standalone machine
+* 🔌 2 x USB micro cables
+* 🔱 Target USB device
+* 🐞 Hardware debugger ( Optional )
 
 ---
 

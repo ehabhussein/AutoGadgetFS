@@ -9,7 +9,7 @@
 
 3. [The Setup](#Scenarios)
 
-    a. [Device only testing](#Dot)
+    a. [Device testing only](#Dot)
     
     b. [Minimal Man in the middle setup](#MMITM)
     
@@ -71,7 +71,7 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
 <a name="Dot"/>
 
 ```bash
-Device only testing:
+Device testing only:
 ``` 
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devtest.jpeg" width="350" height="187" /></div>

@@ -19,25 +19,29 @@
 
 4. [USB Device class support](#Usbdev)
 
-5. [Installation](#Installation)
+5. [Capabilities](#Caps)
+
+6. [RoadMap](#Road)
+
+7. [Installation](#Installation)
 
     a. [Linux](#Linux)
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
     
-6. [Jupyter notebook tutorial](#Tutorial)
+8. [Jupyter notebook tutorial](#Tutorial)
 
-7. [ScreenShots](#Screens)
+9. [ScreenShots](#Screens)
 
-8. [Youtube Playlist](#Youtube)
+10. [Youtube Playlist](#Youtube)
 
-9. [Slack](#Slack)
+11. [Slack](#Slack)
 
-10. [Supported by](#Support)
+12. [Supported by](#Support)
 
-11. [Buy me a coffee ☕️](#Donate)
+13. [Buy me a coffee ☕️](#Donate)
 
-12. [Contact me](#Contact)
+14. [Contact me](#Contact)
 
 ---
 
@@ -109,6 +113,18 @@ How AutoGadgetFS works:
 [⚠️] Device only testing .. All USB devices (NO Man in the middle)
 
 [⏳] Future releases... All USB devices (Man in the middle)
+
+---
+
+<a name="Caps"/>
+
+### Capabilities:
+
+---
+
+<a name="Road"/>
+
+### RoadMap:
 
 ---
 

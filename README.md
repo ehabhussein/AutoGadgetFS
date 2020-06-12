@@ -23,25 +23,27 @@
 
 6. [RoadMap](#Road)
 
-7. [Installation](#Installation)
+7. [Repository Activity](#Active)
+
+8. [Installation](#Installation)
 
     a. [Linux](#Linux)
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
     
-8. [Jupyter notebook tutorial](#Tutorial)
+9. [Jupyter notebook tutorial](#Tutorial)
 
-9. [ScreenShots](#Screens)
+10. [ScreenShots](#Screens)
 
-10. [Youtube Playlist](#Youtube)
+11. [Youtube Playlist](#Youtube)
 
-11. [Slack](#Slack)
+12. [Slack](#Slack)
 
-12. [Supported by](#Support)
+13. [Supported by](#Support)
 
-13. [Buy me a coffee ☕️](#Donate)
+14. [Buy me a coffee ☕️](#Donate)
 
-14. [Contact me](#Contact)
+15. [Contact me](#Contact)
 
 ---
 
@@ -125,6 +127,14 @@ How AutoGadgetFS works:
 <a name="Road"/>
 
 ### RoadMap:
+
+---
+
+<a name="Active"/>
+
+### Repository Activity
+
+<img src="https://grass-graph.moshimo.works/images/ehabhussein.png">
 
 ---
 

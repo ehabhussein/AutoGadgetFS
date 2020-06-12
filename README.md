@@ -1,36 +1,36 @@
 
+
 <div style="text-align:left"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/agfslogof.jpeg" /></div>
 
 ## Table of Contents
 
-1. [What's AutoGadgetFS ?](#About)
+ 1. [What's AutoGadgetFS ?](#About)
 
-2. [Requirments](#Requirments)
+ 2. [Requirments](#Requirments)
 
-3. [The Setup](#Scenarios)
+ 3. [The Setup](#Scenarios)
 
     a. [Device testing only](#Dot)
-    
+
     b. [Minimal agfs in the middle setup](#MMITM)
-    
+
     c. [Complete agfs in the middle setup with debugging support](#FMITM)
-    
+
     d. [How AutoGadgetFS works](#HIW)
 
-4. [USB Device class support](#Usbdev)
+ 4. [USB Device class support](#Usbdev)
 
-5. [Capabilities](#Caps)
+ 5. [Capabilities](#Caps)
 
-6. [RoadMap](#Road)
+ 6. [RoadMap](#Road)
 
-7. [Repository Activity](#Active)
+ 7. [Repository Activity](#Active)
 
-8. [Installation](#Installation)
+ 8. [Installation](#Installation)
+	 - [Linux](#Linux)
+		 - [Docker](#Docker)
+	 - [Raspberry Pi Zero with WIFI](#Rasp)
 
-    a. [Linux](#Linux)
-
-    b. [Raspberry Pi Zero with WIFI](#Rasp)
-    
 9. [Jupyter notebook tutorial](#Tutorial)
 
 10. [ScreenShots](#Screens)
@@ -78,7 +78,7 @@ AutoGadgetFS is an open source framework that allows users to assess USB devices
 
 ```bash
 Device testing only:
-``` 
+```
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devtest.jpeg" width="350" height="187" /></div>
 
@@ -86,7 +86,7 @@ Device testing only:
 
 ```bash
 Minimal agfs in the middle setup:
-``` 
+```
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario1.jpeg" width="550" height="187" /></div>
 
@@ -102,7 +102,7 @@ Complete agfs in the middle setup with debugging support:
 
 ```bash
 How AutoGadgetFS works:
-``` 
+```
 
 ---
 
@@ -182,6 +182,7 @@ How AutoGadgetFS works:
     ```bash
     $ sudo service rabbitmq-server restart
     ```
+<a name="test_installation"/>
 
 * Test the installation
 
@@ -193,13 +194,13 @@ How AutoGadgetFS works:
 
     In [1]: import libagfs
 
-    In [2]: x = libagfs.agfs
+    In [2]: x = libagfs.agfs()
 
     ***************************************
     AutoGadgetFS: USB testing made easy
     ***************************************
     Enter IP address of the rabbitmq server: 127.0.0.1
-  
+
     In [3]: exit
 
     $ sudo python3.7 agfsconsole.py
@@ -228,7 +229,35 @@ How AutoGadgetFS works:
     * If you prefer to use `patch` apply the following patch to the file: `AutoGadgetFS/pyusb_patches/pyusb_langid.patch`
 
 ---
+<a name="Docker"/>
 
+#### Docker
+
+##### Docker Compose
+
+* Run docker-compose to start rabbitmq and agfs containers
+
+    ```bash
+    $ docker-compose up -d
+    ```
+ * Attach to the python container
+     ```bash
+    $ docker attach autogadgetfs_agfs_1
+    ```
+    This will open an ipython3 shell, check [test installation](#test_installation)
+ * Rabbitmq management interface would be available on `http://localhost:15672/`
+
+
+##### Manually building the images
+* build the agfs image
+     ```bash
+    $ docker build -t agfs .
+    ```
+* build the rabbitmq image
+     ```bash
+    $ docker build -t rabbitmq -f Dockerfile.rabbitmq .
+    ```
+---
 <a name="Rasp"/>
 
 ### Raspberry Pi Zero W
@@ -321,7 +350,7 @@ In the works!
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/mitm.png" /></div>
 
-#### USB device fuzzing: 
+#### USB device fuzzing:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/devfuzzer.png" /></div>
 
@@ -354,7 +383,7 @@ Digit index locations       : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
 NonAN index usage           : 0%
 NonAN index locations       : []
 Counter statistics          : Uppercase: 0 , Lowercase: 133071, Digits:212017 , NonAlphaNumeric:0
-All char Frequencies        : 
+All char Frequencies        :
 character:5 found:5012 times
 character:2 found:22563 times
 character:3 found:12197 times
@@ -374,7 +403,7 @@ character:e found:9518 times
 ***********************
 generated:5 Packets
 ***********************
-Out[44]: 
+Out[44]:
 ['5608305852bf2ffd61770e2c827542f20be0b0fcba09db916bd07e1734b04cb0352b1d278068064d19f033bfad6fa90e53d865693fd4fee0214f00000eb0aa2c',
  '3b083595f276e2f1353a535c32f0f59516fc9328f7673bb80262c4da11c93683afe6dcff8a7a83018d78f41498a0da4d141ebd39c361b1724f2b00000eb0aa2c',
  '0120961963495c4dab9470738b497eddde07b0d70b357795ad9554d7964761969a6d997205e17eada6fa84eb33dcfb11412f75e04c195001283900000eb0aa2c',
@@ -382,7 +411,7 @@ Out[44]:
  '7300cc61151b7af27a578e766f49bebb2de68c48b37a00df1030ae464f456928eedd035303e697208bf58217af728a2a346fda5c8aef0335b82e00000eb0aa2c'
 
 In [46]: x.edap.packets                                                                                                                                                                       
-Out[46]: 
+Out[46]:
 ['5608305852bf2ffd61770e2c827542f20be0b0fcba09db916bd07e1734b04cb0352b1d278068064d19f033bfad6fa90e53d865693fd4fee0214f00000eb0aa2c',
  '3b083595f276e2f1353a535c32f0f59516fc9328f7673bb80262c4da11c93683afe6dcff8a7a83018d78f41498a0da4d141ebd39c361b1724f2b00000eb0aa2c',
  '0120961963495c4dab9470738b497eddde07b0d70b357795ad9554d7964761969a6d997205e17eada6fa84eb33dcfb11412f75e04c195001283900000eb0aa2c',

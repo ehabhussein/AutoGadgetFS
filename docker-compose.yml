@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+  agfs:
+    build: .
+    command: ipython
+    depends_on:
+      - "rabbitmq"
+    stdin_open: true
+    tty: true
+
+  rabbitmq:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.rabbitmq
+    tty: false
+    container_name: rabbitmq
+    ports:
+    - "15672:15672"
+    tty: false
+    volumes:
+     - ./rabbitMQbrokerconfig/rabbitmq-Config.json:/etc/rabbitmq/rabbitmq-Config.json
+     - ./rabbitMQbrokerconfig/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf

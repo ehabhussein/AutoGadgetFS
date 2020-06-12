@@ -134,7 +134,7 @@ How AutoGadgetFS works:
 
 ### Repository Activity
 
-<img src="https://grass-graph.moshimo.works/images/ehabhussein.png">
+<div style="text-align:center"><img src="https://grass-graph.moshimo.works/images/ehabhussein.png"/></div>
 
 ---
 

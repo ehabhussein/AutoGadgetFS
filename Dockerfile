@@ -1,5 +1,5 @@
 FROM python
-RUN apt-get update && apt-get install libenchant-dev -y
+RUN apt-get update && apt-get install libenchant-dev -y && rm -rf /var/lib/apt/lists/*
 ADD ./requirements.txt /app/
 WORKDIR /app
 RUN pip3 install -r requirements.txt

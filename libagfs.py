@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 __author__ = "Ehab Hussein"
-__credits__ = ['Josep Pi Rodriguez',    'Dani Martinez']
+__credits__ = ['Josep Pi Rodriguez', 'Dani Martinez']
 __version__ = "2.1"
 __status__ = "Beta"
 __twitter__ = "@0xRaindrop"
@@ -9,7 +9,7 @@ import xmltodict
 import platform
 import binascii
 from sys import exit,stdout
-from os import geteuid,urandom,remove,path
+from os import geteuid,urandom,remove,path,makedirs
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
 from time import time,sleep
@@ -21,8 +21,7 @@ import random
 import EDAP
 from termcolor import cprint
 import inspect
-import enchant
-import difflib
+import itertools
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -46,10 +45,26 @@ try:
 except:
     print("Man in the middle for USB will not work. install pika")
 
+# check that folders are created or exist
+
+if not path.exists('binariesdb'):
+    makedirs('binariesdb')
+if not path.exists('clones'):
+    makedirs('clones')
+if not path.exists('ctrltrnsfdb'):
+    makedirs('ctrltrnsfdb')
+if not path.exists('databases'):
+    makedirs('databases')
+if not path.exists('devEnumCT'):
+    makedirs('devEnumCT')
+if not path.exists('gadgetscripts'):
+    makedirs('gadgetscripts')
+
 ############auto gadgetFS class
 
 class agfs():
     def __init__(self):
+
         self.showMessage("AutoGadgetFS: USB testing made easy",color="white")
         self.fuzzdevice = 0
         self.fuzzhost = 0
@@ -60,11 +75,11 @@ class agfs():
         self.SelectedDevice = None
         self.rabbitmqserver = input("Enter IP address of the rabbitmq server: ")
         self.mitmcounter = 0
-        self.nlp = enchant.Dict("en_US")
-        self.nlpthresh = 0
         self.chksimchrPrev = ""
         self.chksimchrNow = ""
         self.chksimchrForm = ""
+        self.diffmap = 0
+        self.diffmapPTS = ""
 
     def createctrltrsnfDB(self):
         """
@@ -128,6 +143,7 @@ class agfs():
         except:
             print("[Error] cannot create db\n")
 
+
     def releasedev(self):
         """releases the device and re-attaches the kernel driver"""
         print("[-] Releasing the Interface")
@@ -186,6 +202,7 @@ class agfs():
         self.findSelect()
 
     def chgIntrfs(self):
+        """This method allows you to change and select another interface"""
         self.findSelect(chgint=1)
         cprint("Configuration change succeeded",color="blue",attrs=['blink'])
 
@@ -198,7 +215,10 @@ class agfs():
             for key,value in self.devices.items():
                 print(key,":",value)
             self.hook = input("---> Select a device: ")
-            self.idProd,self.idVen = self.devices[int(self.hook)].split(':')[1:]
+            try:
+                self.idProd,self.idVen = self.devices[int(self.hook)].split(':')[1:]
+            except ValueError:
+                return cprint("Invalid Selection. No device Selected",color="red",attrs=['blink'])
         self.device = usb.core.find(idVendor=int(self.idVen),idProduct=int(self.idProd))
         if self.SelectedDevice == None and chgint == None:
             print(str(self.device))
@@ -250,7 +270,7 @@ class agfs():
                         print(f"This Device supports DFU mode on configuration {i+1}, interface {j}")
                         dfu += 1
             if dfu == 0:
-                self.showMessage("This Device doesnt support DFU mode",color="green")
+                self.showMessage("This Device isnt in DFU mode",color="green")
         except Exception as e:
             print(e)
             self.showMessage("Couldn't get device configuration!",color="red",blink='y')
@@ -259,35 +279,34 @@ class agfs():
         else:
             claim = 'y'
         if 'y' == claim.lower():
-                usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
-                if self.itshid == 1:
-                    print("Checking HID report retrieval\n")
-                    try:
+            usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
+            if self.itshid == 1:
+                print("Checking HID report retrieval\n")
+                try:
+                    self.device_hidrep = []
+                    """Thanks https://wuffs.org/blog/mouse-adventures-part-5
+                    https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
+                    """
+                    for i in range(0,self.leninterfaces+1):
+                        try:
+                            #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
+                            response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
+                            self.device_hidrep.append(response)
+                        except usb.core.USBError:
+                            pass
+                    if self.device_hidrep:
+                        print(self.device_hidrep[0])
+                        dpayload,checkr =self.decodePacketAscii(payload=binascii.unhexlify(self.device_hidrep[0]))
+                        print(dpayload)
+                        if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
+                            self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
+                    else:
                         self.device_hidrep = []
-                        """Thanks https://wuffs.org/blog/mouse-adventures-part-5
-                        https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
-                        """
-                        for i in range(0,self.leninterfaces+1):
-                            try:
-                                #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
-                                response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
-                                self.device_hidrep.append(response)
-                            except usb.core.USBError:
-                                pass
-                        if self.device_hidrep:
-                            print(self.device_hidrep[0])
-                            dpayload,checkr =self.decodePacketAscii(payload=binascii.unhexlify(self.device_hidrep[0]))
-                            print(dpayload)
-                            if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
-                                self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
-
-                        else:
-                            self.device_hidrep = []
-                    except Exception as e:
-                        print (e)
-                        self.device_hidrep = []
-                        self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
-                self.itshid = 0
+                except Exception as e:
+                    print (e)
+                    self.device_hidrep = []
+                    self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
+            self.itshid = 0
         if type(self.device.manufacturer) is type(None):
             self.manufacturer = "UnkManufacturer"
         else:
@@ -425,7 +444,7 @@ class agfs():
                 self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull',body="heartbeats")
 
         elif pts and queue is None:
-            cprint(f"|\t  Received:{body}", color="blue")
+            #cprint(f"|\t  Received:{body}", color="blue")
             if self.fuzzdevice == 1:
                 packet = memoryview(binascii.unhexlify(body)).tolist()
                 random.shuffle(packet)
@@ -439,11 +458,12 @@ class agfs():
                         break
                     try:
                             packet = binascii.hexlify(self.device.read(endpoint, self.device.bMaxPacketSize0))
-                            ps,p1 = self.decodePacketAscii(payload=packet)
-                            ptsx.write(cprint(f"|-Outgoing Packet to Host{'-' * 70}", color="green"))
-                            ptsx.write(cprint(f"|\t  Sent:{packet}", color="blue"))
-                            ptsx.write(cprint(f"|\t\t  Decoded:{ps}", color="green"))
-                            ptsx.write(cprint(f"|{'-' * 90}", color="green"))
+                            ps,p1 = self.decodePacketAscii(payload=binascii.unhexlify(packet),rec=1)
+                            ptsx.write(f"|-Outgoing Packet to Host{'-' * 70}\r\n")
+                            ptsx.write(f"|\t  Sent:{packet}\r\n")
+                            ptsx.write(f"|\t  Diff:  {p1}\r\n")
+                            ptsx.write(f"|\t\t  Decoded:{ps}\r\n")
+                            ptsx.write(f"|{'-' * 90}\r\n")
                             ptsx.flush()
                             if genpkts == 1:
                                 self.genpktsF.write(packet)
@@ -641,7 +661,7 @@ class agfs():
                     cprint(f"|{'_' * 90}[{i}]", color="green")
                     self.hostwrite(s,isfuzz=1)
                 elif min is not None and max is not None:
-                    s = urandom(random.randint(min, max))
+                    s = urandom(random.randint(int(min), int(max)))
                     sdec,check = self.decodePacketAscii(payload=s)
                     cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
                     cprint(f"|\t  Bytes:", color="blue")
@@ -660,7 +680,7 @@ class agfs():
                 pass
         self.stopQueuewrite()
 
-    def devrandfuzz(self, howmany=1000, size='fixed',timeout=0.5):
+    def devrandfuzz(self, howmany=1000, size='fixed',min=0,timeout=0.5,match=None):
         """
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
@@ -673,11 +693,15 @@ class agfs():
                     if size == 'fixed':
                         s = urandom(self.device.bMaxPacketSize0)
                     else:
-                        s = urandom(random.randint(0, self.device.bMaxPacketSize0))
+                        s = urandom(random.randint(min, self.device.bMaxPacketSize0))
                     self.device.write(self.epout, s)
                     r = self.device.read(self.epin, self.device.bMaxPacketSize0)
                     sdec,checks = self.decodePacketAscii(payload=s)
                     rdec,checkr = self.decodePacketAscii(payload=r,rec=1)
+                    if match:
+                        if match not in rdec:
+                            self.fuzzchange = (sdec,rdec)
+                            self.showMessage("Received data has changed!")
                     cprint(f"|-Packet[{i}]{'-'*80}", color="green")
                     cprint(f"|\t  Bytes:", color="blue")
                     cprint(f"|\t\tSent: {binascii.hexlify(s)}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}", color="white")
@@ -691,6 +715,58 @@ class agfs():
                     cprint(f"|\t\tSent: {binascii.hexlify(s)}",color='red', attrs=['blink'])
                     cprint(f"|\t\t|____{e}", color='red', attrs=['blink'])
                     cprint(f"|{'_'*90}[{i}]", color="red", attrs=['blink'])
+                    self.device.reset()
+                    self.showMessage("Device reset complete")
+                except KeyboardInterrupt:
+                    self.showMessage("Keyboard interrupt detected! Ending...")
+                    break
+
+    def devReset(self):
+        """This method Resets the device"""
+        self.device.reset()
+        self.showMessage("The device has been reset!")
+
+    def describeFuzz(self,packet=None,howmany=None,match=None,timeout=0):
+        """This method allows you to describe a packet and select which bytes will be fuzzed
+        :param packet: a string of the packet that you want to use for fuzzing
+        :param howmany: how many packets to be sent
+        :return None
+        """
+        p = [packet[i:i + 2] for i in range(0, len(packet), 2)]
+        theBytes = input("Which byte indexes do you want to fuzz? [Separate entries by a space] ").split()
+        for i in range(howmany):
+            for b in theBytes:
+                p[int(b)] = urandom(1).hex()
+            try:
+                s = binascii.unhexlify(''.join(p))
+                self.device.write(self.epout, s)
+                r = self.device.read(self.epin, self.device.bMaxPacketSize0)
+                sdec, checks = self.decodePacketAscii(payload=s)
+                rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
+                if match:
+                    if match not in rdec:
+                        self.fuzzchange = (sdec, rdec)
+                        self.showMessage("Received data has changed!")
+                cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
+                cprint(f"|\t  Bytes:", color="blue")
+                cprint(
+                    f"|\t\tSent: {binascii.hexlify(s)}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
+                    color="white")
+                cprint(f"|\t  Decoded:", color="blue")
+                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="white")
+                cprint(f"|{'_' * 90}[{i}]", color="green")
+                sleep(timeout)
+            except usb.core.USBError as e:
+                cprint(f"|-Packet[{i}]{'-' * 80}", color="red", attrs=['blink'])
+                cprint(f"|\t  Error:", color="red")  # not blinking to grab attention
+                cprint(f"|\t\tSent: {binascii.hexlify(s)}", color='red', attrs=['blink'])
+                cprint(f"|\t\t|____{e}", color='red', attrs=['blink'])
+                cprint(f"|{'_' * 90}[{i}]", color="red", attrs=['blink'])
+                self.device.reset()
+                self.showMessage("Device reset complete")
+            except KeyboardInterrupt:
+                self.showMessage("Keyboard interrupt detected! Ending...")
+                break
 
     def SmartFuzz(self,engine=None,samples=100,direction=None,filename=None):
         """
@@ -800,62 +876,49 @@ class agfs():
         self.device.default_timeout = 50
         self.devECTdbObj, _table = self.createctrltrsnfDB()
         self.CTconnection = self.devECTdbObj.connect()
-        self.CTtransaction = self.CTconnection.begin()
-        nextwInd = 0
-        bRequest = 0xff
         if fuzz == "full":
-            bm_request = [0x2,0x21,0xA1,0x80,0xC0,0x00,0x81,0x1,0x82]
-            wValue = 0xffff
-            wIndex = 0xffff
+            #bm_request = [[0x2,0x21,0xA1,0x80,0xC0,0x00,0x81,0x1,0x82],range(0xff+1),range(0xffff+1),range(0xff+1)]
+            bm_request = [[0x80, 0x81, 0xC0], range(0xff + 1), range(0xffff + 1), range(0xff + 1)]
         else:
-            bm_request = [0x81, 0xC0]
-            wValue = 0xff
-            wIndex = 0xff
-        for i in bm_request:
-            self.showMessage(f"Now at bmRequest {hex(i)}",color="blue",blink='y')
-            for j in range(bRequest+1):
-                for q in range(wValue+1):
-                    for w in range(wIndex+1):
-                        if nextwInd == 1:
-                            nextwInd = 0
-                            break
-                        try:
-                                try:
-                                    responder = self.device.ctrl_transfer(i,j,q,w,0xff)
-                                    dlen =0xff
-                                except:
-                                    responder = self.device.ctrl_transfer(i, j, q, w)
-                                    dlen = 0
-                                responder2,checkr = self.decodePacketAscii(payload=binascii.hexlify(responder))
-                                cprint(f"|-Control transfer found{'-' * 80}", color="green")
-                                cprint(f"|\t  Request:", color="blue")
-                                cprint(
-                                    f"|\t\tSent: bmRequest={hex(i)}, bRequest={hex(j)},wValue={hex(q)} , wIndex={hex(w)},data_length={hex(dlen)}\n|\t\t    |____Received: {binascii.unhexlify(binascii.hexlify(responder.tobytes()))[:10]}...[SNIP]",
-                                    color="white")
-                                cprint(f"|\t  Decoded:", color="blue")
-                                cprint(f"|\t\t Response: {responder2}", color="white")
-                                cprint(f"|{'_' * 90}[*]", color="green")
-                                try:
-                                    _insert = _table.insert().values(
-                                        bmRequest=i,
-                                        bRequest=j,
-                                        wValue=q,
-                                        wIndex=w,
-                                        Data_length=len(binascii.unhexlify(binascii.hexlify(responder.tobytes()))),
-                                        Data_returned=binascii.unhexlify(binascii.hexlify(responder.tobytes())),
-                                        Data_returned_Ascii=responder2)
-                                    self.CTconnection.execute(_insert.execution_options(autocommit=True))
-                                except Exception as e:
-                                    print(e)
-                                    self.showMessage("unable to insert data into database!",color='red',blink='y')
-                                self.nextwInd = 1
-                                break
-                        except KeyboardInterrupt:
-                            self.CTconnection.close()
-                            self.device.default_timeout = 1000
-                            return self.showMessage("Ended!",color="green")
-                        except Exception as e:
-                                pass
+            bm_request = [[0x80, 0x81, 0xc0], range(0xff+1),range(0xff+1),[0,1]]
+        self.showMessage(f"Control Transfer requests enumeration started!", color="blue", blink='y')
+        chkvalue = 0
+        for i in itertools.product(*bm_request):
+            if chkvalue != i[0]:
+                self.showMessage(f"Now at bmRequest[{hex(i[0])}]", color="blue", blink='y')
+                sleep(4)
+            try:
+                    responder = self.device.ctrl_transfer(i[0], i[1], i[2], i[3],0xff)
+                    responder2,checkr = self.decodePacketAscii(payload=binascii.unhexlify(binascii.hexlify(responder)))
+                    cprint(f"|-Control transfer found{'-' * 80}", color="green")
+                    cprint(f"|\t  Request:", color="blue")
+                    cprint(
+                        f"|\t\tSent: bmRequest={hex(i[0])}, bRequest={hex(i[1])},wValue={hex(i[2])} , wIndex={hex(i[3])},data_length={hex(255)}\n|\t\t    |____Received: {binascii.unhexlify(binascii.hexlify(responder.tobytes()))[:10]}...[SNIP]",
+                        color="white")
+                    cprint(f"|\t  Decoded:", color="blue")
+                    cprint(f"|\t\t Response: {responder2}", color="white")
+                    cprint(f"|{'_'*90}[*]", color="green")
+                    try:
+                        _insert = _table.insert().values(
+                            bmRequest=i[0],
+                            bRequest=i[1],
+                            wValue=i[2],
+                            wIndex=i[3],
+                            Data_length=len(binascii.unhexlify(binascii.hexlify(responder.tobytes()))),
+                            Data_returned=binascii.unhexlify(binascii.hexlify(responder.tobytes())),
+                            Data_returned_Ascii=responder2)
+                        self.CTconnection.execute(_insert.execution_options(autocommit=True))
+                    except Exception as e:
+                        self.showMessage("unable to insert data into database!",color='red',blink='y')
+
+            except KeyboardInterrupt:
+                self.CTconnection.close()
+                self.device.default_timeout = 1000
+                return self.showMessage("Keyboard Interrupt caught.",color="green")
+                break
+            except Exception as e:
+                    pass
+            chkvalue = i[0]
         try:
             self.device.default_timeout = 1000
             self.CTconnection.close()
@@ -884,6 +947,12 @@ class agfs():
                         chksimchrForm += "\u001B[41m--\u001B[0m"
                 except Exception as e:
                     pass
+            if self.diffmap:
+                    try:
+                        self.diffmap.write(chksimchrForm.rjust(145," ")+"\r\n")
+                        self.diffmap.flush()
+                    except:
+                        pass
             self.chksimchrPrev = self.chksimchrNow
         retpayload = ""
         for i in payload:
@@ -892,6 +961,7 @@ class agfs():
                 retpayload += decode
             else:
                 retpayload += " "
+
         return retpayload.replace(' ','.'),chksimchrForm if rec else ""
 
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):

@@ -23,27 +23,25 @@
 
 6. [RoadMap](#Road)
 
-7. [Repository Activity](#Active)
-
-8. [Installation](#Installation)
+7. [Installation](#Installation)
 
     a. [Linux](#Linux)
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
     
-9. [Jupyter notebook tutorial](#Tutorial)
+8. [Jupyter notebook tutorial](#Tutorial)
 
-10. [ScreenShots](#Screens)
+9. [ScreenShots](#Screens)
 
-11. [Youtube Playlist](#Youtube)
+10. [Youtube Playlist](#Youtube)
 
-12. [Slack](#Slack)
+11. [Slack](#Slack)
 
-13. [Supported by](#Support)
+12. [Supported by](#Support)
 
-14. [Buy me a coffee ☕️](#Donate)
+13. [Buy me a coffee ☕️](#Donate)
 
-15. [Contact me](#Contact)
+14. [Contact me](#Contact)
 
 ---
 
@@ -121,20 +119,6 @@ How AutoGadgetFS works:
 <a name="Caps"/>
 
 ### Capabilities:
-
----
-
-<a name="Road"/>
-
-### RoadMap:
-
----
-
-<a name="Active"/>
-
-### Repository Activity
-
-<div style="text-align:center"><img src="https://grass-graph.moshimo.works/images/ehabhussein.png"/></div>
 
 ---
 

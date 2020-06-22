@@ -29,7 +29,7 @@
 
     b. [Raspberry Pi Zero with WIFI](#Rasp)
     
-8. [Jupyter notebook tutorial](#Tutorial)
+8. [AutogadgetFS tutorial](#Tutorial)
 
 9. [ScreenShots](#Screens)
 
@@ -291,9 +291,9 @@ How AutoGadgetFS works:
 
 <a name="Tutorial"/>
 
-### Jupyter notebook tutorial:
+### AutoGadgetFS tutorial:
 
-In the works!
+[Click to visit the tutorial](https://ehabhussein.github.io/AutoGadgetFS-tutorial)
 
 ---
 

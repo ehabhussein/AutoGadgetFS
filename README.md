@@ -293,7 +293,7 @@ How AutoGadgetFS works:
 
 ### AutoGadgetFS tutorial:
 
-[Click to visit the tutorial](https://ehabhussein.github.io/AutoGadgetFS-tutorial)
+[Click to visit the tutorial](https://docs.agfs.io/)
 
 ---
 

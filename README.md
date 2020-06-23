@@ -503,7 +503,7 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ### Supported by:
 
-<img src="https://scontent.faly3-2.fna.fbcdn.net/v/t1.0-9/fr/cp0/e15/q65/44079817_10157132509822841_8000883082938810368_n.jpg?_nc_cat=111&_nc_sid=dd9801&efg=eyJpIjoidCJ9&_nc_oc=AQmV77vp4H7E5CLwRCvKIPBIb9mRcD6LUSD48vYLH-cjd5wwxVvv5p-S8CwHBBYQr9I&_nc_ht=scontent.faly3-2.fna&_nc_tp=14&oh=d1653eaad921c8faf36beecbf242dcf8&oe=5F02FEF9" width="166" height="166"> <img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/JetBrains.png" width="166" height="166"> ![PyUSB](https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/pyusb.png) <img src="https://i.imgur.com/r6XELEf.png" width="166" height="166">
+<img src="https://scontent.faly3-2.fna.fbcdn.net/v/t1.0-9/fr/cp0/e15/q65/44079817_10157132509822841_8000883082938810368_n.jpg?_nc_cat=111&_nc_sid=dd9801&efg=eyJpIjoidCJ9&_nc_oc=AQmV77vp4H7E5CLwRCvKIPBIb9mRcD6LUSD48vYLH-cjd5wwxVvv5p-S8CwHBBYQr9I&_nc_ht=scontent.faly3-2.fna&_nc_tp=14&oh=d1653eaad921c8faf36beecbf242dcf8&oe=5F02FEF9" width="166" height="166"> <img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/JetBrains.png" width="166" height="166">  <img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/pyusb.png" width="166" height="166"> <img src="https://i.imgur.com/r6XELEf.png" width="166" height="166">
 
 ---
 

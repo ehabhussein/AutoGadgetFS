@@ -511,8 +511,7 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ### Buy me a coffee to support the development of this project
 
-[![Paypal Donations](https://img.shields.io/badge/Donate-PayPal-green.svg)]()
-[![PayPal](https://img.shields.io/static/v1?logo=PayPal&label=PayPal&message=https://www.paypal.me/autogadgetfs&color=green)](https://www.paypal.me/autogadgetfs)
+[![PayPal Donations](https://img.shields.io/static/v1?logo=PayPal&label=PayPal&message=https://www.paypal.me/autogadgetfs&color=green)](https://www.paypal.me/autogadgetfs)
 
 ---
 <a name="Contact"/>

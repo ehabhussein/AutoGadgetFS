@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 __author__ = "Ehab Hussein"
 __credits__ = ['Josep Pi Rodriguez', 'Dani Martinez']
-__version__ = "2.1"
-__status__ = "Beta"
+__version__ = "2.2"
+__status__ = "Alpha"
 __twitter__ = "@0xRaindrop"
 ##################### Imports
 import xmltodict

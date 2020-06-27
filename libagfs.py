@@ -22,6 +22,7 @@ import EDAP
 from termcolor import cprint
 import inspect
 import itertools
+import subprocess
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -61,6 +62,7 @@ if not path.exists('gadgetscripts'):
     makedirs('gadgetscripts')
 
 ############auto gadgetFS class
+
 
 class agfs():
     def __init__(self):
@@ -142,6 +144,23 @@ class agfs():
             return db, self.usblyzerdb
         except:
             print("[Error] cannot create db\n")
+
+    def devDfuDump(self,vendorID=None,productID=None):
+        """
+        This method allows you to pull firmware from a device in DFU mode
+        :param vendorID: Vendor ID of the device
+        :param productID: Product ID of the device
+        :return: None
+        """
+        if self.SelectedDevice:
+            vid = self.device.idVendor
+            prod = self.device.idProduct
+            dev = self.SelectedDevice
+            self.releasedev()
+            doDFU = subprocess.run(['dfu-tool', 'read' ,'--device', f'{vid}:{prod}', f'{dev}-firmware.bin'], stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT)
+        elif vendorID == None and productID == None:
+            doDFU = subprocess.run(['dfu-tool','--device',f'{self.device}'],stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
 
 
     def releasedev(self):
@@ -275,13 +294,19 @@ class agfs():
             print(e)
             self.showMessage("Couldn't get device configuration!",color="red",blink='y')
         if self.SelectedDevice == None and chgint == None:
-            claim = str(input("Do you want to claim the device interface: [y/n] "))
+            claim = str(input("Do you want to claim all device interfaces: [y/n] "))
         else:
             claim = 'y'
         if 'y' == claim.lower():
-            usb.util.claim_interface(self.device, self.interfaces.bInterfaceNumber)
+            for i in range(self.devcfg.bNumInterfaces):
+                try:
+                    cprint(f"[+] Claiming interface {i}",color='white')
+                    usb.util.claim_interface(self.device, i)
+                    cprint(f"\t[-]Successfully claimed interface {i}", color='blue')
+                except:
+                    cprint(f"[+]Failed while claiming interface {i}", color='red')
             if self.itshid == 1:
-                print("Checking HID report retrieval\n")
+                cprint("Checking HID report retrieval",color="white")
                 try:
                     self.device_hidrep = []
                     """Thanks https://wuffs.org/blog/mouse-adventures-part-5
@@ -295,9 +320,11 @@ class agfs():
                         except usb.core.USBError:
                             pass
                     if self.device_hidrep:
-                        print(self.device_hidrep[0])
-                        dpayload,checkr =self.decodePacketAscii(payload=binascii.unhexlify(self.device_hidrep[0]))
-                        print(dpayload)
+                        for i,j in enumerate(self.device_hidrep):
+                            if len(j) > 0:
+                                cprint(f"Hid report [{i}]: {j.decode('utf-8')}",color="white")
+                                dpayload,checkr =self.decodePacketAscii(payload=binascii.unhexlify(j))
+                                cprint(f"\tdecoded: {dpayload}",color="blue")
                         if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
                             self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
                     else:
@@ -493,9 +520,6 @@ class agfs():
     def stopMITMusbWifi(self):
         ''' Stops the man in the middle thread between the host and the device'''
         self.mitmcounter = 0
-        if self.nlpthresh >=10:
-            cprint(f"The communication between host and device seems to be unencrypted\nIf this is a firmware being transmitted and it was originally encrypted\nIts probably a good idea to save the communication to a file so you can reconstruct it later.",color="white")
-        self.nlpthresh = 0
         try:
             if self.savefile:
                 self.bintransfered.close()
@@ -540,7 +564,7 @@ class agfs():
         except Exception as e:
             print(e)
         cprint(f"|{'-' * 90}[Pkt #{self.mitmcounter}]", color="green")
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        #ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def MITMproxy(self,endpoint,savetofile,genpkts):
         """
@@ -562,7 +586,7 @@ class agfs():
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
             self.qchannel = self.qconnect.channel()
             #self.qchannel.basic_qos(prefetch_count=1)
-            self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice')
+            self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice', auto_ack=True)
             self.startSniffReadThread(endpoint=self.epin, queue=1,genpkts=genpkts)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
@@ -626,7 +650,7 @@ class agfs():
 
     def hostwrite(self, payload, isfuzz=0):
         """ This method writes packets to the host either targeting a software or a driver in control of the device
-        use this when you want to send payloads to a device driver on the host
+        use this when you want to send payloads to a device driver on the host. 
 
         :param payload: the message to be sent to the host example: "0102AAFFCC"
         :param isfuzz: is the payload coming from the fuzzer ?
@@ -876,11 +900,12 @@ class agfs():
         self.device.default_timeout = 50
         self.devECTdbObj, _table = self.createctrltrsnfDB()
         self.CTconnection = self.devECTdbObj.connect()
+        reqs = [0xa1, 0x80, 0x81, 0xC0, 0x21]
         if fuzz == "full":
             #bm_request = [[0x2,0x21,0xA1,0x80,0xC0,0x00,0x81,0x1,0x82],range(0xff+1),range(0xffff+1),range(0xff+1)]
-            bm_request = [[0x80, 0x81, 0xC0], range(0xff + 1), range(0xffff + 1), range(0xff + 1)]
+            bm_request = [reqs, range(0xff + 1), range(0xffff + 1), range(0xff + 1)]
         else:
-            bm_request = [[0x80, 0x81, 0xc0], range(0xff+1),range(0xff+1),[0,1]]
+            bm_request = [reqs, range(0xff+1),range(0xff+1),[0,1]]
         self.showMessage(f"Control Transfer requests enumeration started!", color="blue", blink='y')
         chkvalue = 0
         for i in itertools.product(*bm_request):
@@ -947,12 +972,12 @@ class agfs():
                         chksimchrForm += "\u001B[41m--\u001B[0m"
                 except Exception as e:
                     pass
-            if self.diffmap:
-                    try:
-                        self.diffmap.write(chksimchrForm.rjust(145," ")+"\r\n")
-                        self.diffmap.flush()
-                    except:
-                        pass
+           # # if self.diffmap:
+           #          try:
+           #              self.diffmap.write(chksimchrForm.rjust(145," ")+"\r\n")
+           #              self.diffmap.flush()
+           #          except:
+           #              pass
             self.chksimchrPrev = self.chksimchrNow
         retpayload = ""
         for i in payload:

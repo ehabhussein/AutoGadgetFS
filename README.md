@@ -133,28 +133,28 @@ How AutoGadgetFS works:
 * Install Python3.7, ipython3 ,git, pip and rabbitMQ server
 
     ```bash
-    $ sudo apt install python3.7 ipython3 git python3-pip rabbitmq-server dfu-util
-    $ sudo service rabbitmq-server start
+    sudo apt install python3.7 ipython3 git python3-pip rabbitmq-server dfu-util
+    sudo service rabbitmq-server start
     ```
 
 * Clone the repository
 
     ```bash
-    $ git clone https://github.com/ehabhussein/AutoGadgetFS
-    $ cd AutoGadgetFS
+    git clone https://github.com/ehabhussein/AutoGadgetFS
+    cd AutoGadgetFS
     ```
 
 * Install the requirements
 
     ```bash
-    $ sudo -H pip3 install -r requirements.txt
-    $ sudo -H pip3 install cmd
+    sudo -H pip3 install -r requirements.txt
+    sudo -H pip3 install cmd
     ```
 
 * Enable the web interface for rabbitMQ
 
     ```bash
-    $ sudo rabbitmq-plugins enable rabbitmq_management
+    sudo rabbitmq-plugins enable rabbitmq_management
     http://localhost:15672/ to reach the web interface
     ```
 
@@ -164,13 +164,14 @@ How AutoGadgetFS works:
     * Upload the file found in: *rabbitMQbrokerconfig/rabbitmq-Config.json*
 
     ```bash
-    $ sudo service rabbitmq-server restart
+    sudo service rabbitmq-server restart
     ```
 
 * Test the installation
 
     ```python
-    $ sudo ipython3
+    sudo ipython3
+    
     Python 3.7.7 (default, Apr  1 2020, 13:48:52)
     Type 'copyright', 'credits' or 'license' for more information
     IPython 7.9.0 -- An enhanced Interactive Python. Type '?' for help.
@@ -186,7 +187,8 @@ How AutoGadgetFS works:
   
     In [3]: exit
 
-    $ sudo python3.7 agfsconsole.py
+    sudo python3.7 agfsconsole.py
+    
     ***************************************
     AutoGadgetFS: USB testing made easy
     ***************************************
@@ -244,14 +246,14 @@ How AutoGadgetFS works:
   * in the `/path/to/sdcard/boot` directory create an empty file name ssh:
 
     ```bash
-    $ sudo touch /path/to/sdcard/boot/ssh
+    sudo touch /path/to/sdcard/boot/ssh
     ```
 
 * Enable Wifi:
   * in the `/path/to/sdcard/boot` directory create an file named `wpa_supplicant.conf`:
 
     ```bash
-    $ sudo vim /path/to/sdcard/boot/wpa_supplicant.conf
+    sudo vim /path/to/sdcard/boot/wpa_supplicant.conf
     ```
 
   * Add the following contents:
@@ -271,18 +273,18 @@ How AutoGadgetFS works:
 * Copy the content of `AutogadgetFS/Pizero/` to the Pi zero: `username: pi` & `password: raspberry`
 
     ```bash
-    $ cd AutogadgetFS/Pizero/
-    $ scp gadgetfuzzer.py removegadget.sh requirements.txt router.py pi@<pi-ipaddress>:/home/pi
+    cd AutogadgetFS/Pizero/
+    scp gadgetfuzzer.py removegadget.sh requirements.txt router.py pi@<pi-ipaddress>:/home/pi
     ```
 
 * SSH into the PI Zero and setup requirements for AutoGadgetFS:
 
     ```bash
-    $ ssh pi@<pi-ip-address>
-    $ chmod +x removegadget.sh
-    $ sudo apt update
-    $ sudo apt install python3.7 python3-pip
-    $ sudo -H pip3 install -r requirements.txt
+    ssh pi@<pi-ip-address>
+    chmod +x removegadget.sh
+    sudo apt update
+    sudo apt install python3.7 python3-pip
+    sudo -H pip3 install -r requirements.txt
     ```
 
 #### And you're done!

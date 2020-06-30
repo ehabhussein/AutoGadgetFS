@@ -286,6 +286,29 @@ How AutoGadgetFS works:
     sudo apt install python3.7 python3-pip
     sudo -H pip3 install -r requirements.txt
     ```
+    
+* Upgrading the latest kernel and adding modules:
+
+    ```bash
+
+    sudo bash
+    apt install git bc bison flex libssl-dev make libncurses5-dev screen
+    screen
+    mkdir Downloads
+    cd Downloads/
+    git clone --depth=1 https://github.com/raspberrypi/linux
+    cd linux/
+    make menuconfig
+
+    <images>
+
+    make zImage modules dtbs
+    make modules_install
+    cp arch/arm/boot/dts/*.dtb /boot/
+    cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
+    cp arch/arm/boot/dts/overlays/README /boot/overlays/
+    cp arch/arm/boot/zImage /boot/$KERNEL.img
+    ```
 
 #### And you're done!
 

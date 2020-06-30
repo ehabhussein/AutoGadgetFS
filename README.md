@@ -309,7 +309,7 @@ How AutoGadgetFS works:
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/otgsupport.png"/></div>
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
 
-    * Compile the kernel and Install:
+    * Build and use the kernel:
 
     ```bash
     make zImage modules dtbs

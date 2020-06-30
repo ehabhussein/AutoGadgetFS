@@ -301,7 +301,7 @@ How AutoGadgetFS works:
     make menuconfig
     ```
     
-    Enable the Modules:
+    * Enable the Modules:
     
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/1devicedrivers.png"/></div>
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/2usbsupport.png"/></div>
@@ -311,7 +311,6 @@ How AutoGadgetFS works:
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
         
     ```bash
-
     make zImage modules dtbs
     make modules_install
     cp arch/arm/boot/dts/*.dtb /boot/

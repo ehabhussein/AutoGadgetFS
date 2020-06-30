@@ -309,7 +309,9 @@ How AutoGadgetFS works:
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/dummy%20HCD.png"/></div>
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/otgsupport.png"/></div>
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
-        
+    
+    * Compile the kernel and Install:( This will take a very long time unless you choose to cross compile the kernel )
+    
     ```bash
     make zImage modules dtbs
     make modules_install
@@ -317,6 +319,7 @@ How AutoGadgetFS works:
     cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
     cp arch/arm/boot/dts/overlays/README /boot/overlays/
     cp arch/arm/boot/zImage /boot/$KERNEL.img
+    reboot
     ```
 
 #### And you're done!

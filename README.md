@@ -308,12 +308,15 @@ How AutoGadgetFS works:
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/otgsupport.png"/></div>
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
 
-    * Compile the kernel and Install:( This will take a very long time unless you choose to cross compile the kernel )
+    * Compile the kernel and Install:( This will take a very long time unless you choose to cross compile the kernel see [Compiling options](https://www.raspberrypi.org/documentation/linux/kernel/building.md))
 
     ```bash
-    make
- 
-    <next steps>
+    make zImage modules dtbs
+    sudo make modules_install
+    sudo cp arch/arm/boot/dts/*.dtb /boot/
+    sudo cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
+    sudo cp arch/arm/boot/dts/overlays/README /boot/overlays/
+    sudo cp arch/arm/boot/zImage /boot/$KERNEL.img
     ```
 
 

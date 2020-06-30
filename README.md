@@ -1,4 +1,3 @@
-
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/agfslogos.png"/></div>
 
 ## Table of Contents
@@ -301,7 +300,7 @@ How AutoGadgetFS works:
     make menuconfig
     ```
     
-    * Enable the Modules:
+    * Enable the Modules and save the config:
     
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/1devicedrivers.png"/></div>
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/2usbsupport.png"/></div>

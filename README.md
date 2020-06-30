@@ -289,7 +289,6 @@ How AutoGadgetFS works:
 * Upgrading the latest kernel and adding modules:
 
     ```bash
-
     sudo bash
     apt install git bc bison flex libssl-dev make libncurses5-dev screen
     screen

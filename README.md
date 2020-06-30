@@ -286,6 +286,7 @@ How AutoGadgetFS works:
     sudo -H pip3 install -r requirements.txt
     ```
 * Upgrading the latest kernel and adding modules (* This step is optional for the current release):
+    ( This will take a very long time compiling on the Pi Zero, unless you choose to cross compile the kernel see [Compiling options](https://www.raspberrypi.org/documentation/linux/kernel/building.md))
 
     ```bash
     sudo bash
@@ -308,7 +309,7 @@ How AutoGadgetFS works:
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/otgsupport.png"/></div>
     <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
 
-    * Compile the kernel and Install:( This will take a very long time unless you choose to cross compile the kernel see [Compiling options](https://www.raspberrypi.org/documentation/linux/kernel/building.md))
+    * Compile the kernel and Install:
 
     ```bash
     make zImage modules dtbs

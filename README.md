@@ -285,41 +285,6 @@ How AutoGadgetFS works:
     sudo apt install python3.7 python3-pip
     sudo -H pip3 install -r requirements.txt
     ```
-    
-* Upgrading the latest kernel and adding modules:
-
-    ```bash
-    sudo bash
-    apt install git bc bison flex libssl-dev make libncurses5-dev screen
-    screen
-    mkdir Downloads
-    cd Downloads/
-    git clone --depth=1 https://github.com/raspberrypi/linux
-    cd linux/
-    make menuconfig
-    ```
-    
-    * Enable the Modules and save the config:
-    
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/1devicedrivers.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/2usbsupport.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/allgadgetsupport.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/dummy%20HCD.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/otgsupport.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
-    
-    * Compile the kernel and Install:( This will take a very long time unless you choose to cross compile the kernel )
-    
-    ```bash
-    make config
-    make zImage modules dtbs
-    make modules_install
-    cp arch/arm/boot/dts/*.dtb /boot/
-    cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
-    cp arch/arm/boot/dts/overlays/README /boot/overlays/
-    cp arch/arm/boot/zImage /boot/$KERNEL.img
-    reboot
-    ```
 
 #### And you're done!
 

@@ -285,7 +285,7 @@ How AutoGadgetFS works:
     sudo apt install python3.7 python3-pip
     sudo -H pip3 install -r requirements.txt
     ```
-* Upgrading the latest kernel and adding modules:
+* Upgrading the latest kernel and adding modules (* This step is optional for the current release):
 
     ```bash
     sudo bash

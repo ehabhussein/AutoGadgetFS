@@ -311,6 +311,7 @@ How AutoGadgetFS works:
     * Compile the kernel and Install:( This will take a very long time unless you choose to cross compile the kernel )
     
     ```bash
+    make config
     make zImage modules dtbs
     make modules_install
     cp arch/arm/boot/dts/*.dtb /boot/

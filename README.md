@@ -299,8 +299,18 @@ How AutoGadgetFS works:
     git clone --depth=1 https://github.com/raspberrypi/linux
     cd linux/
     make menuconfig
-
-    <images>
+    ```
+    
+    Enable the Modules:
+    
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/1devicedrivers.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/2usbsupport.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/allgadgetsupport.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/dummy%20HCD.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/otgsupport.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
+        
+    ```bash
 
     make zImage modules dtbs
     make modules_install

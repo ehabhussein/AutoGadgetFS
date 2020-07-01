@@ -318,6 +318,7 @@ How AutoGadgetFS works:
     sudo cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
     sudo cp arch/arm/boot/dts/overlays/README /boot/overlays/
     sudo cp arch/arm/boot/zImage /boot/kernel.img
+    reboot
     ```
 
 

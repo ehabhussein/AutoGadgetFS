@@ -33,7 +33,7 @@ if geteuid() != 0:
     exit(-1)
 if int(platform.uname()[2][0]) < 4:
     print("Seems like you have an incompatible kernel, upgrade to something >= 4.x\nThis might not work properly..You have been warned!!!\n")
-    print("GadgetFS might not work!!\n")
+    print("Gadgets might not work!!\n")
 try:
     import usb
     import usb.core

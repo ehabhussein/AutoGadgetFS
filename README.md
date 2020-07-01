@@ -313,11 +313,11 @@ How AutoGadgetFS works:
 
     ```bash
     make zImage modules dtbs
-    sudo make modules_install
-    sudo cp arch/arm/boot/dts/*.dtb /boot/
-    sudo cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
-    sudo cp arch/arm/boot/dts/overlays/README /boot/overlays/
-    sudo cp arch/arm/boot/zImage /boot/kernel.img
+    make modules_install
+    cp arch/arm/boot/dts/*.dtb /boot/
+    cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
+    cp arch/arm/boot/dts/overlays/README /boot/overlays/
+    cp arch/arm/boot/zImage /boot/kernel.img
     reboot
     ```
 

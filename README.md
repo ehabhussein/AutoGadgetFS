@@ -302,12 +302,10 @@ How AutoGadgetFS works:
 
     * Enable the Modules and save the config:
 
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/1devicedrivers.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/2usbsupport.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/allgadgetsupport.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/dummy%20HCD.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/otgsupport.png"/></div>
-    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/save.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/allgadgets.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/allgadgets2.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/allgadgets3.png"/></div>
+    <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/allgadgets4.png"/></div>
 
     * Build and use the kernel:
 

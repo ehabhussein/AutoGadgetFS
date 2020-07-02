@@ -548,7 +548,7 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ### Buy me a coffee to support the development of this project
 
-[![PayPal Donations](https://img.shields.io/static/v1?logo=PayPal&label=PayPal&message=https://www.paypal.me/autogadgetfs&color=green)](https://www.paypal.me/autogadgetfs)
+[![PayPal Donations](https://img.shields.io/static/v1?logo=Donate&label=Donate&message=To%20support%20the%20development%20of%20AGFS&color=blue)](https://www.paypal.me/autogadgetfs)
 
 ---
 <a name="Contact"/>

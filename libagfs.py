@@ -23,6 +23,9 @@ from termcolor import cprint
 import inspect
 import itertools
 import subprocess
+import glob
+import requests
+from bs4 import BeautifulSoup
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -39,7 +42,7 @@ try:
     import usb.core
     import usb.util
 except:
-    print ("Seems like you done have pyusb installed.\n[-]install it via pip:\n\t[-]pip3 install pyusb")
+    print ("Seems like you dont have pyusb installed.\n[-]install it via pip:\n\t[-]pip3 install pyusb")
     exit(-1)
 try:
     import pika
@@ -60,6 +63,10 @@ if not path.exists('devEnumCT'):
     makedirs('devEnumCT')
 if not path.exists('gadgetscripts'):
     makedirs('gadgetscripts')
+if not path.exists('devfuzzresults'):
+    makedirs('devfuzzresults')
+if not path.exists('payloads'):
+    makedirs('payloads')
 
 ############auto gadgetFS class
 
@@ -461,6 +468,8 @@ class agfs():
                         pass
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
+                    #self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
+                     #                            body=f"{endpoint}-{packet}")
 
                 except usb.core.USBError as e:
                     if e.args == ('Operation timed out\r\n',):
@@ -624,7 +633,7 @@ class agfs():
         self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',  self.qcreds3,heartbeat=60)
         self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
         self.qchannel3 = self.qconnect3.channel()
-        self.showMessage("Queues to host are yours!",color='blue')
+        #self.showMessage("Queues to host are yours!",color='blue')
 
     def stopQueuewrite(self):
         """ stop the thread incharge of communicating with the host machine"""
@@ -672,7 +681,9 @@ class agfs():
         """
         self.startQueuewrite()
         sleep(1)
-        for i in range(howmany):
+       # for i in range(howmany):
+        i = 0
+        while True:
             try:
                 if size:
                     s = urandom(size)
@@ -702,9 +713,10 @@ class agfs():
                 print(e)
                 self.showMessage("Error -->sending packet\n",color='red',blink='y')
                 pass
+            i += 1
         self.stopQueuewrite()
 
-    def devrandfuzz(self, howmany=1000, size='fixed',min=0,timeout=0.5,match=None):
+    def devrandfuzz(self, howmany=1000, size='fixed',min=0,timeout=0,Cmatch=None,reset=None, Rmatch=None):
         """
         this method allows you to create fixed or random size packets created using urandom
         :param howmany: how many packets to be sent to the device`
@@ -712,7 +724,9 @@ class agfs():
         :param timeout: timeOUT !
         :return: None
         """
-        for i in range(howmany):
+        #for i in range(howmany):
+        i = 0
+        while True:
                 try:
                     if size == 'fixed':
                         s = urandom(self.device.bMaxPacketSize0)
@@ -722,16 +736,19 @@ class agfs():
                     r = self.device.read(self.epin, self.device.bMaxPacketSize0)
                     sdec,checks = self.decodePacketAscii(payload=s)
                     rdec,checkr = self.decodePacketAscii(payload=r,rec=1)
-                    if match:
-                        if match not in rdec:
-                            self.fuzzchange = (sdec,rdec)
-                            self.showMessage("Received data has changed!")
                     cprint(f"|-Packet[{i}]{'-'*80}", color="green")
                     cprint(f"|\t  Bytes:", color="blue")
                     cprint(f"|\t\tSent: {binascii.hexlify(s)}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}", color="white")
                     cprint(f"|\t  Decoded:", color="blue")
                     cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="white")
                     cprint(f"|{'_'*90}[{i}]", color="green")
+                    if Cmatch:
+                        if Cmatch not in rdec:
+                           # self.fuzzchange = (sdec,rdec)
+                            input("Received data has changed!. Press Enter to continue fuzzing!")
+                    if Rmatch:
+                        if Rmatch in rdec.lower():
+                            input("Received data has matched!. Press Enter to continue fuzzing!")
                     sleep(timeout)
                 except usb.core.USBError as e:
                     cprint(f"|-Packet[{i}]{'-'*80}", color="red", attrs=['blink'])
@@ -739,12 +756,13 @@ class agfs():
                     cprint(f"|\t\tSent: {binascii.hexlify(s)}",color='red', attrs=['blink'])
                     cprint(f"|\t\t|____{e}", color='red', attrs=['blink'])
                     cprint(f"|{'_'*90}[{i}]", color="red", attrs=['blink'])
-                    self.device.reset()
-                    self.showMessage("Device reset complete")
+                    if reset is not None:
+                        self.device.reset()
+                        self.showMessage("Device reset complete")
                 except KeyboardInterrupt:
                     self.showMessage("Keyboard interrupt detected! Ending...")
                     break
-
+                i += 1
     def devReset(self):
         """This method Resets the device"""
         self.device.reset()
@@ -989,6 +1007,52 @@ class agfs():
 
         return retpayload.replace(' ','.'),chksimchrForm if rec else ""
 
+    def replayPayloads(self):
+        """
+        This method will allow you to read packets from within text files for AGFS to replay them the structure of each packet is as follows:
+        H-abcdef41324a42423
+        D-fbdca435243b25351
+        The 'D' or 'H' determine the direction that the packet will be sent to: H for host & D for device.
+        The payloads should be placed in the 'payloads/' folder
+        :return: None
+        """
+        pays = {}
+        end = -1
+        colors = ['blue','white']
+        for i,j in enumerate(glob.glob("payloads/*")):
+            pays[i] = j
+            cprint(f"[{i}]: {j}", color=colors[0])
+            colors.reverse()
+            end += 1
+        selection = int(input(f"Which payloads do you want to replay?[0-{end}]"))
+        self.showMessage(f"Sending payloads from: {pays[selection]}",color="green")
+        try:
+            with open(pays[selection],'r') as payloads:
+                for i,payload in enumerate(payloads.readlines()):
+                    direction,packet = payload.split("-")
+                    if direction.lower() == "h":
+                        try:
+                            self.startQueuewrite()
+                            self.hostwrite(packet.strip())
+                            self.stopQueuewrite()
+                            cprint(f"| Packet #{i}, Direction Host{'-'*40}",color='white')
+                            cprint(f"|\t\tSent: {packet}",color="blue")
+                        except Exception as e:
+                            self.stopQueuewrite()
+                            break
+                    elif direction.lower() == "d":
+                        self.devWrite(self.epout,binascii.unhexlify(packet))
+                        cprint(f"| Packet #{i},Direction: Device {'-'*40}", color='white')
+                        cprint(f"|\t\tSent: {packet}", color="blue")
+                    else:
+                        self.showMessage("Payload format is incorrect.",color='red',blink='y')
+                        break
+        except:
+            self.showMessage("Payload selection is incorrect.", color='red', blink='y')
+
+
+
+
     def replaymsgs(self, direction=None, sequence=None, timeout=0.5):
         """This method searches the USBLyzer parsed database and give you the option replay a message or all messages from host to device
         :param direction: in or out
@@ -1045,6 +1109,22 @@ class agfs():
         except Exception as e:
             print("[-] Can't find messages with your search\n",e)
 
+    def searchvendors(self,search):
+        """This method will fetch the vendorID and a Product ID of a company you search for
+        get the results from parsing the-sz.com
+        :param search: name of the company eg: Logitech
+        :return None
+        """
+        getids = requests.get(f'https://the-sz.com/products/usbid/index.php?v=&p=&n={search}').text
+        parsed_html = BeautifulSoup(getids, "lxml")
+        results = parsed_html.body.find_all('div', attrs={'class': 'usbid'})
+        colors = ['blue','white']
+        for result in results:
+            line = result.text.split('\n')
+            cprint(f"{line[1].ljust(15)} {line[2].ljust(15)} {line[3].ljust(15)} {line[4].ljust(15)}",color=colors[0])
+            colors.reverse()
+
+
 
     def searchmsgs(self):
         """
@@ -1068,7 +1148,7 @@ class agfs():
             self.searchdict[i] = j
         pprint.pprint(self.searchdict)
         self.msgSelected = self.searchdict[int(input("Which message id to select: "))]
-        print (self.msgSelected)
+        print(self.msgSelected)
 
 
     def usblyzerparse(self,dbname):

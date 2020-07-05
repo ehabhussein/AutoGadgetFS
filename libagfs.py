@@ -13,9 +13,7 @@ from os import geteuid,urandom,path,makedirs
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
 from time import time,sleep
-import json
 import threading
-import getpass
 import paramiko
 import random
 import EDAP

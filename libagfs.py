@@ -26,6 +26,7 @@ import subprocess
 import glob
 import requests
 from bs4 import BeautifulSoup
+import functools
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -436,7 +437,7 @@ class agfs():
     def sniffdevice(self, endpoint, pts, queue,timeout, genpkts):
         """ read the communication between the device to hosts
         you can either choose set pts or queue but not both.s
-       :param endpoint: endpoint address you want to read from)
+       :param endpoint: endpoint IN address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: is you will use the queues for a full proxy between target and host
        :param channel: rabbitmq channel
@@ -512,9 +513,9 @@ class agfs():
         else:
             self.showMessage("either pass to a queue or to a tty",color='red',blink='y')
 
-    def startMITMusbWifi(self,endpoint=None,savefile=None,genpkts=0):
+    def startMITMusbWifi(self,epin=None, epout=None,savefile=None,genpkts=0):
         """ Starts a thread to monitor the USB target Device
-        :param endpoint: the OUT endpoint of the device most probably self.epout which is from the device to the PC
+        :param endpoint: the OUT endpoint of the device which is from the device to the PC
         :param savefile: if you would like the packets from the host to be saved to a binary file
         :param: genpkts: save packets from device to file
         :return: None
@@ -523,7 +524,7 @@ class agfs():
             self.savefile = 1
         self.killthread = 0
         self.nlpthresh = 0
-        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(endpoint,savefile,genpkts,))
+        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(epin,epout,savefile,genpkts,))
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
@@ -545,7 +546,7 @@ class agfs():
         self.startMITMProxyThread.join()
         self.showMessage("MITM Proxy has now been terminated!",color='green')
 
-    def MITMproxyRQueues(self, ch, method, properties, body):
+    def MITMproxyRQueues(self, ch, method, properties, body, epout=None):
         """
         This method reads from the queue todev and sends the request to the device its self.
         :param ch:  rabbitMQ channel
@@ -565,7 +566,7 @@ class agfs():
             random.shuffle(packet)
             body = ''.join(format(x, '02x') for x in packet)
             cprint(f"|-\t\t manipulation:{body}", color="grey")
-        self.device.write(self.epout, binascii.unhexlify(body))
+        self.device.write(epout, binascii.unhexlify(body))
         try:
             if self.savefile:
                 self.bintransfered.write(body)
@@ -573,11 +574,12 @@ class agfs():
         except Exception as e:
             print(e)
         cprint(f"|{'-' * 90}[Pkt #{self.mitmcounter}]", color="green")
-        #ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    def MITMproxy(self,endpoint,savetofile,genpkts):
+    def MITMproxy(self,epin,epout,savetofile,genpkts):
         """
         This method creates a connection to the RabbitMQ and listen on received messages on the todev queue
+        :param epin: Endpoint IN
+        :param epout: Endpoint OUT
         :param savefile: if you would like the packets from the host to be saved to a binary file
         :param: genpkts: save packets from device to file
         :return: None
@@ -595,8 +597,10 @@ class agfs():
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
             self.qchannel = self.qconnect.channel()
             #self.qchannel.basic_qos(prefetch_count=1)
-            self.qchannel.basic_consume(on_message_callback=self.MITMproxyRQueues, queue='todevice', auto_ack=True)
-            self.startSniffReadThread(endpoint=self.epin, queue=1,genpkts=genpkts)
+            self.qchannel.basic_consume(on_message_callback=functools.partial(self.MITMproxyRQueues,epout=epout),
+                                        queue='todevice',
+                                        auto_ack=True)
+            self.startSniffReadThread(endpoint=epin, queue=1,genpkts=genpkts)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
@@ -604,6 +608,7 @@ class agfs():
         except Exception as e:
             print(e)
             pass
+
 
     def devWrite(self,endpoint,payload):
         """To use this with a method you would write make sure to run the startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None)
@@ -716,15 +721,16 @@ class agfs():
             i += 1
         self.stopQueuewrite()
 
-    def devrandfuzz(self, howmany=1000, size='fixed',min=0,timeout=0,Cmatch=None,reset=None, Rmatch=None):
+    def devrandfuzz(self, epin=None, epout=None ,size='fixed',min=0,timeout=0,Cmatch=None,reset=None, Rmatch=None):
         """
         this method allows you to create fixed or random size packets created using urandom
+        :param epin: endpoint in
+        :param epout: endpoint out
         :param howmany: how many packets to be sent to the device`
         :param size: string value whether its fixed or random size
         :param timeout: timeOUT !
         :return: None
         """
-        #for i in range(howmany):
         i = 0
         while True:
                 try:
@@ -732,8 +738,8 @@ class agfs():
                         s = urandom(self.device.bMaxPacketSize0)
                     else:
                         s = urandom(random.randint(min, self.device.bMaxPacketSize0))
-                    self.device.write(self.epout, s)
-                    r = self.device.read(self.epin, self.device.bMaxPacketSize0)
+                    self.device.write(epout, s)
+                    r = self.device.read(epin, self.device.bMaxPacketSize0)
                     sdec,checks = self.decodePacketAscii(payload=s)
                     rdec,checkr = self.decodePacketAscii(payload=r,rec=1)
                     cprint(f"|-Packet[{i}]{'-'*80}", color="green")
@@ -768,8 +774,10 @@ class agfs():
         self.device.reset()
         self.showMessage("The device has been reset!")
 
-    def describeFuzz(self,packet=None,howmany=None,match=None,timeout=0):
+    def describeFuzz(self,epin=None, epout=None ,packet=None,howmany=None,match=None,timeout=0):
         """This method allows you to describe a packet and select which bytes will be fuzzed
+        :param epin: endpoint in
+        :param epout: endpoint out
         :param packet: a string of the packet that you want to use for fuzzing
         :param howmany: how many packets to be sent
         :return None
@@ -781,8 +789,8 @@ class agfs():
                 p[int(b)] = urandom(1).hex()
             try:
                 s = binascii.unhexlify(''.join(p))
-                self.device.write(self.epout, s)
-                r = self.device.read(self.epin, self.device.bMaxPacketSize0)
+                self.device.write(epout, s)
+                r = self.device.read(epin, self.device.bMaxPacketSize0)
                 sdec, checks = self.decodePacketAscii(payload=s)
                 rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
                 if match:
@@ -864,7 +872,7 @@ class agfs():
         self.showMessage(f"generated:{len(self.edap.packets)} Packets",color='green')
         return self.edap.packets
 
-    def devseqfuzz(self, starter=0x00,ender=0xffffffffff+1,timeout=0):
+    def devseqfuzz(self, epin=None, epout=None ,starter=0x00,ender=0xffffffffff+1,timeout=0):
         """
         This method allows you to create sequential incremented packets and send them to the device
         :param starter: start value to bruteforce from in hex notation
@@ -879,8 +887,8 @@ class agfs():
             try:
                 makebytes= j.to_bytes((j.bit_length() + 7) // 8 or 1, 'big')
                 s = makebytes.ljust(self.device.bMaxPacketSize0,b'\x00')
-                self.device.write(self.epout, s)
-                r = self.device.read(self.epin, self.device.bMaxPacketSize0)
+                self.device.write(epout, s)
+                r = self.device.read(epin, self.device.bMaxPacketSize0)
                 sdec,checks = self.decodePacketAscii(payload=s)
                 rdec,checkr = self.decodePacketAscii(payload=r,rec=1)
                 cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
@@ -990,12 +998,6 @@ class agfs():
                         chksimchrForm += "\u001B[41m--\u001B[0m"
                 except Exception as e:
                     pass
-           # # if self.diffmap:
-           #          try:
-           #              self.diffmap.write(chksimchrForm.rjust(145," ")+"\r\n")
-           #              self.diffmap.flush()
-           #          except:
-           #              pass
             self.chksimchrPrev = self.chksimchrNow
         retpayload = ""
         for i in payload:
@@ -1007,13 +1009,15 @@ class agfs():
 
         return retpayload.replace(' ','.'),chksimchrForm if rec else ""
 
-    def replayPayloads(self):
+    def replayPayloads(self,epout=None):
         """
         This method will allow you to read packets from within text files for AGFS to replay them the structure of each packet is as follows:
         H-abcdef41324a42423
         D-fbdca435243b25351
         The 'D' or 'H' determine the direction that the packet will be sent to: H for host & D for device.
         The payloads should be placed in the 'payloads/' folder
+
+        :param epout: endpoint out
         :return: None
         """
         pays = {}
@@ -1041,7 +1045,7 @@ class agfs():
                             self.stopQueuewrite()
                             break
                     elif direction.lower() == "d":
-                        self.devWrite(self.epout,binascii.unhexlify(packet))
+                        self.devWrite(epout,binascii.unhexlify(packet))
                         cprint(f"| Packet #{i},Direction: Device {'-'*40}", color='white')
                         cprint(f"|\t\tSent: {packet}", color="blue")
                     else:
@@ -1123,8 +1127,6 @@ class agfs():
             line = result.text.split('\n')
             cprint(f"{line[1].ljust(15)} {line[2].ljust(15)} {line[3].ljust(15)} {line[4].ljust(15)}",color=colors[0])
             colors.reverse()
-
-
 
     def searchmsgs(self):
         """
@@ -1312,6 +1314,7 @@ class agfs():
                 protocol = '0x{:02X}'.format(self.device.bDeviceProtocol)
             MaxPacketSize = '0x{:04X}'.format(self.device.bMaxPacketSize0)
             if len(self.device_hidrep) != 0:
+                self.device_hidrep = [rep for rep in self.device_hidrep if rep]
                 for i,j in enumerate(self.device_hidrep):
                     print(i,"] ",j)
                 hidq = int(input("Which report would you like to use? "))

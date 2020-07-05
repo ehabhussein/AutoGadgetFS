@@ -1,0 +1,7 @@
+{
+	"RabbitMQ-IP":"127.0.0.1",
+	"PiZeroIP":"192.168.1.57",
+	"PiZeroSSHPort":22,
+	"PiZeroUser":"pi",
+	"PiZeroPass":"raspberry"
+}

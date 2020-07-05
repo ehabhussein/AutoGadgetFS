@@ -95,7 +95,7 @@ def mitmProxy(ipaddress, pktlen):
     except pika.exceptions.StreamLostError:
         cprint("[+]Stream dropped re-initiating Connection to RabbitMQ",color="green")
         cprint("\t[-]Reconnected!",color="white")
-        qchannel2,qconnect2 = makeChannel(ipaddress)    
+        qchannel2,qconnect2 = makeChannel(ipaddress)
     except Exception as e:
             print(e)
             pass
@@ -139,23 +139,28 @@ if __name__ == '__main__':
             router = threading.Thread(target=mitmProxy, args=(args.ipaddress, int(args.pktlen),))
             router.start()
         cprint("[+]Initiating Connection to RabbitMQ",color="green")
-        qchannel,qconnect = makeChannel(args.ipaddress)
+        while True:
+            try:
+                qchannel,qconnect = makeChannel(args.ipaddress)
        # qchannel.basic_qos(prefetch_count=1)
-        qchannel.basic_consume(on_message_callback=write2host, queue='tohost',auto_ack=True)
-        cprint("\t[-]Started!",color="white")
-        cprint("[+]Press Ctrl-C anytime to clean up and exit!",color="green")
-        cprint("[+]MITM session has now started!",color="blue",attrs=['blink'])
-        qchannel.start_consuming()
-    except pika.exceptions.StreamLostError:
-        cprint("[+]Stream dropped reinitiating Connection to RabbitMQ",color="green")
-        cprint("\t[-]Reconnected!",color="white")
-        qchannel,qconnect = makeChannel(args.ipaddress)
-        qchannel.basic_consume(on_message_callback=write2host, queue='tohost',auto_ack=True)
-        qchannel.start_consuming()
-    except KeyboardInterrupt:
-        terminator = 1
-        qchannel.stop_consuming()
-        qconnect.close()
-        if not args.hstonly:
-            router.join()
+                qchannel.basic_consume(on_message_callback=write2host, queue='tohost',auto_ack=True)
+                cprint("\t[-]Started!",color="white")
+                cprint("[+]Press Ctrl-C anytime to clean up and exit!",color="green")
+                cprint("[+]MITM session has now started!",color="blue",attrs=['blink'])
+                qchannel.start_consuming()
+        #cprint("[+]Stream dropped reinitiating Connection to RabbitMQ",color="green")
+        #cprint("\t[-]Reconnected!",color="white")
+        #qchannel,qconnect = makeChannel(args.ipaddress)
+        #qchannel.basic_consume(on_message_callback=write2host, queue='tohost',auto_ack=True)
+        #qchannel.start_consuming()
+            except KeyboardInterrupt:
+                terminator = 1
+                qchannel.stop_consuming()
+                qconnect.close()
+                if not args.hstonly:
+                    router.join()
+            except:
+                continue
+    except:
+        pass
 

@@ -94,6 +94,7 @@ class agfs():
         self.piport = agfsSettings['PiZeroSSHPort']
         self.piuser = agfsSettings['PiZeroUser']
         self.pipass = agfsSettings['PiZeroPass']
+        self.mitmstarted = 0
 
     def createctrltrsnfDB(self):
         """
@@ -156,6 +157,16 @@ class agfs():
             return db, self.usblyzerdb
         except:
             print("[Error] cannot create db\n")
+
+    def makeChannel(self,ipaddress):
+        """creates a channel to RabbitMQ
+        :param: ipaddress : ip address of the rabbitmq server
+        :return: a channel
+        """
+        qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
+        qpikaparams = pika.ConnectionParameters(ipaddress, 5672, '/', qcreds, heartbeat=60)
+        qconnect = pika.BlockingConnection(qpikaparams)
+        return qconnect.channel(), qconnect
 
     def devDfuDump(self,vendorID=None,productID=None):
         """
@@ -519,6 +530,9 @@ class agfs():
         :param: genpkts: save packets from device to file
         :return: None
         """
+        if self.mitmstarted == 1:
+            return(self.showMessage("You cannot mitm more than one interface at a time in this current release.",color='red',blink='y'))
+        self.mitmstarted = 1
         if savefile:
             self.savefile = 1
         self.killthread = 0
@@ -529,6 +543,7 @@ class agfs():
     def stopMITMusbWifi(self):
         ''' Stops the man in the middle thread between the host and the device'''
         self.mitmcounter = 0
+        self.mitmstarted = 0
         try:
             if self.savefile:
                 self.bintransfered.close()
@@ -651,14 +666,12 @@ class agfs():
         self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
         self.qchannel4 = self.qconnect4.channel()
         self.qchannel4.queue_purge('todevice')
-        print("cleared todevice queue")
         self.qchannel4.queue_purge('tohost')
-        print("cleared tohost queue")
         self.qchannel4.queue_purge('tonull')
-        print("cleared tonull queue")
         self.qchannel4.queue_purge('edapdev')
         self.qchannel4.queue_purge('edaphst')
-        print("cleared edap queues")
+        self.qchannel4.queue_purge('gdtfz')
+        cprint("Purged all queues",color="blue")
         self.qconnect4.close()
 
     def hostwrite(self, payload, isfuzz=0):
@@ -914,6 +927,53 @@ class agfs():
         self.device.default_timeout = 1000
         print("\n")
         self.showMessage("Finished!", color='blue')
+
+    def startGadgetFuzzer(self,vid=None,pid=None,dclass=None,serial="AutoGadgetFS",manufacturer=None, product=None,samples=100,min=0,max=10):
+        """This method creates random gadgets to run on the Pi
+        :param vid: vendor ID
+        :param pid: product ID
+        :param dclass: device class
+        :param serial: serial number
+        :param manufacturer: manufacturer name
+        :param product: product name
+        :param samples: number of gadgets to create and run
+        :param min: minimum bytes to add to the HID report
+        :param max: maximum bytes to add to the HID report
+        :return: None
+        """
+        if self.mitmstarted == 1:
+            return self.showMessage("you cannot fuzz gadgets and MITM at the same time", color='red')
+        self.gdtzthread = 0
+        self.gdtz = threading.Thread(target=self.gdtzfuzz,args=(vid,pid,dclass,serial,manufacturer, product,samples,min,max,))
+        self.gdtz.start()
+
+    def gdtzfuzz(self,vid,pid,dclass,serial,manufacturer, product,samples,min,max):
+        qchannel, qconnect = self.makeChannel(self.rabbitmqserver)
+        self.removeGadget()
+        colors = ['blue','white']
+        for i,j in enumerate(range(samples)):
+            if self.gdtzthread == 1:
+                break
+            cprint(f"Generation [{i}] Sent!")
+            thegadget = f"{vid}!!{pid}!!{dclass}!!{serial}!!{manufacturer}!!{product}!!{min}!!{max}"
+            qchannel.basic_publish(exchange='agfs', routing_key='gadgetfz', body=thegadget)
+        qchannel.close()
+
+    def stopGadgetFuzzer(self):
+        """
+        clears the Queue of gadgets thus stopping the gadget fuzzer
+        :return: None
+        """
+        self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
+        self.qpikaparams4 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/',self.qcreds4,heartbeat=60)
+        self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
+        self.qchannel4 = self.qconnect4.channel()
+        self.qchannel4.queue_purge('gdtfz')
+        self.qconnect4.close()
+        self.gdtzthread = 1
+        self.gdtz.join()
+        cprint("Gadget Fuzzing stopped!",color="blue")
+
 
     def devEnumCtrltrnsf(self,fuzz="fast"):
         """
@@ -1231,6 +1291,7 @@ class agfs():
             self.transaction.commit()
         except Exception as e:
             self.showMessage("Unable to create or parse!\n",color='red',blink='y')
+
 
     def clonedev(self):
         """

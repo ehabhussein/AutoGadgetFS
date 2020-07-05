@@ -9,7 +9,7 @@ import xmltodict
 import platform
 import binascii
 from sys import exit,stdout
-from os import geteuid,urandom,remove,path,makedirs
+from os import geteuid,urandom,path,makedirs
 from sqlalchemy import MetaData, create_engine, String, Integer, Table, Column, inspect
 import pprint
 from time import time,sleep
@@ -27,6 +27,7 @@ import glob
 import requests
 from bs4 import BeautifulSoup
 import functools
+import json
 ###################### Pre-Checks
 
 if int(platform.python_version()[0]) < 3:
@@ -83,13 +84,19 @@ class agfs():
         self.savefile = None
         self.edap = EDAP.Probability()
         self.SelectedDevice = None
-        self.rabbitmqserver = input("Enter IP address of the rabbitmq server: ")
         self.mitmcounter = 0
         self.chksimchrPrev = ""
         self.chksimchrNow = ""
         self.chksimchrForm = ""
         self.diffmap = 0
         self.diffmapPTS = ""
+        with open('agfsSettings.json') as config_file:
+            agfsSettings = json.load(config_file)
+        self.rabbitmqserver = agfsSettings['RabbitMQ-IP']
+        self.pihost = agfsSettings['PiZeroIP']
+        self.piport = agfsSettings['PiZeroSSHPort']
+        self.piuser = agfsSettings['PiZeroUser']
+        self.pipass = agfsSettings['PiZeroPass']
 
     def createctrltrsnfDB(self):
         """
@@ -277,14 +284,9 @@ class agfs():
             self.device.reset()
         try:
             self.precfg = int(input("which Configuration would you like to use: "))
-
             self.device.set_configuration(self.precfg)
             self.devcfg = self.device.get_active_configuration()
-            self.interfacenumber = int(input("which Interface would you like to use: "))
-            self.Alternate = int(input("which Alternate setting would you like to use: "))
-            self.epin = int(input("which Endpoint IN would you like to use: "), 16)
-            self.epout = int(input("which Endpoint OUT would you like to use: "), 16)
-            self.interfaces = self.devcfg[(self.interfacenumber, self.Alternate)]
+            self.interfaces = self.devcfg[(0,0)]
             self.killthread = 0
             print("Checking if device supports DFU mode based on USB DFU R1.1")
             '''based on USB Device Firmware Upgrade Specification, Revision 1.1'''
@@ -1358,10 +1360,6 @@ class agfs():
             push2pi = input("Do you want to push the gadget to the Pi zero ?[y/n] ").lower()
             if push2pi == 'y':
                 '''https://stackoverflow.com/questions/3635131/paramikos-sshclient-with-sftps'''
-                self.pihost = input("Enter the ip address of the Pi zero: ")
-                self.piport = int(input("Enter the port of the Pi zero: "))
-                self.piuser = input("Enter the username: ")
-                self.pipass = getpass.getpass()
                 print("Connecting...")
                 pusher = paramiko.Transport((self.pihost,self.piport))
                 pusher.connect(None, self.piuser, self.pipass)

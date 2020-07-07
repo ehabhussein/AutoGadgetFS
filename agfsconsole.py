@@ -46,13 +46,13 @@ class MyPrompt(Cmd):
             if dev.lower() == 'y':
                 devs = 1
             else:
-                devs=0
+                devs = 0
             hst = input("Do yo want to save the communication from device to host? [y/n]")
             if hst.lower() == 'y':
                 hsts = 1
             else:
-                hsts=0
-            self.agfs.startMITMusbWifi(savefile=devs,genpkts=hsts)
+                hsts = 0
+            self.agfs.startMITMusbWifi(savefile=devs, genpkts=hsts)
 
     def do_stopmitm(self, inp):
         """stop man in the middle sniffing"""
@@ -82,25 +82,26 @@ class MyPrompt(Cmd):
         howmany = int(input("How many packets do you want to generate: "))
         size = input("Size of packets do you want to generate. choose between 'fixed' and 'random': ")
         timeout = float(input("enter timeout to wait after sending each packet. (0, 0.5, 1): "))
-        return howmany,size,timeout
+        return howmany, size, timeout
 
-    def do_devrandfuzz(self,inp):
+    def do_devrandfuzz(self, inp):
         """Use this to create fixed or random size packets and send them to the device"""
         if self.agfs.device:
             howmany, size, timeout = fuzzparams()
-            self.agfs.devrandfuzz(howmany=howmany, size=size, timeout=timeout)
+            self.agfs.devrandfuzz(size=size, timeout=timeout)
 
-    def do_hostrandfuzz(self,inp):
+    def do_hostrandfuzz(self, inp):
         """Use this to create fixed or random size packets and send them to the host"""
         if self.agfs.device:
             howmany, size, timeout = fuzzparams()
-            self.agfs.devrandfuzz(howmany=howmany, size=size, timeout=timeout)
+            self.agfs.devrandfuzz(size=size, timeout=timeout)
 
     def do_smartfuzzer(self, inp):
         """Generate packets based on what AGFS has learned from a sniff from either the host or the device"""
         if self.agfs.device:
-            self.agfs.SmartFuzz(engine=engine,samples=samples,direction=direction,filename=filename,fromQueue=None)
-    def do_change_interface(self,inp):
+            self.agfs.SmartFuzz(engine=engine, samples=samples, direction=direction, filename=filename)
+
+    def do_change_interface(self, inp):
         """Change to another configuration of the device"""
         if self.agfs.device:
             self.agfs.chgIntrfs()

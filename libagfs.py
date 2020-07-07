@@ -81,7 +81,7 @@ class agfs:
         self.fuzzhost = 0
         self.ingui = 0
         self.itshid = 0
-        self.savefile = None
+        self.hostsave = None
         self.edap = EDAP.Probability()
         self.SelectedDevice = None
         self.mitmcounter = 0
@@ -228,15 +228,6 @@ class agfs:
                 if intf.bInterfaceClass == 3:
                     self.itshid = 1
                 self.leninterfaces += 1
-                # print('\tInterface number: ' + \
-                #       str(int(intf.bInterfaceNumber)) + \
-                #       ',Alternate Setting: ' + \
-                #       str(intf.bAlternateSetting) + \
-                #       '\n')
-                # for ep in intf:
-                #     print('\t\tEndpoint Address: ' + \
-                #           hex(ep.bEndpointAddress) + \
-                #           '\n')
         for c,d in enumerate(self.device):
             cprint(f"Configuration {c+1}",color='green')
             for i in d.interfaces():
@@ -416,7 +407,7 @@ class agfs:
         except:
             pass
         try:
-            self.genpktsF.close()
+            self.devsaveF.close()
         except:
             pass
         if self.frompts == 0:
@@ -428,14 +419,14 @@ class agfs:
         self.showMessage("Sniffing has stopped successfully!", color='green')
         self.killthread = 0
 
-    def startSniffReadThread(self, endpoint=None, pts=None, queue=None, timeout=0, genpkts=0):
+    def startSniffReadThread(self, endpoint=None, pts=None, queue=None, timeout=0, devsave=0):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: if you will use the queues for a full proxy between target and host
        :param channel: this is automatically passed if you use the self.startMITMusbWifi()
-       :param savetofile: fill in ********************
-       :param genpkts: fill in ********************
+       :param hosthstsave: fill in ********************
+       :param devsave: fill in ********************
        :return: None
        """
         mypts = None
@@ -450,21 +441,21 @@ class agfs:
             self.frompts = 1
             mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
             input("Press Enter when ready..on %s" % mypts)
-        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue, timeout, genpkts))
+        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue, timeout, devsave))
         self.readerThread.start()
 
-    def sniffdevice(self, endpoint, pts, queue, timeout, genpkts):
+    def sniffdevice(self, endpoint, pts, queue, timeout, devsave):
         """ read the communication between the device to hosts
         you can either choose set pts or queue but not both.s
        :param endpoint: endpoint IN address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: is you will use the queues for a full proxy between target and host
        :param channel: rabbitmq channel
-       :param genpkts: write sniffed packets to a file
+       :param devsave: write sniffed packets to a file
        :return: None
         """
-        if genpkts == 1:
-            self.genpktsF = open(f'binariesdb/{self.SelectedDevice}-device.bin', 'wb')
+        if devsave == 1:
+            self.devsaveF = open(f'binariesdb/{self.SelectedDevice}-device.bin', 'wb')
         if queue and pts is None:
             self.showMessage("Sniffing the device started, messages sent to host queue!", color="green")
             while True:
@@ -479,9 +470,9 @@ class agfs:
                             s = memoryview(binascii.unhexlify(binascii.hexlify(packet))).tolist()
                             random.shuffle(s)
                             packet = binascii.unhexlify(''.join(format(x, '02x') for x in s))
-                        if genpkts == 1:
-                            self.genpktsF.write(binascii.hexlify(packet))
-                            self.genpktsF.write(b'\r\n')
+                        if devsave == 1:
+                            self.devsaveF.write(binascii.hexlify(packet))
+                            self.devsaveF.write(b'\r\n')
 
                     except Exception as e:
                         print(e)
@@ -521,9 +512,9 @@ class agfs:
                         ptsx.write(f"|\t\t  Decoded:{ps}\r\n")
                         ptsx.write(f"|{'-' * 90}\r\n")
                         ptsx.flush()
-                        if genpkts == 1:
-                            self.genpktsF.write(packet)
-                            self.genpktsF.write(b'\r\n')
+                        if devsave == 1:
+                            self.devsaveF.write(packet)
+                            self.devsaveF.write(b'\r\n')
                     except usb.core.USBError as e:
                         if e.args == ('Operation timed out! Cannot read from device\n',):
                             ptsx.write("Operation timed out! Cannot read from device\n")
@@ -532,22 +523,22 @@ class agfs:
         else:
             self.showMessage("either pass to a queue or to a tty", color='red', blink='y')
 
-    def startMITMusbWifi(self, epin=None, epout=None, savefile=None, genpkts=0):
+    def startMITMusbWifi(self, epin=None, epout=None, hostsave=None, devsave=0):
         """ Starts a thread to monitor the USB target Device
         :param endpoint: the OUT endpoint of the device which is from the device to the PC
-        :param savefile: if you would like the packets from the host to be saved to a binary file
-        :param: genpkts: save packets from device to file
+        :param hostsave: if you would like the packets from the host to be saved to a binary file
+        :param: devsave: save packets from device to file
         :return: None
         """
         if self.mitmstarted == 1:
             return self.showMessage("You cannot mitm more than one interface at a time in this current release.",
                                     color='red', blink='y')
         self.mitmstarted = 1
-        if savefile:
-            self.savefile = 1
+        if hostsave:
+            self.hostsave = 1
         self.killthread = 0
         self.nlpthresh = 0
-        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(epin, epout, savefile, genpkts,))
+        self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(epin, epout, hostsave, devsave,))
         self.startMITMProxyThread.start()
 
     def stopMITMusbWifi(self):
@@ -555,12 +546,12 @@ class agfs:
         self.mitmcounter = 0
         self.mitmstarted = 0
         try:
-            if self.savefile:
+            if self.hostsave:
                 self.bintransfered.close()
         except:
             pass
         self.stopSniffing()
-        self.savefile = None
+        self.hostsave = None
         self.killthread = 1
         try:
             self.qchannel.stop_consuming()
@@ -592,7 +583,7 @@ class agfs:
             cprint(f"|-\t\t manipulation:{body}", color="grey")
         self.device.write(epout, binascii.unhexlify(body))
         try:
-            if self.savefile:
+            if self.hostsave:
                 self.bintransfered.write(body)
                 self.bintransfered.write(b'\r\n')
         except Exception as e:
@@ -600,23 +591,23 @@ class agfs:
         cprint(f"|{'-' * 90}[Pkt #{self.mitmcounter}]", color="green")
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    def MITMproxy(self, epin, epout, savetofile, genpkts):
+    def MITMproxy(self, epin, epout, hosthstsave, devsave):
         """
         This method creates a connection to the RabbitMQ and listen on received messages on the todev queue
         :param epin: Endpoint IN
         :param epout: Endpoint OUT
-        :param savefile: if you would like the packets from the host to be saved to a binary file
-        :param: genpkts: save packets from device to file
+        :param hostsave: if you would like the packets from the host to be saved to a binary file
+        :param: devsave: save packets from device to file
         :return: None
         """
         try:
             try:
-                if savetofile:
-                    self.savefile = 1
+                if hosthstsave:
+                    self.hostsave = 1
                     self.bintransfered = open(f"binariesdb/{self.SelectedDevice}-Host.bin", 'wb')
             except Exception as e:
                 print(e)
-                self.savefile = None
+                self.hostsave = None
             self.qcreds = pika.PlainCredentials('autogfs', 'usb4ever')
             self.qpikaparams = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
@@ -624,7 +615,7 @@ class agfs:
             self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=functools.partial(self.MITMproxyRQueues, epout=epout),
                                         queue='todevice')
-            self.startSniffReadThread(endpoint=epin, queue=1, genpkts=genpkts)
+            self.startSniffReadThread(endpoint=epin, queue=1, devsave=devsave)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
@@ -744,9 +735,9 @@ class agfs:
     def devrandfuzz(self, epin=None, epout=None, size='fixed', min=0, timeout=0, Cmatch=None, reset=None, Rmatch=None):
         """
         this method allows you to create fixed or random size packets created using urandom
+        Ctrl-C to stop
         :param epin: endpoint in
         :param epout: endpoint out
-        :param howmany: how many packets to be sent to the device`
         :param size: string value whether its fixed or random size
         :param timeout: timeOUT !
         :return: None
@@ -797,7 +788,7 @@ class agfs:
         self.device.reset()
         self.showMessage("The device has been reset!")
 
-    def describeFuzz(self, epin=None, epout=None, packet=None, howmany=None, match=None, timeout=0):
+    def describeFuzz(self, epin=None, epout=None, packet=None, howmany=100, match=None, timeout=0):
         """This method allows you to describe a packet and select which bytes will be fuzzed
         :param epin: endpoint in
         :param epout: endpoint out
@@ -806,7 +797,8 @@ class agfs:
         :return None
         """
         p = [packet[i:i + 2] for i in range(0, len(packet), 2)]
-        theBytes = input("Which byte indexes do you want to fuzz? [Separate entries by a space] ").split()
+        cprint(f"Packet: {''.join(p)}",color='white')
+        theBytes = input("Which byte indexes do you want to fuzz? [Separate indexes by a space] ").split()
         for i in range(howmany):
             for b in theBytes:
                 p[int(b)] = urandom(1).hex()
@@ -814,8 +806,8 @@ class agfs:
                 s = binascii.unhexlify(''.join(p))
                 self.device.write(epout, s)
                 r = self.device.read(epin, self.device.bMaxPacketSize0)
-                sdec, checks = self.decodePacketAscii(payload=s)
-                rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
+                sdec, checks = self.decodePacketAscii(payload=s,rec=1)
+                rdec, checkr = self.decodePacketAscii(payload=r)
                 if match:
                     if match not in rdec:
                         self.fuzzchange = (sdec, rdec)
@@ -823,7 +815,7 @@ class agfs:
                 cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
                 cprint(f"|\t  Bytes:", color="blue")
                 cprint(
-                    f"|\t\tSent: {binascii.hexlify(s)}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
+                    f"|\t\tSent: {binascii.hexlify(s)}\n|\t\tDiff:   {checks}\n|\t\t    |____Received: {binascii.hexlify(r)}\n",
                     color="white")
                 cprint(f"|\t  Decoded:", color="blue")
                 cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="white")

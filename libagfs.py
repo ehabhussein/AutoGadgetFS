@@ -169,6 +169,7 @@ class agfs():
 
     def devDfuDump(self,vendorID=None,productID=None):
         """
+        This method would be changed in the future ......
         This method allows you to pull firmware from a device in DFU mode
         :param vendorID: Vendor ID of the device
         :param productID: Product ID of the device
@@ -310,56 +311,49 @@ class agfs():
         except Exception as e:
             print(e)
             self.showMessage("Couldn't get device configuration!",color="red",blink='y')
-        if self.SelectedDevice == None and chgint == None:
-            claim = str(input("Do you want to claim all device interfaces: [y/n] "))
-        else:
-            claim = 'y'
-        if 'y' == claim.lower():
-            for i in range(self.devcfg.bNumInterfaces):
-                try:
-                    cprint(f"[+] Claiming interface {i}",color='white')
-                    usb.util.claim_interface(self.device, i)
-                    cprint(f"\t[-]Successfully claimed interface {i}", color='blue')
-                except:
-                    cprint(f"[+]Failed while claiming interface {i}", color='red')
-            if self.itshid == 1:
-                cprint("Checking HID report retrieval",color="white")
-                try:
+        for i in range(self.devcfg.bNumInterfaces):
+            try:
+                cprint(f"[+] Claiming interface {i}",color='white')
+                usb.util.claim_interface(self.device, i)
+                cprint(f"\t[-]Successfully claimed interface {i}", color='blue')
+            except:
+                cprint(f"[+]Failed while claiming interface {i}", color='red')
+        if self.itshid == 1:
+            cprint("Checking HID report retrieval",color="white")
+            try:
+                self.device_hidrep = []
+                """Thanks https://wuffs.org/blog/mouse-adventures-part-5
+                https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
+                """
+                for i in range(0,self.leninterfaces+1):
+                    try:
+                        #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
+                        response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
+                        self.device_hidrep.append(response)
+                    except usb.core.USBError:
+                        pass
+                if self.device_hidrep:
+                    for i,j in enumerate(self.device_hidrep):
+                        if len(j) > 0:
+                            cprint(f"Hid report [{i}]: {j.decode('utf-8')}",color="white")
+                            dpayload,checkr =self.decodePacketAscii(payload=binascii.unhexlify(j))
+                            cprint(f"\tdecoded: {dpayload}",color="blue")
+                    if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
+                        self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
+                else:
                     self.device_hidrep = []
-                    """Thanks https://wuffs.org/blog/mouse-adventures-part-5
-                    https://docs.google.com/viewer?a=v&pid=sites&srcid=bWlkYXNsYWIubmV0fGluc3RydW1lbnRhdGlvbl9ncm91cHxneDo2NjBhNWUwNDdjZGE1NWE1
-                    """
-                    for i in range(0,self.leninterfaces+1):
-                        try:
-                            #we read the max possible size of a hid report incase the device leaks some data .. it does happen.
-                            response = binascii.hexlify(self.device.ctrl_transfer(0x81,0x6,0x2200,i, 0xfff))
-                            self.device_hidrep.append(response)
-                        except usb.core.USBError:
-                            pass
-                    if self.device_hidrep:
-                        for i,j in enumerate(self.device_hidrep):
-                            if len(j) > 0:
-                                cprint(f"Hid report [{i}]: {j.decode('utf-8')}",color="white")
-                                dpayload,checkr =self.decodePacketAscii(payload=binascii.unhexlify(j))
-                                cprint(f"\tdecoded: {dpayload}",color="blue")
-                        if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
-                            self.showMessage("Possible data leakage detected in HID report!",color='blue',blink='y')
-                    else:
-                        self.device_hidrep = []
-                except Exception as e:
-                    print (e)
-                    self.device_hidrep = []
-                    self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
-            self.itshid = 0
+            except Exception as e:
+                print (e)
+                self.device_hidrep = []
+                self.showMessage("Couldn't get a hid report but we have claimed the device.",color='red',blink='y')
+        self.itshid = 0
         if type(self.device.manufacturer) is type(None):
             self.manufacturer = "UnkManufacturer"
         else:
             self.manufacturer = self.device.manufacturer
         self.SelectedDevice = self.manufacturer + "-" + str(self.device.idVendor) + "-" + str(self.device.idProduct) + "-" + str(time())
         self.SelectedDevice = self.projname+"-"+self.SelectedDevice.replace(" ",'')
-        cloneit = input("Do you want to save this device's information?[y/n]")
-        if cloneit.lower() == 'y':
-            self.clonedev()
+        self.clonedev()
 
     def monInterfaceChng(self,ven,prod):
         """Method in charge of monitoring interfaces for changes this is called from def startMonInterfaceChng(self)

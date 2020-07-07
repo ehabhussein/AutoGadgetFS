@@ -591,7 +591,7 @@ class agfs:
         cprint(f"|{'-' * 90}[Pkt #{self.mitmcounter}]", color="green")
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    def MITMproxy(self, epin, epout, hosthstsave, devsave):
+    def MITMproxy(self, epin, epout, hostsave, devsave):
         """
         This method creates a connection to the RabbitMQ and listen on received messages on the todev queue
         :param epin: Endpoint IN
@@ -602,7 +602,7 @@ class agfs:
         """
         try:
             try:
-                if hosthstsave:
+                if hostsave:
                     self.hostsave = 1
                     self.bintransfered = open(f"binariesdb/{self.SelectedDevice}-Host.bin", 'wb')
             except Exception as e:

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 __author__ = "Ehab Hussein"
-__version__ = "2.2"
+__version__ = "2.3"
 __status__ = "Alpha"
 __twitter__ = "@0xRaindrop"
 ##################### Imports
@@ -72,7 +72,6 @@ if not path.exists('payloads'):
 
 class agfs():
     def __init__(self):
-
         self.showMessage("AutoGadgetFS: USB testing made easy",color="white")
         self.fuzzdevice = 0
         self.fuzzhost = 0
@@ -588,6 +587,7 @@ class agfs():
         except Exception as e:
             print(e)
         cprint(f"|{'-' * 90}[Pkt #{self.mitmcounter}]", color="green")
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def MITMproxy(self,epin,epout,savetofile,genpkts):
         """
@@ -610,10 +610,9 @@ class agfs():
             self.qpikaparams = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
             self.qchannel = self.qconnect.channel()
-            #self.qchannel.basic_qos(prefetch_count=1)
+            self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=functools.partial(self.MITMproxyRQueues,epout=epout),
-                                        queue='todevice',
-                                        auto_ack=True)
+                                        queue='todevice')
             self.startSniffReadThread(endpoint=epin, queue=1,genpkts=genpkts)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
@@ -698,7 +697,6 @@ class agfs():
         """
         self.startQueuewrite()
         sleep(1)
-       # for i in range(howmany):
         i = 0
         while True:
             try:

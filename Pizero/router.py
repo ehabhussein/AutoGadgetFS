@@ -78,7 +78,7 @@ def mitmProxy(ipaddress, pktlen):
     :return: None
     """
     try:
-        cprint("\t[-]Monitoring /dev/hidg0 started!",color="white")
+        cprint("\t[-]Monitoring /dev/hidg0 started!",color="green")
         qchannel2,qconnect2 = makeChannel(ipaddress)
         epoll = select.epoll()
         epoll.register(hidg.fileno(), select.EPOLLIN)
@@ -101,7 +101,7 @@ def mitmProxy(ipaddress, pktlen):
                 continue
     except pika.exceptions.StreamLostError:
         cprint("[+]Stream dropped re-initiating Connection to RabbitMQ",color="green")
-        cprint("\t[-]Reconnected!",color="white")
+        cprint("\t[-]Reconnected!",color="green")
         qchannel2,qconnect2 = makeChannel(ipaddress)
     except Exception as e:
             print(e)
@@ -122,10 +122,10 @@ def write2host(ch, method, properties, body):
     packet,diff = decodePacketAscii(payload=binascii.unhexlify(binascii.hexlify(body)),rec=1)
     cprint(f"|-[From Device]->Write packet->[To Host][Pkt #{mitmcounter}]{'-'*80}", color="green")
     cprint(f"|\t  Bytes:", color="blue")
-    cprint(f"|\t\tSent: {binascii.hexlify(body)}",color="white")
-    cprint(f"|\t\tDiff:   {diff}", color="white")
+    cprint(f"|\t\tSent: {binascii.hexlify(body)}",color="green")
+    cprint(f"|\t\tDiff:   {diff}", color="green")
     cprint(f"|\t  Decoded:", color="blue")
-    cprint(f"|\t\t Sent: {packet}", color="white")
+    cprint(f"|\t\t Sent: {packet}", color="green")
     cprint(f"|{'_'*90}[Pkt #{mitmcounter}]", color="green")
     try:
         os.write(fdW.fileno(),body)
@@ -175,7 +175,7 @@ def fuzzgadgets(ch, method, properties, body):
     os.system(chmodgadget)
     os.system(creategadget)
     sleep(4)
-    cprint("removing the gadget",color='white')
+    cprint("removing the gadget",color='green')
     os.system(removegadget)
 
 def gadgetfuzzer(ipaddress):
@@ -200,7 +200,7 @@ if __name__ == '__main__':
             try:
                 qchannel,qconnect = makeChannel(args.ipaddress)
                 qchannel.basic_consume(on_message_callback=write2host, queue='tohost',auto_ack=True)
-                cprint("\t[-]Started!",color="white")
+                cprint("\t[-]Started!",color="green")
                 cprint("[+]Press Ctrl-C anytime to clean up and exit!",color="green")
                 cprint("[+]MITM and gadget fuzzers sessions have started!",color="blue",attrs=['blink'])
                 qchannel.start_consuming()

@@ -76,7 +76,7 @@ if not path.exists('payloads'):
 
 class agfs:
     def __init__(self):
-        self.showMessage("AutoGadgetFS: USB testing made easy", color="white")
+        self.showMessage("AutoGadgetFS: USB testing made easy", color="green")
         self.fuzzdevice = 0
         self.fuzzhost = 0
         self.ingui = 0
@@ -235,7 +235,7 @@ class agfs:
                     if "INTERFACE" in j:
                         cprint(j.split("=")[0],color="blue")
                     elif "ENDPOINT" in j:
-                        cprint(j.split("=")[0], color="white")
+                        cprint(j.split("=")[0], color="green")
 
 
     def newProject(self):
@@ -318,13 +318,13 @@ class agfs:
             self.showMessage("Couldn't get device configuration!", color="red", blink='y')
         for i in range(self.devcfg.bNumInterfaces):
             try:
-                cprint(f"[+] Claiming interface {i}", color='white')
+                cprint(f"[+] Claiming interface {i}", color='green')
                 usb.util.claim_interface(self.device, i)
                 cprint(f"\t[-]Successfully claimed interface {i}", color='blue')
             except:
                 cprint(f"[+]Failed while claiming interface {i}", color='red')
         if self.itshid == 1:
-            cprint("Checking HID report retrieval", color="white")
+            cprint("Checking HID report retrieval", color="green")
             try:
                 self.device_hidrep = []
                 """Thanks https://wuffs.org/blog/mouse-adventures-part-5
@@ -340,7 +340,7 @@ class agfs:
                 if self.device_hidrep:
                     for i, j in enumerate(self.device_hidrep):
                         if len(j) > 0:
-                            cprint(f"Hid report [{i}]: {j.decode('utf-8')}", color="white")
+                            cprint(f"Hid report [{i}]: {j.decode('utf-8')}", color="blue")
                             dpayload, checkr = self.decodePacketAscii(payload=binascii.unhexlify(j))
                             cprint(f"\tdecoded: {dpayload}", color="blue")
                     if binascii.unhexlify(self.device_hidrep[0])[-1] != 192 and len(self.device_hidrep) > 0:
@@ -496,7 +496,7 @@ class agfs:
                 packet = memoryview(binascii.unhexlify(body)).tolist()
                 random.shuffle(packet)
                 body = ''.join(format(x, '02x') for x in packet)
-                cprint(f"|-\t\t manipulation:{body}", color="white")
+                cprint(f"|-\t\t manipulation:{body}", color="green")
             with open('%s' % (pts.strip()), 'w') as ptsx:
                 while True:
                     if self.killthread == 1:
@@ -575,7 +575,7 @@ class agfs:
         cprint(f"|-[From Host]->Write packet->[To Device][Pkt# {self.mitmcounter}]{'-' * 70}", color="green")
         cprint(f"|\t  Received:{body}", color="blue")
         cprint(f"|\t        Diff:{diff}", color="blue")
-        cprint(f"|\t\t  Decoded:{rec}", color="white")
+        cprint(f"|\t\t  Decoded:{rec}", color="green")
         if self.fuzzdevice == 1:
             packet = memoryview(binascii.unhexlify(bytearray(body))).tolist()
             random.shuffle(packet)
@@ -706,9 +706,9 @@ class agfs:
                     sdec, checker = self.decodePacketAscii(payload=s)
                     cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
                     cprint(f"|\t  Bytes:", color="blue")
-                    cprint(f"|\t\tSent: {binascii.hexlify(s)}", color="white")
+                    cprint(f"|\t\tSent: {binascii.hexlify(s)}", color="green")
                     cprint(f"|\t  Decoded:", color="blue")
-                    cprint(f"|\t\t Sent: {sdec}", color="white")
+                    cprint(f"|\t\t Sent: {sdec}", color="green")
                     cprint(f"|{'_' * 90}[{i}]", color="green")
                     self.hostwrite(s, isfuzz=1)
                 elif min is not None and max is not None:
@@ -716,9 +716,9 @@ class agfs:
                     sdec, check = self.decodePacketAscii(payload=s)
                     cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
                     cprint(f"|\t  Bytes:", color="blue")
-                    cprint(f"|\t\tSent: {binascii.hexlify(s)}", color="white")
+                    cprint(f"|\t\tSent: {binascii.hexlify(s)}", color="green")
                     cprint(f"|\t  Decoded:", color="blue")
-                    cprint(f"|\t\t Sent: {sdec}", color="white")
+                    cprint(f"|\t\t Sent: {sdec}", color="green")
                     cprint(f"|{'_' * 90}[{i}]", color="green")
                     self.hostwrite(s, isfuzz=1)
                 sleep(timeout)
@@ -757,9 +757,9 @@ class agfs:
                 cprint(f"|\t  Bytes:", color="blue")
                 cprint(
                     f"|\t\tSent: {binascii.hexlify(s)}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
-                    color="white")
+                    color="green")
                 cprint(f"|\t  Decoded:", color="blue")
-                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="white")
+                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
                 cprint(f"|{'_' * 90}[{i}]", color="green")
                 if Cmatch:
                     if Cmatch not in rdec:
@@ -797,7 +797,7 @@ class agfs:
         :return None
         """
         p = [packet[i:i + 2] for i in range(0, len(packet), 2)]
-        cprint(f"Packet: {''.join(p)}",color='white')
+        cprint(f"Packet: {''.join(p)}",color='green')
         theBytes = input("Which byte indexes do you want to fuzz? [Separate indexes by a space] ").split()
         for i in range(howmany):
             for b in theBytes:
@@ -816,9 +816,9 @@ class agfs:
                 cprint(f"|\t  Bytes:", color="blue")
                 cprint(
                     f"|\t\tSent: {binascii.hexlify(s)}\n|\t\tDiff:   {checks}\n|\t\t    |____Received: {binascii.hexlify(r)}\n",
-                    color="white")
+                    color="green")
                 cprint(f"|\t  Decoded:", color="blue")
-                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="white")
+                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
                 cprint(f"|{'_' * 90}[{i}]", color="green")
                 sleep(timeout)
             except usb.core.USBError as e:
@@ -911,9 +911,9 @@ class agfs:
                 cprint(f"|\t  Bytes:", color="blue")
                 cprint(
                     f"|\t\tSent: {binascii.hexlify(s)}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
-                    color="white")
+                    color="green")
                 cprint(f"|\t  Decoded:", color="blue")
-                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="white")
+                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
                 cprint(f"|{'_' * 90}[{i}]", color="green")
                 sleep(timeout)
             except usb.core.USBError as e:
@@ -957,7 +957,7 @@ class agfs:
     def gdtzfuzz(self, vid, pid, dclass, serial, manufacturer, product, samples, min, max):
         qchannel, qconnect = self.makeChannel(self.rabbitmqserver)
         self.removeGadget()
-        colors = ['blue', 'white']
+        colors = ['blue', 'green']
         for i, j in enumerate(range(samples)):
             if self.gdtzthread == 1:
                 break
@@ -1010,9 +1010,9 @@ class agfs:
                 cprint(f"|\t  Request:", color="blue")
                 cprint(
                     f"|\t\tSent: bmRequest={hex(i[0])}, bRequest={hex(i[1])},wValue={hex(i[2])} , wIndex={hex(i[3])},data_length={hex(255)}\n|\t\t    |____Received: {binascii.unhexlify(binascii.hexlify(responder.tobytes()))[:10]}...[SNIP]",
-                    color="white")
+                    color="green")
                 cprint(f"|\t  Decoded:", color="blue")
-                cprint(f"|\t\t Response: {responder2}", color="white")
+                cprint(f"|\t\t Response: {responder2}", color="green")
                 cprint(f"|{'_' * 90}[*]", color="green")
                 try:
                     _insert = _table.insert().values(
@@ -1087,7 +1087,7 @@ class agfs:
         """
         pays = {}
         end = -1
-        colors = ['blue', 'white']
+        colors = ['blue', 'green']
         for i, j in enumerate(glob.glob("payloads/*")):
             pays[i] = j
             cprint(f"[{i}]: {j}", color=colors[0])
@@ -1104,14 +1104,14 @@ class agfs:
                             self.startQueuewrite()
                             self.hostwrite(packet.strip())
                             self.stopQueuewrite()
-                            cprint(f"| Packet #{i}, Direction Host{'-' * 40}", color='white')
+                            cprint(f"| Packet #{i}, Direction Host{'-' * 40}", color='green')
                             cprint(f"|\t\tSent: {packet}", color="blue")
                         except Exception as e:
                             self.stopQueuewrite()
                             break
                     elif direction.lower() == "d":
                         self.devWrite(epout, binascii.unhexlify(packet))
-                        cprint(f"| Packet #{i},Direction: Device {'-' * 40}", color='white')
+                        cprint(f"| Packet #{i},Direction: Device {'-' * 40}", color='green')
                         cprint(f"|\t\tSent: {packet}", color="blue")
                     else:
                         self.showMessage("Payload format is incorrect.", color='red', blink='y')
@@ -1187,7 +1187,7 @@ class agfs:
         getids = requests.get(f'https://the-sz.com/products/usbid/index.php?v=&p=&n={search}').text
         parsed_html = BeautifulSoup(getids, "lxml")
         results = parsed_html.body.find_all('div', attrs={'class': 'usbid'})
-        colors = ['blue', 'white']
+        colors = ['blue', 'green']
         for result in results:
             line = result.text.split('\n')
             cprint(f"{line[1].ljust(15)} {line[2].ljust(15)} {line[3].ljust(15)} {line[4].ljust(15)}", color=colors[0])
@@ -1479,25 +1479,25 @@ class agfs:
         """
         try:
             target = f"agfs.{method}"
-            cprint(f"****\n[+]Help for {eval(target).__name__} Method:", color="white")
+            cprint(f"****\n[+]Help for {eval(target).__name__} Method:", color="green")
             cprint(f"[-]Signature: {eval(target).__name__}{inspect.signature(eval(target))}\n", color="blue")
-            cprint(f"\n[+]{eval(target).__name__} Help:", color="white")
+            cprint(f"\n[+]{eval(target).__name__} Help:", color="green")
             cprint(f"{inspect.getdoc(eval(target))}", color="blue")
             if source is not None:
-                cprint(f"\n[+]Source code of method {eval(target).__name__}:", color="white")
+                cprint(f"\n[+]Source code of method {eval(target).__name__}:", color="green")
                 cprint(f"{inspect.getsource(eval(target))}", color="green")
-            cprint("****", color="white")
+            cprint("****", color="green")
         except:
             method_list = [meth for meth in dir(agfs) if callable(getattr(agfs, meth)) and not meth.startswith("__")]
             method_list.sort()
-            cprint("Currently supported methods:", color='white')
+            cprint("Currently supported methods:", color='green')
             alt = ['green', 'blue']
-            cprint(f"_" * 190, color="white")
-            cprint(f"{'Method'.ljust(21, ' ')}||-->Description", color='white', attrs=['blink'])
-            cprint(f"-" * 190, color="white")
+            cprint(f"_" * 190, color="green")
+            cprint(f"{'Method'.ljust(21, ' ')}||-->Description", color='green', attrs=['blink'])
+            cprint(f"-" * 190, color="green")
             for item in method_list:
                 target = f"agfs.{item}"
                 target_doc = inspect.getdoc(eval(target)).split("\n")[0]
                 cprint(f"{item.ljust(21, ' ')}||-->{target_doc}", color=alt[0])
-                cprint(f"_" * 190, color="white")
+                cprint(f"_" * 190, color="green")
                 alt.reverse()

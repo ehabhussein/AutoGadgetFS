@@ -152,6 +152,12 @@ How AutoGadgetFS works:
     sudo -H pip3 install cmd
     ```
 
+* Downgrade prompt toolkit for better ipython experience:
+
+    ```bash
+    sudo python3 -m pip install prompt-toolkit~=2.0
+    ```
+
 * Enable the web interface for rabbitMQ
 
     ```bash

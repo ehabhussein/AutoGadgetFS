@@ -187,6 +187,7 @@ class Probability():
             if "".join(self.genList) not in self.packets:
                 self.packets.append("".join(self.genList))
 
+
     def patterngenerator(self):
         self.maxweight = 0
         self.threshold = 0

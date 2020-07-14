@@ -90,6 +90,7 @@ class agfs:
         self.chksimchrForm = ""
         self.diffmap = 0
         self.diffmapPTS = ""
+        self.devsave = 0
         with open('agfsSettings.json') as config_file:
             agfsSettings = json.load(config_file)
         self.rabbitmqserver = agfsSettings['RabbitMQ-IP']
@@ -485,7 +486,6 @@ class agfs:
                 except usb.core.USBError as e:
                     if e.args == ('Operation timed out\r\n',):
                         self.showMessage("Operation timed out cannot read from device", color='red', blink='y')
-                    pass
                 except Exception as e:
                     self.showMessage("Error read from device", color='red')
                 self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull', body="heartbeats")
@@ -519,7 +519,6 @@ class agfs:
                         if e.args == ('Operation timed out! Cannot read from device\n',):
                             ptsx.write("Operation timed out! Cannot read from device\n")
                             ptsx.flush()
-                        pass
         else:
             self.showMessage("either pass to a queue or to a tty", color='red', blink='y')
 
@@ -530,12 +529,16 @@ class agfs:
         :param: devsave: save packets from device to file
         :return: None
         """
+        self.mitmin = epin
+        self.mitmout = epout
         if self.mitmstarted == 1:
             return self.showMessage("You cannot mitm more than one interface at a time in this current release.",
                                     color='red', blink='y')
         self.mitmstarted = 1
         if hostsave:
             self.hostsave = 1
+        if devsave:
+            self.devsave = 1
         self.killthread = 0
         self.nlpthresh = 0
         self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(epin, epout, hostsave, devsave,))
@@ -581,7 +584,14 @@ class agfs:
             random.shuffle(packet)
             body = ''.join(format(x, '02x') for x in packet)
             cprint(f"|-\t\t manipulation:{body}", color="grey")
-        self.device.write(epout, binascii.unhexlify(body))
+        try:
+            self.device.write(epout, binascii.unhexlify(body))
+        except usb.core.USBError as e:
+           if e.args[0] == 19 or e.args[0] == 2 or e.args[0] == 5:
+                cprint("\nDevice unavailable it might be disconnected waiting for reconnect",color='red')
+                self.reconnectdevice()
+                self.device.write(epout, binascii.unhexlify(body))
+
         try:
             if self.hostsave:
                 self.bintransfered.write(body)
@@ -602,6 +612,8 @@ class agfs:
         """
         try:
             try:
+                if devsave:
+                    self.devsave
                 if hostsave:
                     self.hostsave = 1
                     self.bintransfered = open(f"binariesdb/{self.SelectedDevice}-Host.bin", 'wb')
@@ -676,7 +688,7 @@ class agfs:
 
     def hostwrite(self, payload, isfuzz=0):
         """ This method writes packets to the host either targeting a software or a driver in control of the device
-        use this when you want to send payloads to a device driver on the host. 
+        use this when you want to send payloads to a device driver on the host.
 
         :param payload: the message to be sent to the host example: "0102AAFFCC"
         :param isfuzz: is the payload coming from the fuzzer ?
@@ -685,7 +697,7 @@ class agfs:
         self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                      body=binascii.unhexlify(payload) if isfuzz == 0 else payload)
 
-    def hstrandfuzz(self, howmany=1, size=None, min=None, max=None, timeout=0.5):
+    def hstrandfuzz(self, howmany=None, size=None, min=None, max=None, timeout=0.5,mybyte=None):
         """
         this method allows you to create fixed or random size packets created using urandom and send them to the host queue
         :param howmany: how many packets to be sent to the device`
@@ -694,15 +706,20 @@ class agfs:
         :param min minimum size value to generate a packet
         :param max maximum size value to generate a packet
         :param timeout: timeOUT !
+        :param mybyte: if you want to fuzz with a specific byte 'AA'
         :return: None
         """
         self.startQueuewrite()
         sleep(1)
         i = 0
         while True:
+            if howmany:
+                if i == howmany:
+                    self.showMessage("Host fuzzing stopped successfully!")
+                    break
             try:
                 if size:
-                    s = urandom(size)
+                    s = urandom(size) if mybyte is None else binascii.unhexlify(mybyte * size)
                     sdec, checker = self.decodePacketAscii(payload=s)
                     cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
                     cprint(f"|\t  Bytes:", color="blue")
@@ -770,14 +787,24 @@ class agfs:
                         input("Received data has matched!. Press Enter to continue fuzzing!")
                 sleep(timeout)
             except usb.core.USBError as e:
-                cprint(f"|-Packet[{i}]{'-' * 80}", color="red", attrs=['blink'])
-                cprint(f"|\t  Error:", color="red")  # not blinking to grab attention
-                cprint(f"|\t\tSent: {binascii.hexlify(s)}", color='red', attrs=['blink'])
-                cprint(f"|\t\t|____{e}", color='red', attrs=['blink'])
-                cprint(f"|{'_' * 90}[{i}]", color="red", attrs=['blink'])
-                if reset is not None:
-                    self.device.reset()
-                    self.showMessage("Device reset complete")
+                if e.args[0] == 19 or e.args[0] == 2 or e.args[0] == 5:
+                    cprint("[+]Device seems to have been disconnected\n\t[-]Sleeping 5 seconds for reconnect",color='blue')
+                    sleep(5)
+                    self.reconnectdevice()
+                    continue
+                else:
+                    cprint(f"|-Packet[{i}]{'-' * 80}", color="red", attrs=['blink'])
+                    cprint(f"|\t  Error:", color="red")  # not blinking to grab attention
+                    cprint(f"|\t\tSent: {binascii.hexlify(s)}", color='red', attrs=['blink'])
+                    cprint(f"|\t\t|____{e}", color='red', attrs=['blink'])
+                    cprint(f"|{'_' * 90}[{i}]", color="red", attrs=['blink'])
+                    if reset is not None:
+                        try:
+                            self.device.reset()
+                            self.showMessage("Device reset complete")
+                        except usb.core.USBError as e:
+                            if e.args[0] == 19 or e.args[0] == 2 or e.args[0] == 5:
+                                self.reconnectdevice()
             except KeyboardInterrupt:
                 self.showMessage("Keyboard interrupt detected! Ending...")
                 break
@@ -787,6 +814,35 @@ class agfs:
         """This method Resets the device"""
         self.device.reset()
         self.showMessage("The device has been reset!")
+
+    def reconnectdevice(self,fromMITM=0):
+        """This method reconnects your disconnected device automatically
+        We need to add a check if the MITM was started with save files ## not implemented yet
+        :param return: None
+        """
+        while True:
+            try:
+                self.device = usb.core.find(idVendor=int(self.idVen), idProduct=int(self.idProd))
+                if self.device.bMaxPacketSize0:
+                    break
+            except:
+                continue
+        for configurations in self.device:
+            for inter in range(configurations.bNumInterfaces + 1):
+                try:
+                    if self.device.is_kernel_driver_active(inter):
+                        self.device.detach_kernel_driver(inter)
+                except:
+                    pass
+        for i in range(self.devcfg.bNumInterfaces):
+            try:
+                usb.util.claim_interface(self.device, i)
+            except:
+                pass
+        if fromMITM == 1:
+            self.startMITMusbWifi(epin=self.mitmin,epout=self.mitmout, hostsave=self.hostsave, devsave=self.devsave)
+
+
 
     def describeFuzz(self, epin=None, epout=None, packet=None, howmany=100, match=None, timeout=0):
         """This method allows you to describe a packet and select which bytes will be fuzzed
@@ -947,6 +1003,7 @@ class agfs:
         :param max: maximum bytes to add to the HID report
         :return: None
         """
+        self.removeGadget()
         if self.mitmstarted == 1:
             return self.showMessage("you cannot fuzz gadgets and MITM at the same time", color='red')
         self.gdtzthread = 0

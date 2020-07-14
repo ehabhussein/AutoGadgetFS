@@ -841,6 +841,7 @@ class agfs:
                 pass
         if fromMITM == 1:
             self.startMITMusbWifi(epin=self.mitmin,epout=self.mitmout, hostsave=self.hostsave, devsave=self.devsave)
+        cprint("[-] Device reconnected!",color='blue')
 
 
 

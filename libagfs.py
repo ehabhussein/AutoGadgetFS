@@ -845,14 +845,19 @@ class agfs:
 
 
 
-    def describeFuzz(self, epin=None, epout=None, packet=None, howmany=100, match=None, timeout=0):
+    def describeFuzz(self, epin=None, epout=None, packet=None, howmany=100, match=None, timeout=0, direction=None):
         """This method allows you to describe a packet and select which bytes will be fuzzed
         :param epin: endpoint in
         :param epout: endpoint out
         :param packet: a string of the packet that you want to use for fuzzing
         :param howmany: how many packets to be sent
+        :param timeout: Timeout between each packet sent
+        :param Direction: 'h' for sending to Host , 'd' for sending to device
         :return None
         """
+        if direction == 'h':
+            self.startQueuewrite()
+            sleep(1)
         p = [packet[i:i + 2] for i in range(0, len(packet), 2)]
         cprint(f"Packet: {''.join(p)}",color='green')
         theBytes = input("Which byte indexes do you want to fuzz? [Separate indexes by a space] ").split()
@@ -861,23 +866,32 @@ class agfs:
                 p[int(b)] = urandom(1).hex()
             try:
                 s = binascii.unhexlify(''.join(p))
-                self.device.write(epout, s)
-                r = self.device.read(epin, self.device.bMaxPacketSize0)
-                sdec, checks = self.decodePacketAscii(payload=s,rec=1)
-                rdec, checkr = self.decodePacketAscii(payload=r)
-                if match:
-                    if match not in rdec:
-                        self.fuzzchange = (sdec, rdec)
-                        self.showMessage("Received data has changed!")
-                cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
-                cprint(f"|\t  Bytes:", color="blue")
-                cprint(
-                    f"|\t\tSent: {binascii.hexlify(s)}\n|\t\tDiff:   {checks}\n|\t\t    |____Received: {binascii.hexlify(r)}\n",
-                    color="green")
-                cprint(f"|\t  Decoded:", color="blue")
-                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
-                cprint(f"|{'_' * 90}[{i}]", color="green")
-                sleep(timeout)
+                if direction == 'd':
+                    self.device.write(epout, s)
+                    r = self.device.read(epin, self.device.bMaxPacketSize0)
+                    sdec, checks = self.decodePacketAscii(payload=s,rec=1)
+                    rdec, checkr = self.decodePacketAscii(payload=r)
+                    if match:
+                        if match not in rdec:
+                            self.fuzzchange = (sdec, rdec)
+                            self.showMessage("Received data has changed!")
+                    cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
+                    cprint(f"|\t  Bytes:", color="blue")
+                    cprint(
+                        f"|\t\tSent: {binascii.hexlify(s)}\n|\t\tDiff:   {checks}\n|\t\t    |____Received: {binascii.hexlify(r)}\n",
+                        color="green")
+                    cprint(f"|\t  Decoded:", color="blue")
+                    cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
+                    cprint(f"|{'_' * 90}[{i}]", color="green")
+                    sleep(timeout)
+                elif direction == 'h':
+                    cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
+                    cprint(f"|\t  Bytes:", color="blue")
+                    cprint(f"|\t\tSent: {binascii.hexlify(s)}", color="green")
+                    cprint(f"|{'_' * 90}[{i}]", color="green")
+                    self.hostwrite(s, isfuzz=1)
+                else:
+                    return cprint("you must select a direction to send either host or device",color='red',attrs=['blink'])
             except usb.core.USBError as e:
                 cprint(f"|-Packet[{i}]{'-' * 80}", color="red", attrs=['blink'])
                 cprint(f"|\t  Error:", color="red")  # not blinking to grab attention
@@ -888,7 +902,12 @@ class agfs:
                 self.showMessage("Device reset complete")
             except KeyboardInterrupt:
                 self.showMessage("Keyboard interrupt detected! Ending...")
+                if direction == 'h':
+                    self.stopQueuewrite()
                 break
+        if direction == 'h':
+            self.stopQueuewrite()
+        self.showMessage("All Packets sent successfully!",color="blue")
 
     def SmartFuzz(self, engine=None, samples=100, direction=None, filename=None):
         """

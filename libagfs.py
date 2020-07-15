@@ -624,7 +624,7 @@ class agfs:
             self.qpikaparams = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds)
             self.qconnect = pika.BlockingConnection(self.qpikaparams)
             self.qchannel = self.qconnect.channel()
-            self.qchannel.basic_qos(prefetch_count=1)
+            #self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=functools.partial(self.MITMproxyRQueues, epout=epout),
                                         queue='todevice')
             self.startSniffReadThread(endpoint=epin, queue=1, devsave=devsave)
@@ -1032,6 +1032,10 @@ class agfs:
         self.gdtz.start()
 
     def gdtzfuzz(self, vid, pid, dclass, serial, manufacturer, product, samples, min, max):
+        """
+        GadgetFuzzer creates hid gadgets for to test the hostsave
+        #add in params #TODO
+        """
         qchannel, qconnect = self.makeChannel(self.rabbitmqserver)
         self.removeGadget()
         colors = ['blue', 'green']

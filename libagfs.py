@@ -48,6 +48,7 @@ except:
     exit(-1)
 try:
     import pika
+    import pika.exceptions
 except:
     print("Man in the middle for USB will not work. install pika")
 
@@ -323,7 +324,7 @@ class agfs:
                 usb.util.claim_interface(self.device, i)
                 cprint(f"\t[-]Successfully claimed interface {i}", color='blue')
             except:
-                cprint(f"[+]Failed while claiming interface {i}", color='red')
+                cprint(f"[+]Failed while claiming interface {i}. Maybe its on a non active configuration", color='red')
         if self.itshid == 1:
             cprint("Checking HID report retrieval", color="green")
             try:
@@ -400,7 +401,7 @@ class agfs:
         self.showMessage("Monitoring of interface changes has stopped", color='green')
 
     def stopSniffing(self):
-        """Kills the sniffing thread strted by startSniffReadThread()"""
+        """Kills the sniffing thread strted by startsniff()"""
         self.killthread = 1
         self.readerThread.join()
         try:
@@ -420,30 +421,35 @@ class agfs:
         self.showMessage("Sniffing has stopped successfully!", color='green')
         self.killthread = 0
 
-    def startSniffReadThread(self, endpoint=None, pts=None, queue=None, timeout=0, devsave=0):
+    def startsniff(self, epin=None, pts=None, queue=None, timeout=0, devsave=0):
         """ This is a thread to continuously read the replies from the device and dependent on what you pass to the method either pts or queue
        :param endpoint: endpoint address you want to read from
        :param pts: if you want to read the device without queues and send output to a specific tty
        :param queue: if you will use the queues for a full proxy between target and host
-       :param channel: this is automatically passed if you use the self.startMITMusbWifi()
+       :param channel: this is automatically passed if you use the self.startMITM()
        :param hosthstsave: fill in ********************
        :param devsave: fill in ********************
        :return: None
        """
-        mypts = None
-        self.killthread = 0
-        if queue is not None:
-            self.frompts = 0
-            self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
-            self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds3, heartbeat=60)
-            self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
-            self.qchannel3 = self.qconnect3.channel()
-        if pts is not None:
-            self.frompts = 1
-            mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
-            input("Press Enter when ready..on %s" % mypts)
-        self.readerThread = threading.Thread(target=self.sniffdevice, args=(endpoint, mypts, queue, timeout, devsave))
-        self.readerThread.start()
+        try:
+            mypts = None
+            self.killthread = 0
+            if queue is not None:
+                self.frompts = 0
+                self.qcreds3 = pika.PlainCredentials('autogfs', 'usb4ever')
+                self.qpikaparams3 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds3, heartbeat=60)
+                self.qconnect3 = pika.BlockingConnection(self.qpikaparams3)
+                self.qchannel3 = self.qconnect3.channel()
+            if pts is not None:
+                self.frompts = 1
+                mypts = input("Open a new terminal and type 'tty' and input the pts number: (/dev/pts/X) ")
+                input("Press Enter when ready..on %s" % mypts)
+            self.readerThread = threading.Thread(target=self.sniffdevice, args=(epin, mypts, queue, timeout, devsave))
+            self.readerThread.start()
+        except pika.exceptions.AMQPConnectionError:
+            return cprint("Error: Make sure that RabbitMQ is running", color='red')
+        except Exception as e:
+            print(e)
 
     def sniffdevice(self, endpoint, pts, queue, timeout, devsave):
         """ read the communication between the device to hosts
@@ -474,10 +480,8 @@ class agfs:
                         if devsave == 1:
                             self.devsaveF.write(binascii.hexlify(packet))
                             self.devsaveF.write(b'\r\n')
-
                     except Exception as e:
                         print(e)
-                        pass
                     self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
                                                  body=packet)
                     # self.qchannel3.basic_publish(exchange='agfs', routing_key='tohst',
@@ -522,9 +526,10 @@ class agfs:
         else:
             self.showMessage("either pass to a queue or to a tty", color='red', blink='y')
 
-    def startMITMusbWifi(self, epin=None, epout=None, hostsave=None, devsave=0):
+    def startMITM(self, epin=None, epout=None, hostsave=None, devsave=0):
         """ Starts a thread to monitor the USB target Device
-        :param endpoint: the OUT endpoint of the device which is from the device to the PC
+        :param epin: the IN endpoint of the device which is from the device to the PC
+        :param epout: the OUT endpoint of the device which from PC to device
         :param hostsave: if you would like the packets from the host to be saved to a binary file
         :param: devsave: save packets from device to file
         :return: None
@@ -544,7 +549,7 @@ class agfs:
         self.startMITMProxyThread = threading.Thread(target=self.MITMproxy, args=(epin, epout, hostsave, devsave,))
         self.startMITMProxyThread.start()
 
-    def stopMITMusbWifi(self):
+    def stopMITM(self):
         ''' Stops the man in the middle thread between the host and the device'''
         self.mitmcounter = 0
         self.mitmstarted = 0
@@ -613,7 +618,7 @@ class agfs:
         try:
             try:
                 if devsave:
-                    self.devsave
+                    self.devsave = 1
                 if hostsave:
                     self.hostsave = 1
                     self.bintransfered = open(f"binariesdb/{self.SelectedDevice}-Host.bin", 'wb')
@@ -627,7 +632,7 @@ class agfs:
             #self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=functools.partial(self.MITMproxyRQueues, epout=epout),
                                         queue='todevice')
-            self.startSniffReadThread(endpoint=epin, queue=1, devsave=devsave)
+            self.startsniff(endpoint=epin, queue=1, devsave=devsave)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()
@@ -637,7 +642,7 @@ class agfs:
             pass
 
     def devWrite(self, endpoint, payload):
-        """To use this with a method you would write make sure to run the startSniffReadThread(self,endpoint=None, pts=None, queue=None,channel=None)
+        """To use this with a method you would write make sure to run the startsniff(self,endpoint=None, pts=None, queue=None,channel=None)
          method first so you can monitor responses
         :param endpoint: endpoint address you want to write method
         :param payload: the message to be sent to the devices
@@ -840,7 +845,7 @@ class agfs:
             except:
                 pass
         if fromMITM == 1:
-            self.startMITMusbWifi(epin=self.mitmin,epout=self.mitmout, hostsave=self.hostsave, devsave=self.devsave)
+            self.startMITM(epin=self.mitmin,epout=self.mitmout, hostsave=self.hostsave, devsave=self.devsave)
         cprint("[-] Device reconnected!",color='blue')
 
 
@@ -909,24 +914,21 @@ class agfs:
             self.stopQueuewrite()
         self.showMessage("All Packets sent successfully!",color="blue")
 
-    def SmartFuzz(self, engine=None, samples=100, direction=None, filename=None):
+    def SmartFuzz(self, engine=None, samples=10, direction=None, filename=None):
         """
         This method is generates packets based on what it has learned from a sniff from either the host or the device
-        :param engine: choice between smart, random , patterns
+        :param engine: choice between smart, random
             random: [truly random based on charset , length , chars found]
             smart: [based on input , weight & positions]
-            patterns: [based on smart + char cases]
         :param samples: number of samples to be generated
         :param direction: 'hst' or 'dev'
         :param filename: 'filename to learn from'
-        :return: self.edap.packets: packets generated
+        :return: None
         """
         if filename is not None:
             self.edap.readwords = list(set([i.decode('utf-8').strip() for i in open(filename, 'rb')]))
-        elif fromQueue is not None:
-            self.edap.readwords = fromQueue
         else:
-            return "nothing to do"
+            return cprint("nothing to do! Supply a file path which holds the payloads to learn from",color="red")
         self.edap.charset = list()
         self.edap.alphaupperindexes = list()
         self.edap.alphalowerindexes = list()
@@ -956,14 +958,37 @@ class agfs:
         if engine == "smart":
             for i in range(samples):
                 self.edap.smartGenerator()
-        elif engine == "patterns":
-            for i in range(samples):
-                self.edap.patterngenerator()
-        if engine == "random":
+        elif engine == "random":
             self.edap.randomgenerator()
+        else:
+            return cprint("No engine was selected. Nothing to do",color="red")
         self.showMessage(f"generated:{len(self.edap.packets)} Packets", color='green')
-        return self.edap.packets
-
+        if direction == 'hst':
+            self.startQueuewrite()
+            sleep(1)
+            for i in self.edap.packets:
+                self.hostwrite(i)
+            self.stopQueuewrite()
+        elif direction == 'dev':
+            cprint("Starting to send to device")
+            epin = int(input("Endpoint IN: "),16)
+            epout = int(input("Endpoint OUT: "),16)
+            for i,s in enumerate(self.edap.packets):
+                self.device.write(epout, binascii.unhexlify(s))
+                r = self.device.read(epin, self.device.bMaxPacketSize0)
+                sdec, checks = self.decodePacketAscii(payload=binascii.unhexlify(s))
+                rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
+                cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
+                cprint(f"|\t  Bytes:", color="blue")
+                cprint(
+                    f"|\t\tSent: {s}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
+                    color="green")
+                cprint(f"|\t  Decoded:", color="blue")
+                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
+                cprint(f"|{'_' * 90}[{i}]", color="green")
+        else:
+            return cprint("No direction was selected. Nothing to do. libagfs.edap.packets holds your generated payloads!", color="red")
+        self.showMessage("Ended Successfully!",color="blue")
     def devseqfuzz(self, epin=None, epout=None, starter=0x00, ender=0xffffffffff + 1, timeout=0):
         """
         This method allows you to create sequential incremented packets and send them to the device

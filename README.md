@@ -194,7 +194,7 @@ How AutoGadgetFS works:
   
     In [3]: exit
 
-    sudo python3.7 agfsconsole.py
+    sudo `python3` agfsconsole.py
     
     ***************************************
     AutoGadgetFS: USB testing made easy
@@ -204,7 +204,7 @@ How AutoGadgetFS works:
    ```
 
 * Patch Pyusb langID:
-  * Edit the file `/usr/local/lib/python3.7/dist-packages/usb/util.py`
+  * Edit the file `/usr/local/lib/python3/dist-packages/usb/util.py`
     * make changes to the `def get_string` method to look like below:
 
         ```python
@@ -290,7 +290,7 @@ How AutoGadgetFS works:
     ssh pi@<pi-ip-address>
     chmod +x removegadget.sh
     sudo apt update
-    sudo apt install python3.7 python3-pip
+    sudo apt install python3 python3-pip
     sudo -H pip3 install -r requirements.txt
     ```
 * Upgrading the latest kernel and adding modules (* This step is optional for the current release):

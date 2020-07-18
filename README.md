@@ -131,10 +131,10 @@ How AutoGadgetFS works:
 
 ### Linux Machine
 
-* Install Python3.7, ipython3 ,git, pip and rabbitMQ server
+* Install Python3, ipython3 ,git, pip and rabbitMQ server
 
     ```bash
-    sudo apt install python3.7 ipython3 git python3-pip rabbitmq-server dfu-util
+    sudo apt install python3 ipython3 git python3-pip rabbitmq-server dfu-util
     sudo service rabbitmq-server start
     ```
 

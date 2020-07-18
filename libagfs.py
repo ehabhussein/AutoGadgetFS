@@ -925,70 +925,80 @@ class agfs:
         :param filename: 'filename to learn from'
         :return: None
         """
-        if filename is not None:
-            self.edap.readwords = list(set([i.decode('utf-8').strip() for i in open(filename, 'rb')]))
-        else:
-            return cprint("nothing to do! Supply a file path which holds the payloads to learn from",color="red")
-        self.edap.charset = list()
-        self.edap.alphaupperindexes = list()
-        self.edap.alphalowerindexes = list()
-        self.edap.integerindexes = list()
-        self.edap.nonalphanumindexes = list()
-        self.edap.frequencies = dict()
-        self.edap.fullkeyboard = list(
-            "`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?")
-        self.edap.discardedcharset = list()
-        self.edap.finalcharset = list()
-        self.edap.countUpper = 0
-        self.edap.countLower = 0
-        self.edap.countDigits = 0
-        self.edap.countOther = 0
-        self.edap.pppc = 1
-        self.edap.word_dct = dict()
-        self.edap.packets = []
-        self.edap.howmany = samples
-        self.edap.unusedindexes = list(range(len(max(self.edap.readwords, key=len).strip())))
-        self.edap.getcharset()
-        self.edap.getindexes()
-        self.edap.printgeneralstats()
-        self.edap.frequency_index_vertical()
-        self.edap.frequency_index_horizontal()
-        self.edap.charswithfriendswithwords()
-        self.edap.PrefinalAnalysis()
-        if engine == "smart":
-            for i in range(samples):
-                self.edap.smartGenerator()
-        elif engine == "random":
-            self.edap.randomgenerator()
-        else:
-            return cprint("No engine was selected. Nothing to do",color="red")
-        self.showMessage(f"generated:{len(self.edap.packets)} Packets", color='green')
-        if direction == 'hst':
-            self.startQueuewrite()
-            sleep(1)
-            for i in self.edap.packets:
-                self.hostwrite(i)
-            self.stopQueuewrite()
-        elif direction == 'dev':
-            cprint("Starting to send to device")
-            epin = int(input("Endpoint IN: "),16)
-            epout = int(input("Endpoint OUT: "),16)
-            for i,s in enumerate(self.edap.packets):
-                self.device.write(epout, binascii.unhexlify(s))
-                r = self.device.read(epin, self.device.bMaxPacketSize0)
-                sdec, checks = self.decodePacketAscii(payload=binascii.unhexlify(s))
-                rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
-                cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
-                cprint(f"|\t  Bytes:", color="blue")
-                cprint(
-                    f"|\t\tSent: {s}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
-                    color="green")
-                cprint(f"|\t  Decoded:", color="blue")
-                cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
-                cprint(f"|{'_' * 90}[{i}]", color="green")
-        else:
-            return cprint("No direction was selected. Nothing to do. libagfs.edap.packets holds your generated payloads!", color="red")
-        self.showMessage("Ended Successfully!",color="blue")
+        try:
+            if filename is not None:
+                self.edap.readwords = list(set([i.decode('utf-8').strip() for i in open(filename, 'rb')]))
+            else:
+                return cprint("nothing to do! Supply a file path which holds the payloads to learn from",color="red")
+            self.edap.charset = list()
+            self.edap.alphaupperindexes = list()
+            self.edap.alphalowerindexes = list()
+            self.edap.integerindexes = list()
+            self.edap.nonalphanumindexes = list()
+            self.edap.frequencies = dict()
+            self.edap.fullkeyboard = list(
+                "`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?")
+            self.edap.discardedcharset = list()
+            self.edap.finalcharset = list()
+            self.edap.countUpper = 0
+            self.edap.countLower = 0
+            self.edap.countDigits = 0
+            self.edap.countOther = 0
+            self.edap.pppc = 1
+            self.edap.word_dct = dict()
+            self.edap.packets = []
+            self.edap.howmany = samples
+            self.edap.unusedindexes = list(range(len(max(self.edap.readwords, key=len).strip())))
+            self.edap.getcharset()
+            self.edap.getindexes()
+            self.edap.printgeneralstats()
+            self.edap.frequency_index_vertical()
+            self.edap.frequency_index_horizontal()
+            self.edap.charswithfriendswithwords()
+            self.edap.PrefinalAnalysis()
+            if engine == "smart":
+                for i in range(samples):
+                    self.edap.smartGenerator()
+            elif engine == "random":
+                self.edap.randomgenerator()
+            else:
+                return cprint("No engine was selected. Nothing to do",color="red")
+            self.showMessage(f"generated:{len(self.edap.packets)} Packets", color='green')
+            if direction == 'hst':
+                self.startQueuewrite()
+                sleep(1)
+                for i in self.edap.packets:
+                    self.hostwrite(i)
+                self.stopQueuewrite()
+            elif direction == 'dev':
+                cprint("Starting to send to device")
+                epin = int(input("Endpoint IN: "),16)
+                epout = int(input("Endpoint OUT: "),16)
+                for i,s in enumerate(self.edap.packets):
+                    self.device.write(epout, binascii.unhexlify(s))
+                    r = self.device.read(epin, self.device.bMaxPacketSize0)
+                    sdec, checks = self.decodePacketAscii(payload=binascii.unhexlify(s))
+                    rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
+                    cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
+                    cprint(f"|\t  Bytes:", color="blue")
+                    cprint(
+                        f"|\t\tSent: {s}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
+                        color="green")
+                    cprint(f"|\t  Decoded:", color="blue")
+                    cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
+                    cprint(f"|{'_' * 90}[{i}]", color="green")
+            else:
+                return cprint("No direction was selected. Nothing to do. libagfs.edap.packets holds your generated payloads!", color="red")
+            self.showMessage("Ended Successfully!",color="blue")
+        except KeyboardInterrupt:
+            if direction == 'hst':
+                self.stopQueuewrite()
+            return self.showMessage("Interrupt detected!", color='blue')
+        except Exception as e:
+            print(e)
+            return 'Exception occured!'
+
+
     def devseqfuzz(self, epin=None, epout=None, starter=0x00, ender=0xffffffffff + 1, timeout=0):
         """
         This method allows you to create sequential incremented packets and send them to the device

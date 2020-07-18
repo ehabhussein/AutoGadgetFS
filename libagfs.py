@@ -632,7 +632,7 @@ class agfs:
             #self.qchannel.basic_qos(prefetch_count=1)
             self.qchannel.basic_consume(on_message_callback=functools.partial(self.MITMproxyRQueues, epout=epout),
                                         queue='todevice')
-            self.startsniff(endpoint=epin, queue=1, devsave=devsave)
+            self.startsniff(epin=epin, queue=1, devsave=devsave)
             print("Connected to RabbitMQ, starting consumption!")
             print("Connected to exchange, we can send to host!")
             self.qchannel.start_consuming()

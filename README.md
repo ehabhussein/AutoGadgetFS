@@ -129,7 +129,9 @@ How AutoGadgetFS works:
 
 <a name="Linux"/>
 
-### Linux Machine
+### Linux Machine 
+
+* Note: WSL/WSL2 is not supported due to issues with USB pass-through.
 
 * Install Python3, ipython3 ,git, pip and rabbitMQ server
 

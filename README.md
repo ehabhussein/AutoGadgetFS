@@ -151,7 +151,6 @@ How AutoGadgetFS works:
 
     ```bash
     sudo -H pip3 install -r requirements.txt
-    sudo -H pip3 install cmd
     ```
 
 * Downgrade prompt toolkit for better ipython experience:

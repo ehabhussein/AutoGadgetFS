@@ -41,8 +41,6 @@ if int(platform.uname()[2][0]) < 4:
     print("Gadgets might not work!!\n")
 try:
     import usb
-    import usb.core
-    import usb.util
 except:
     print("Seems like you dont have pyusb installed.\n[-]install it via pip:\n\t[-]pip3 install pyusb")
     exit(-1)

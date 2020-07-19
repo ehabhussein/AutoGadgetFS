@@ -167,6 +167,11 @@ How AutoGadgetFS works:
     ```
 
 * login to the web interface with the credentials *guest:guest*
+  * NOTE: if you are not installing rabbitMQ on `localhost` add the following user and login with it:
+    ```bash
+    sudo rabbitmqctl add_user autogfs usb4ever
+    sudo rabbitmqctl set_user_tags autogfs administrator
+    ```
   * Upload the rabbitMQ configuration file
     * In the overview tab scroll to the bottom to import definitions
     * Upload the file found in: *rabbitMQbrokerconfig/rabbitmq-Config.json*

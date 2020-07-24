@@ -179,17 +179,8 @@ class agfs:
         :param productID: Product ID of the device
         :return: None
         """
-        if self.SelectedDevice:
-            vid = self.device.idVendor
-            prod = self.device.idProduct
-            dev = self.SelectedDevice
-            self.releasedev()
-            doDFU = subprocess.run(['dfu-tool', 'read', '--device', f'{vid}:{prod}', f'{dev}-firmware.bin'],
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT)
-        elif vendorID is None and productID is None:
-            doDFU = subprocess.run(['dfu-tool', '--device', f'{self.device}'], stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT)
+        pass
+    #TODO
 
     def releasedev(self):
         """releases the device and re-attaches the kernel driver"""

@@ -96,6 +96,17 @@ class agfs:
         self.mitmstarted = 0
         self.newProject()
 
+    def valueerror_as_result(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except ValueError as error:
+                return error.args[0]
+        return wrapper
+
+    usb.util.get_string = valueerror_as_result(usb.util.get_string)
+
     def createctrltrsnfDB(self):
         """
         creates a SQLite database containing values that were enumerated from control transfer enumeration

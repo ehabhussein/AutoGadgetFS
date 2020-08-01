@@ -20,7 +20,7 @@ import EDAP
 from termcolor import cprint
 import inspect
 import itertools
-import subprocess
+import re
 import glob
 import requests
 from bs4 import BeautifulSoup
@@ -35,10 +35,6 @@ if int(platform.python_version()[0]) < 3:
 if geteuid() != 0:
     print("Don't forget that this needs root privileges!")
     exit(-1)
-if int(platform.uname()[2][0]) < 4:
-    print(
-        "Seems like you have an incompatible kernel, upgrade to something >= 4.x\nThis might not work properly..You have been warned!!!\n")
-    print("Gadgets might not work!!\n")
 try:
     import usb
 except:
@@ -98,6 +94,7 @@ class agfs:
         self.piuser = agfsSettings['PiZeroUser']
         self.pipass = agfsSettings['PiZeroPass']
         self.mitmstarted = 0
+        self.newProject()
 
     def createctrltrsnfDB(self):
         """
@@ -184,7 +181,6 @@ class agfs:
 
     def releasedev(self):
         """releases the device and re-attaches the kernel driver"""
-        print("[-] Releasing the Interface")
         for configurations in self.device:
             print("Releasing interfaces :\n\t%s" % configurations.bNumInterfaces)
             print("[-] Attaching the kernel driver")
@@ -210,10 +206,16 @@ class agfs:
         device = usb.core.find(idVendor=int(idVen), idProduct=int(idProd))
         print(device)
 
+    def autoDiscover(self):
+        """This method will try to discover which interfaces/endpoints communicate"""
+        #TODO
+        pass
+
     def deviceInterfaces(self):
         """get all interfaces and endpoints on the device"""
         self.device = usb.core.find(idVendor=self.device.idVendor, idProduct=self.device.idProduct)
         self.leninterfaces = 0
+        self.allendpoints = {}
         for cfg in self.device:
             for intf in cfg:
                 if intf.bInterfaceClass == 3:
@@ -221,13 +223,20 @@ class agfs:
                 self.leninterfaces += 1
         for c,d in enumerate(self.device):
             cprint(f"Configuration {c+1}",color='green')
-            for i in d.interfaces():
+            for q,i in enumerate(d.interfaces()):
                 for j in str(i).split("\n"):
                     if "INTERFACE" in j:
-                        cprint(j.split("=")[0],color="blue")
+                        intf = j.split("=")[0]
+                        antfalt = re.search("INTERFACE (.+):", intf).group(1) if "," in re.search("INTERFACE (.+):", intf).group(1) else f'{re.search("INTERFACE (.+):", intf).group(1)}, 0'
+                        self.allendpoints[antfalt] = []
+                        cprint(intf,color="blue")
                     elif "ENDPOINT" in j:
-                        cprint(j.split("=")[0], color="green")
-
+                        endp = j.split("=")[0]
+                        cprint(endp, color="green")
+                        if " IN" in endp:
+                            self.allendpoints[antfalt].append(f"IN:{hex(int(re.search('0x[aA-fF0-9]+',endp).group(0),16))}")
+                        elif " OUT" in endp:
+                            self.allendpoints[antfalt].append(f"OUT:{hex(int(re.search('0x[aA-fF0-9]+', endp).group(0), 16))}")
 
     def newProject(self):
         """ creates a new project name if you were testing something else"""
@@ -248,8 +257,7 @@ class agfs:
         if self.SelectedDevice is None and chgint is None:
             self.projname = self.SelectedDevice if self.SelectedDevice else input("Give your project a name?!: ")
             self.getusbs = usb.core.find(find_all=True)
-            self.devices = dict(enumerate(
-                str(dev.manufacturer) + ":" + str(dev.idProduct) + ":" + str(dev.idVendor) for dev in self.getusbs))
+            self.devices = dict(enumerate("{0}:{1}:{2}".format(str(dev.manufacturer), str(dev.idProduct), str(dev.idVendor)) for dev in self.getusbs))
             for key, value in self.devices.items():
                 print(key, ":", value)
             self.hook = input("---> Select a device: ")
@@ -342,7 +350,10 @@ class agfs:
                 print(e)
                 self.device_hidrep = []
                 self.showMessage("Couldn't get a hid report but we have claimed the device.", color='red', blink='y')
+        elif self.itshid == 0:
+            self.device_hidrep = []
         self.itshid = 0
+
         if type(self.device.manufacturer) is type(None):
             self.manufacturer = "UnkManufacturer"
         else:
@@ -1230,6 +1241,7 @@ class agfs:
         :param sequence: the sequence number you would like to select to reply
         :param message: will allow you to send your selected message
         :param timeout: how long to wait between messages
+        #TODO
         """
         count = 0
         if direction == 'in':
@@ -1416,19 +1428,23 @@ class agfs:
         try:
             try:
                 self.device_hidrep
-            except:
+            except Exception as e:
+                print(e)
+                self.device_hidrep = []
                 self.showMessage("Claim the interfaces before trying to clone the device. We need some info",
                                  color='red')
                 return "Cloning Failed"
             try:
                 self.devcfg.bmAttributes
-            except:
+            except Exception as e:
+                print(e)
                 self.showMessage("Claim the interfaces before trying to clone the device. We need some info",
                                  color='red')
                 return "Cloning Failed"
             try:
                 self.devcfg.bMaxPower
-            except:
+            except Exception as e:
+                print(e)
                 self.showMessage("Claim the interfaces before trying to clone the device. We need some info",
                                  color='red')
                 return "Cloning Failed"
@@ -1455,6 +1471,7 @@ class agfs:
             print("- Done: Device settings copied to file.\n")
             cloner.close()
         except Exception as e:
+            print(e)
             self.showMessage("Cannot clone the device!\n", color='red', blink='y')
 
     def setupGadgetFS(self):

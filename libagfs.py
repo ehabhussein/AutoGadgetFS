@@ -864,7 +864,7 @@ class agfs:
         if fromMITM == 1:
             self.stopMITM()
             self.startMITM(epin=self.mitmin,epout=self.mitmout, hostsave=self.hostsave, devsave=self.devsave)
-        cprint("[-] Device reconnected!",color='blue')
+        cprint("[-] Device Reconnected!",color='blue')
 
 
 

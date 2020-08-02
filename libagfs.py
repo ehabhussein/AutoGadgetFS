@@ -97,6 +97,7 @@ class agfs:
         self.newProject()
 
     def valueerror_as_result(func):
+        """Patch for Pyusb langID"""
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
@@ -502,7 +503,10 @@ class agfs:
                     if e.args == ('Operation timed out\r\n',):
                         self.showMessage("Operation timed out cannot read from device", color='red', blink='y')
                 except Exception as e:
-                    self.showMessage("Error read from device", color='red')
+                    print(e)
+                    self.showMessage("Error read from device possibly crashed, trying to reconnect", color='red')
+                    self.reconnectdevice(fromMITM=1)
+                    continue
                 self.qchannel3.basic_publish(exchange='agfs', routing_key='tonull', body="heartbeats")
 
         elif pts and queue is None:
@@ -836,6 +840,8 @@ class agfs:
         We need to add a check if the MITM was started with save files ## not implemented yet
         :param return: None
         """
+        print("Waiting for device....")
+        sleep(5)
         while True:
             try:
                 self.device = usb.core.find(idVendor=int(self.idVen), idProduct=int(self.idProd))
@@ -856,6 +862,7 @@ class agfs:
             except:
                 pass
         if fromMITM == 1:
+            self.stopMITM()
             self.startMITM(epin=self.mitmin,epout=self.mitmout, hostsave=self.hostsave, devsave=self.devsave)
         cprint("[-] Device reconnected!",color='blue')
 

@@ -151,11 +151,11 @@ Complete agfs in the middle setup with debugging support:
 
 <a name="Installation"/>
 
-### Installation
+### Installation:
 
 <a name="Linux"/>
 
-### Linux Machine 
+### Linux Machine:
 
 * Note: WSL/WSL2 is not supported due to issues with USB pass-through.
 
@@ -235,7 +235,7 @@ Complete agfs in the middle setup with debugging support:
     Give your project a name?!:
    ```
 
-* Patch Pyusb langID:
+* Patch Pyusb langID ( Not needed unless you get pyusb errors for langID ):
   * Edit the file `/usr/local/lib/python3/dist-packages/usb/util.py`
     * make changes to the `def get_string` method to look like below:
 
@@ -256,7 +256,7 @@ Complete agfs in the middle setup with debugging support:
 
 <a name="Rasp"/>
 
-### Raspberry Pi Zero W
+### Raspberry Pi Zero W:
 
 * Obtain a copy of [Raspian Lite Edition](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
   * Burn the Image to the SD card using [BalenaEtcher](https://www.balena.io/etcher/)

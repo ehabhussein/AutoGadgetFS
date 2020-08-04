@@ -117,7 +117,7 @@ Complete agfs in the middle setup with debugging support:
 
 1. Find, Select and Attach to a USB device with ease.
 1. Emulate any USB HID device .
-1. Perform AGFS in the middle sniffing ( save communication to disk ).
+1. Perform AGFS in the middle sniffing for HID devices ( save communication to disk ).
 1. Device sniffing ( Any device ).
 1. Multiple Fuzzers allow you to Fuzz a device or a host.
 1. Random fuzzers ( with fixed or random length packets ).

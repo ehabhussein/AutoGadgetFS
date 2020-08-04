@@ -605,4 +605,4 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ### Contribute:
 
-We're looking for developers to me this tool great! send me an 📧: <rd@agfs.io> if you feel you'd like to be a part of this.
+We're looking for developers to make this tool great! send me an 📧: <rd@agfs.io> if you feel you'd like to be a part of this.

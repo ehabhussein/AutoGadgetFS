@@ -16,8 +16,6 @@
     
     c. [Complete agfs in the middle setup with debugging support](#FMITM)
     
-    d. [How AutoGadgetFS works](#HIW)
-
 4. [USB Device class support](#Usbdev)
 
 5. [Capabilities](#Caps)

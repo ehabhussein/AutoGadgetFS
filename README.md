@@ -97,12 +97,6 @@ Complete agfs in the middle setup with debugging support:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario2.jpeg"/></div>
 
-<a name="HIW"/>
-
-```bash
-How AutoGadgetFS works:
-``` 
-
 ---
 
 <a name="Usbdev"/>
@@ -120,6 +114,35 @@ How AutoGadgetFS works:
 <a name="Caps"/>
 
 ### Capabilities:
+
+1. Find, Select and Attach to a USB device with ease.
+1. Emulate any USB HID device .
+1. Perform AGFS in the middle sniffing ( save communication to disk ).
+1. Device sniffing ( Any device ).
+1. Multiple Fuzzers allow you to Fuzz a device or a host.
+1. Random fuzzers ( with fixed or random length packets ).
+1. Smart Fuzzers that learn from previous USB communications.
+1. Describe Fuzzer to tell the Fuzzer which bytes to Fuzz leaving the rest of the packet the same.
+1. Gadget Fuzzer.
+1. Sequential Fuzzer.
+1. Control transfer Enumerator.
+1. Replay of packets from a file.
+1. Replay of packets from a saved USBLyzer capture.
+1. Visual way of presenting packets to allow ease of reverse engineering of the communication.
+1. Alerts for device in DFU mode, or if the device leaks information.
+1. USB device and host can be anywhere on the internet.
+1. Monitor sudden interface changes.
+
+---
+
+<a name="Road"/>
+
+1. Sniff control transfer requests to a device and reply to them.
+1. MITM and emulate all types of devices.
+1. Console/QT based interface.
+1. More Interfaces support.
+1. Support more boards like the greatfet .
+1. Move to a custom board.
 
 ---
 

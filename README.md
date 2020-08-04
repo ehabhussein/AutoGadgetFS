@@ -142,7 +142,7 @@ Complete agfs in the middle setup with debugging support:
 1. Sniff control transfer requests to a device and reply to them.
 1. MITM and emulate all types of devices.
 1. Console/QT based interface.
-1. More Interfaces support.
+1. More Interfaces/endpoints support on the RPI zero W.
 1. Support more boards like the greatfet.
 1. Move to a custom board.
 1. Work on making raspberry pi have full support for usb device emulation with all interfaces.

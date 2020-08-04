@@ -44,6 +44,8 @@
 
 14. [Contact me](#Contact)
 
+15. [Want to contribute ?](#Cont)
+
 ---
 
 <a name="About"/>
@@ -596,3 +598,11 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 ### 📧: <rd@agfs.io>
 
 ### 🐦 : <https://twitter.com/0xRaindrop>
+
+---
+
+<a name="Cont"/>
+
+### Contribute:
+
+We're looking for developers to me this tool great! send me an 📧: <rd@agfs.io> if you feel you'd like to be a part of this.

@@ -146,6 +146,7 @@ Complete agfs in the middle setup with debugging support:
 1. Support more boards like the greatfet.
 1. Move to a custom board.
 1. Work on making raspberry pi have full support for usb device emulation with all interfaces.
+1. correlate sent and received packets via sequence numbers.
 
 ---
 

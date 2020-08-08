@@ -554,10 +554,12 @@ In [16]: x.help("findSelect")
 
 [+]findSelect Help:
 This method enumerates all USB devices connected and allows you to select it as a target device as well as its endpoints
-****
-                                                                                 
+****                                                                             
 ```
+
 </details>
+
+---
 
 #### AutoGadgetFS console. A much simpler way to use AGFS:
 

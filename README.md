@@ -454,13 +454,13 @@ Out[46]:
 
 #### Help method:
 
-<details>
-
 ```python3
 
-In [15]: x.help("")                                                                                                                                                                           
+In [15]: x.help("")                                                                                                                                               ```
+
+<details>
 Currently supported methods:
-______________________________________________________________________________________________________________________________________________________________________________________________
+__________________________________________________________________________________________________________________________________________________________________
 Method               ||-->Description
 ----------------------------------------------------------------------------------------------------------------------------
 MITMproxy            ||-->This method creates a connection to the RabbitMQ and listen on received messages on the todev queue
@@ -555,7 +555,7 @@ This method enumerates all USB devices connected and allows you to select it as 
 ****
                                                                                  
 ```
-<details>
+</details>
 
 #### AutoGadgetFS console. A much simpler way to use AGFS:
 

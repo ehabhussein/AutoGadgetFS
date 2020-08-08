@@ -461,6 +461,7 @@ In [15]: x.help("")
 <details>
 
 ```python3
+
 Currently supported methods:
 __________________________________________________________________________________________________________________________________________________________________
 Method               ||-->Description
@@ -554,7 +555,8 @@ In [16]: x.help("findSelect")
 
 [+]findSelect Help:
 This method enumerates all USB devices connected and allows you to select it as a target device as well as its endpoints
-****                                                                             
+****
+
 ```
 
 </details>

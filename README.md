@@ -456,7 +456,7 @@ Out[46]:
 
 <details>
 
-```python
+```python3
 In [15]: x.help("")                                                                                                                                                                           
 Currently supported methods:
 ______________________________________________________________________________________________________________________________________________________________________________________________
@@ -555,7 +555,6 @@ This method enumerates all USB devices connected and allows you to select it as 
 
 In [17]:                                                                                      
 ```
-
 <details>
 
 #### AutoGadgetFS console. A much simpler way to use AGFS:

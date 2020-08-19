@@ -693,18 +693,23 @@ class agfs:
 
     def clearqueues(self):
         """this method clears all the queues on the rabbitMQ queues that are set up"""
-        self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
-        self.qpikaparams4 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds4, heartbeat=60)
-        self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
-        self.qchannel4 = self.qconnect4.channel()
-        self.qchannel4.queue_purge('todevice')
-        self.qchannel4.queue_purge('tohost')
-        self.qchannel4.queue_purge('tonull')
-        self.qchannel4.queue_purge('edapdev')
-        self.qchannel4.queue_purge('edaphst')
-        self.qchannel4.queue_purge('gdtfz')
-        cprint("Purged all queues", color="blue")
-        self.qconnect4.close()
+        try:
+            cprint("Clearing all queues",color='blue')
+            self.qcreds4 = pika.PlainCredentials('autogfs', 'usb4ever')
+            self.qpikaparams4 = pika.ConnectionParameters(self.rabbitmqserver, 5672, '/', self.qcreds4, heartbeat=60)
+            self.qconnect4 = pika.BlockingConnection(self.qpikaparams4)
+            self.qchannel4 = self.qconnect4.channel()
+            self.qchannel4.queue_purge('todevice')
+            self.qchannel4.queue_purge('tohost')
+            self.qchannel4.queue_purge('tonull')
+            self.qchannel4.queue_purge('edapdev')
+            self.qchannel4.queue_purge('edaphst')
+            self.qchannel4.queue_purge('gdtfz')
+            sleep(5)
+            cprint("Purged all queues", color="blue")
+            self.qconnect4.close()
+        except:
+            cprint("Error: Ensure that rabbitMQ is running!",color='red')
 
     def hostwrite(self, payload, isfuzz=0):
         """ This method writes packets to the host either targeting a software or a driver in control of the device
@@ -777,6 +782,8 @@ class agfs:
         :param epout: endpoint out
         :param size: string value whether its fixed or random size
         :param timeout: timeOUT !
+        :param Rmatch: checks the reponse for an unmatch of your string and will pause
+        :param Cmatch: checks the response for a match your string and will pause
         :return: None
         """
         i = 0
@@ -990,21 +997,27 @@ class agfs:
                 self.stopQueuewrite()
             elif direction == 'dev':
                 cprint("Starting to send to device")
-                epin = int(input("Endpoint IN: "),16)
-                epout = int(input("Endpoint OUT: "),16)
+                self.deviceInterfaces()
+                epin = int(input("Endpoint IN: "),base=16)
+                epout = int(input("Endpoint OUT: "),base=16)
                 for i,s in enumerate(self.edap.packets):
-                    self.device.write(epout, binascii.unhexlify(s))
-                    r = self.device.read(epin, self.device.bMaxPacketSize0)
-                    sdec, checks = self.decodePacketAscii(payload=binascii.unhexlify(s))
-                    rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
-                    cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
-                    cprint(f"|\t  Bytes:", color="blue")
-                    cprint(
-                        f"|\t\tSent: {s}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
-                        color="green")
-                    cprint(f"|\t  Decoded:", color="blue")
-                    cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
-                    cprint(f"|{'_' * 90}[{i}]", color="green")
+                    try:
+                        print(s,epin,epout)
+                        print(binascii.unhexlify(s))
+                        self.device.write(epout, binascii.unhexlify(s))
+                        r = self.device.read(epin, self.device.bMaxPacketSize0)
+                        sdec, checks = self.decodePacketAscii(payload=binascii.unhexlify(s))
+                        rdec, checkr = self.decodePacketAscii(payload=r, rec=1)
+                        cprint(f"|-Packet[{i}]{'-' * 80}", color="green")
+                        cprint(f"|\t  Bytes:", color="blue")
+                        cprint(
+                            f"|\t\tSent: {s}\n|\t\t    |____Received: {binascii.hexlify(r)}\n|\t\t\t|_______Diff:{checkr}",
+                            color="green")
+                        cprint(f"|\t  Decoded:", color="blue")
+                        cprint(f"|\t\t Sent: {sdec}\n|\t\t    |____Received: {rdec}", color="green")
+                        cprint(f"|{'_' * 90}[{i}]", color="green")
+                    except:
+                        self.device.reset()
             else:
                 return cprint("No direction was selected. Nothing to do. libagfs.edap.packets holds your generated payloads!", color="red")
             self.showMessage("Ended Successfully!",color="blue")
@@ -1014,7 +1027,7 @@ class agfs:
             return self.showMessage("Interrupt detected!", color='blue')
         except Exception as e:
             print(e)
-            return 'Exception occured!'
+            print('Exception occured!')
 
 
     def devseqfuzz(self, epin=None, epout=None, starter=0x00, ender=0xffffffffff + 1, timeout=0):

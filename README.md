@@ -1,5 +1,7 @@
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/agfslogos.png"/></div>
 
+<div style="text-align:center"><iframe width="500" height="315" src="https://www.youtube.com/embed/VY10xFifA50" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+
 [![PayPal Donations](https://img.shields.io/static/v1?logo=Donate&label=Donate&message=To%20support%20the%20development%20of%20AGFS&color=blue)](https://www.paypal.me/autogadgetfs)
 
 ## Table of Contents
@@ -16,8 +18,6 @@
     
     c. [Complete agfs in the middle setup with debugging support](#FMITM)
     
-    d. [How AutoGadgetFS works](#HIW)
-
 4. [USB Device class support](#Usbdev)
 
 5. [Capabilities](#Caps)
@@ -43,6 +43,8 @@
 13. [Buy me a coffee ☕️](#Donate)
 
 14. [Contact me](#Contact)
+
+15. [Want to contribute ?](#Cont)
 
 ---
 
@@ -97,12 +99,6 @@ Complete agfs in the middle setup with debugging support:
 
 <div style="text-align:center"><img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/scenario2.jpeg"/></div>
 
-<a name="HIW"/>
-
-```bash
-How AutoGadgetFS works:
-``` 
-
 ---
 
 <a name="Usbdev"/>
@@ -121,15 +117,48 @@ How AutoGadgetFS works:
 
 ### Capabilities:
 
+1. Find, Select and Attach to a USB device with ease.
+1. Emulate any USB HID device .
+1. Perform AGFS in the middle sniffing for HID devices ( save communication to disk ).
+1. Device sniffing ( Any device ).
+1. Multiple Fuzzers allow you to Fuzz a device or a host.
+1. Random fuzzers ( with fixed or random length packets ).
+1. Smart Fuzzers that learn from previous USB communications.
+1. Describe Fuzzer to tell the Fuzzer which bytes to Fuzz leaving the rest of the packet the same.
+1. Gadget Fuzzer.
+1. Sequential Fuzzer.
+1. Control transfer Enumerator.
+1. Replay of packets from a file.
+1. Replay of packets from a saved USBLyzer capture.
+1. Visual way of presenting packets to allow ease of reverse engineering of the communication.
+1. Alerts for device in DFU mode, or if the device leaks information.
+1. USB device and host can be anywhere on the internet.
+1. Monitor sudden interface changes.
+
+---
+
+<a name="Road"/>
+
+### RoadMap:
+
+1. Sniff control transfer requests to a device and reply to them.
+1. MITM and emulate all types of devices.
+1. Console/QT based interface.
+1. More Interfaces/endpoints support on the RPI zero W.
+1. Support more boards like the greatfet.
+1. Move to a custom board.
+1. Work on making raspberry pi have full support for usb device emulation with all interfaces.
+1. correlate sent and received packets via sequence numbers.
+
 ---
 
 <a name="Installation"/>
 
-### Installation
+### Installation:
 
 <a name="Linux"/>
 
-### Linux Machine 
+### Linux Machine:
 
 * Note: WSL/WSL2 is not supported due to issues with USB pass-through.
 
@@ -209,7 +238,7 @@ How AutoGadgetFS works:
     Give your project a name?!:
    ```
 
-* Patch Pyusb langID:
+* Patch Pyusb langID ( Not needed unless you get pyusb errors for langID ):
   * Edit the file `/usr/local/lib/python3/dist-packages/usb/util.py`
     * make changes to the `def get_string` method to look like below:
 
@@ -230,7 +259,7 @@ How AutoGadgetFS works:
 
 <a name="Rasp"/>
 
-### Raspberry Pi Zero W
+### Raspberry Pi Zero W:
 
 * Obtain a copy of [Raspian Lite Edition](https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
   * Burn the Image to the SD card using [BalenaEtcher](https://www.balena.io/etcher/)
@@ -425,10 +454,11 @@ Out[46]:
 
 #### Help method:
 
-```python
-In [15]: x.help("")                                                                                                                                                                           
+```python3
+In [15]: x.help("")                                                                                                                                               
+
 Currently supported methods:
-______________________________________________________________________________________________________________________________________________________________________________________________
+__________________________________________________________________________________________________________________________________________________________________
 Method               ||-->Description
 ----------------------------------------------------------------------------------------------------------------------------
 MITMproxy            ||-->This method creates a connection to the RabbitMQ and listen on received messages on the todev queue
@@ -521,9 +551,9 @@ In [16]: x.help("findSelect")
 [+]findSelect Help:
 This method enumerates all USB devices connected and allows you to select it as a target device as well as its endpoints
 ****
-
-In [17]:                                                                                      
 ```
+
+---
 
 #### AutoGadgetFS console. A much simpler way to use AGFS:
 
@@ -570,3 +600,11 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 ### 📧: <rd@agfs.io>
 
 ### 🐦 : <https://twitter.com/0xRaindrop>
+
+---
+
+<a name="Cont"/>
+
+### Contribute:
+
+We're looking for developers to make this tool great! send me an 📧: <rd@agfs.io> if you feel you'd like to be a part of this.

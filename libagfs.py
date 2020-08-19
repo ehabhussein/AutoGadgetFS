@@ -782,7 +782,7 @@ class agfs:
         :param epout: endpoint out
         :param size: string value whether its fixed or random size
         :param timeout: timeOUT !
-        :param Rmatch: checks the reponse for an unmatch of your string and will pause
+        :param Rmatch: checks the reponse for an non-match of your string and will pause
         :param Cmatch: checks the response for a match your string and will pause
         :return: None
         """

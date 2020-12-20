@@ -582,7 +582,7 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ### Supported by:
 
-<img src="https://pbs.twimg.com/profile_images/1039931315766870016/ahOvevDU_400x400.jpg" width="166" height="166"> <img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/JetBrains.png" width="166" height="166">  <img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/pyusb.png" width="166" height="166"> <img src="https://i.imgur.com/r6XELEf.png" width="166" height="166">
+<img src="https://pbs.twimg.com/profile_images/1039931315766870016/ahOvevDU_400x400.jpg" width="166" height="166"> <img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/JetBrains.png" width="166" height="166">  <img src="https://github.com/ehabhussein/AutoGadgetFS/raw/master/screenshots/pyusb.png" width="166" height="166"> 
 
 ---
 

@@ -2,7 +2,7 @@
 
 <div style="text-align:center"><iframe width="500" height="315" src="https://www.youtube.com/embed/VY10xFifA50" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
 
-[![Ethereum Donations] 0xA919e40ddB0563918dDc174320D91992e0048477
+## Ethereum Donations : 0xA919e40ddB0563918dDc174320D91992e0048477
 
 ## Table of Contents
 
@@ -590,7 +590,7 @@ Visit [AutogadgetFS Slack Channel](https://join.slack.com/t/autogadgetfs/shared_
 
 ### Buy me a coffee to support the development of this project
 
-[![PayPal Donations](https://img.shields.io/static/v1?logo=Donate&label=Donate&message=To%20support%20the%20development%20of%20AGFS&color=blue)](https://www.paypal.me/autogadgetfs)
+## Ethereum Donations : 0xA919e40ddB0563918dDc174320D91992e0048477
 
 ---
 <a name="Contact"/>

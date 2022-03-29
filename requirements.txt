@@ -1,4 +1,4 @@
-paramiko==2.6.0
+paramiko==2.10.1
 pika==1.1.0
 requests==2.23.0
 xmltodict==0.12.0
